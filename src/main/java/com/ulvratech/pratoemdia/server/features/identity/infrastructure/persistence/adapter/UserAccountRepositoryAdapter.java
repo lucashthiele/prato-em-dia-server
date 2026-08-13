@@ -15,8 +15,8 @@ import java.util.UUID;
 
 @Repository
 public class UserAccountRepositoryAdapter implements UserAccountRepository {
-    UserAccountMapper mapper;
-    UserAccountJpaRepository repository;
+    private final UserAccountMapper mapper;
+    private final UserAccountJpaRepository repository;
 
     public UserAccountRepositoryAdapter(UserAccountMapper mapper, UserAccountJpaRepository repository) {
         this.mapper = mapper;
