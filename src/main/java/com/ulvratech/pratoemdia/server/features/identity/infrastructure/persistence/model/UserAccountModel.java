@@ -11,7 +11,6 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
-import java.math.BigInteger;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -50,10 +49,6 @@ public class UserAccountModel {
     private Instant updatedAt;
     
     @Column(name = "version")
-    private BigInteger version;
-    
-    @PrePersist
-    void prePersist() {
-        version = BigInteger.valueOf(1);
-    }
+    @Version
+    private int version;
 }
