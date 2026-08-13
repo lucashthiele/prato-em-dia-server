@@ -7,7 +7,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigInteger;
 import java.time.Instant;
@@ -20,6 +22,7 @@ import java.util.UUID;
 @Setter
 public class UserAccountModel {
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     
     @Column(name = "email")
@@ -30,10 +33,12 @@ public class UserAccountModel {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private UserAccountModelRole role;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private UserAccountModelStatus status;
 
     @CreationTimestamp

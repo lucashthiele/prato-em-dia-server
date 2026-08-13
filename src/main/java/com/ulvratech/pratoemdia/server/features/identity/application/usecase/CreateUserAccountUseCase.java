@@ -5,6 +5,7 @@ import com.ulvratech.pratoemdia.server.features.identity.application.dto.CreateU
 import com.ulvratech.pratoemdia.server.features.identity.application.dto.CreateUserAccountOutput;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.PasswordHasher;
 import com.ulvratech.pratoemdia.server.features.identity.domain.entity.UserAccount;
+import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccountStatus;
 import com.ulvratech.pratoemdia.server.features.identity.domain.port.out.UserAccountRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +42,7 @@ public class CreateUserAccountUseCase implements CreateUserAccount {
             input.email(),
             passwordHash,
             input.role(),
-            input.status());
+            UserAccountStatus.ACTIVE); // new user should always be active
         
         UserAccount savedUserAccount = repository.save(userAccount);
 

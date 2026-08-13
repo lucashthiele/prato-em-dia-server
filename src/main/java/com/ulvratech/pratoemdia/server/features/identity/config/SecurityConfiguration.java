@@ -4,8 +4,14 @@ import com.ulvratech.pratoemdia.server.features.identity.application.port.out.Pa
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.BcryptPasswordHasher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
+@EnableWebSecurity
 public class SecurityConfiguration {
     
     private final static int BCRYPT_STRENGTH = 8;
@@ -13,5 +19,16 @@ public class SecurityConfiguration {
     @Bean
     public PasswordHasher passwordHasher() {
         return new BcryptPasswordHasher(BCRYPT_STRENGTH);
+    }
+
+    @Bean
+    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        return http
+            .csrf(AbstractHttpConfigurer::disable)
+            .authorizeHttpRequests(auth -> auth
+                .anyRequest().authenticated()
+            )
+            .httpBasic(Customizer.withDefaults())
+            .build();
     }
 }
