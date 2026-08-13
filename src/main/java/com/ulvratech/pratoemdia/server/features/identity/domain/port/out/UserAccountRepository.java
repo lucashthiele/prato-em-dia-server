@@ -13,4 +13,6 @@ public interface UserAccountRepository {
     Optional<UserAccount> findById(UUID userId);
 
     PageResult<UserAccount> findAll(PageRequest pageable);
+    
+    Optional<UserAccount> findByEmailIgnoreCase(String email);
 }

@@ -53,4 +53,9 @@ public class UserAccountRepositoryAdapter implements UserAccountRepository {
             result.getTotalPages()
         );
     }
+
+    @Override
+    public Optional<UserAccount> findByEmailIgnoreCase(String email) {
+        return repository.findByEmail(email.toLowerCase()).map(mapper::toEntity);
+    }
 }

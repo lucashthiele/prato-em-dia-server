@@ -1,5 +1,6 @@
 package com.ulvratech.pratoemdia.server.features.identity.application.usecase;
 
+import com.ulvratech.pratoemdia.server.features.identity.application.exception.UserAccountAlreadyExistsException;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.in.CreateUserAccount;
 import com.ulvratech.pratoemdia.server.features.identity.application.dto.CreateUserAccountInput;
 import com.ulvratech.pratoemdia.server.features.identity.application.dto.CreateUserAccountOutput;
@@ -25,21 +26,31 @@ public class CreateUserAccountUseCase implements CreateUserAccount {
 
     @Override
     public CreateUserAccountOutput execute(CreateUserAccountInput input) {
+        var lowerCaseUserEmail = input.email().toLowerCase();
+        
         log.info(
             "Creating user account. email={}, role={}",
-            input.email(),
+            lowerCaseUserEmail,
             input.role()
         );
+        
+        var optionalExistingUser = repository.findByEmailIgnoreCase(lowerCaseUserEmail);
+        
+        if (optionalExistingUser.isPresent()) {
+            log.error("User with email={} already exists", lowerCaseUserEmail);
+            
+            throw new UserAccountAlreadyExistsException(lowerCaseUserEmail) ;
+        }
         
         String passwordHash = passwordHasher.hash(input.rawPassword());
         
         log.debug(
             "Password hashed successfully for user. email={}",
-            input.email()
+            lowerCaseUserEmail
         );
         
         UserAccount userAccount = new UserAccount(
-            input.email(),
+            lowerCaseUserEmail,
             passwordHash,
             input.role(),
             UserAccountStatus.ACTIVE); // new user should always be active
