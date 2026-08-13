@@ -1,7 +1,7 @@
 package com.ulvratech.pratoemdia.server.features.identity.infrastructure.persistence.adapter;
 
 import com.ulvratech.pratoemdia.server.features.identity.domain.entity.UserAccount;
-import com.ulvratech.pratoemdia.server.features.identity.domain.repository.UserAccountRepository;
+import com.ulvratech.pratoemdia.server.features.identity.domain.port.out.UserAccountRepository;
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.persistence.mapper.UserAccountMapper;
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.persistence.model.UserAccountModel;
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageRequest;

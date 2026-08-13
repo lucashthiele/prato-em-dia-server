@@ -1,4 +1,4 @@
-package com.ulvratech.pratoemdia.server.features.identity.domain.repository;
+package com.ulvratech.pratoemdia.server.features.identity.domain.port.out;
 
 import com.ulvratech.pratoemdia.server.features.identity.domain.entity.UserAccount;
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageRequest;
