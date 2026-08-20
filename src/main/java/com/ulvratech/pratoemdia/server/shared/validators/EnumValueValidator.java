@@ -27,7 +27,7 @@ public class EnumValueValidator
         String value,
         ConstraintValidatorContext context
     ) {
-        if (value == null) {
+        if (value == null || value.isBlank()) {
             return true;
         }
 

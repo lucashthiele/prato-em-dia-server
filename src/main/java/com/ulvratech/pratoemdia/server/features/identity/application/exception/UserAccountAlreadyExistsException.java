@@ -1,7 +1,12 @@
 package com.ulvratech.pratoemdia.server.features.identity.application.exception;
 
-public class UserAccountAlreadyExistsException extends RuntimeException {
+import com.ulvratech.pratoemdia.server.shared.application.exception.CodedApplicationException;
+
+public class UserAccountAlreadyExistsException extends CodedApplicationException {
     public UserAccountAlreadyExistsException(String email) {
-        super("Usuário já existe com email " + email);
+        super(
+            "IDENTITY_ACCOUNT_ALREADY_EXISTS",
+            "Já existe uma conta cadastrada com este e-mail."
+        );
     }
 }

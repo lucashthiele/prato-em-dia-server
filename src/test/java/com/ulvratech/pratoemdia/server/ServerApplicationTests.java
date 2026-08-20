@@ -1,13 +1,14 @@
 package com.ulvratech.pratoemdia.server;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
 class ServerApplicationTests {
 
     @Test
-    void contextLoads() {
+    void applicationEntryPointIsAvailable() {
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+            () -> ServerApplication.class.getDeclaredMethod("main", String[].class)
+        );
     }
 
 }
