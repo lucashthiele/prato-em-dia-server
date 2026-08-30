@@ -4,6 +4,7 @@ import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccoun
 import com.ulvratech.pratoemdia.server.shared.annotations.EnumValue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 
 public record CreateUserAccountRequest(
     @NotEmpty(message = "Informe o e-mail.")
