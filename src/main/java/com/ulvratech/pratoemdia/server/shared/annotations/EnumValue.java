@@ -18,7 +18,7 @@ import java.lang.annotation.Target;
 @Constraint(validatedBy = EnumValueValidator.class)
 public @interface EnumValue {
 
-    String message() default "must be one of the allowed values";
+    String message() default "O valor informado não é permitido.";
 
     Class<?>[] groups() default {};
 

@@ -4,3 +4,10 @@ spring:
 logging:
   level:
     org.springframework.security: INFO
+
+security:
+  jwt:
+    issuer: ${JWT_ISSUER:prato-em-dia}
+    access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:PT15M}
+    refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:P30D}
+    secret: ${JWT_SECRET}
