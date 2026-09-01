@@ -31,7 +31,8 @@ public class UserAccountController {
             var commandInput = new CreateUserAccountInput(
                 request.email(),
                 request.password(),
-                UserAccountRole.valueOf(request.role())
+                UserAccountRole.valueOf(request.role()),
+                request.fullName()
             );
             
             var output = createUserAccountCommand.execute(commandInput);

@@ -5,6 +5,7 @@ import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccoun
 public record CreateUserAccountInput(
     String email,
     String rawPassword,
-    UserAccountRole role
+    UserAccountRole role,
+    String fullName
 ) {
 }

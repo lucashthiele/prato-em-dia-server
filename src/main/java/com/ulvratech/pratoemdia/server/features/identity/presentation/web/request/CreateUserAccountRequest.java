@@ -3,8 +3,10 @@ package com.ulvratech.pratoemdia.server.features.identity.presentation.web.reque
 import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccountRole;
 import com.ulvratech.pratoemdia.server.shared.annotations.EnumValue;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Size;
 
 public record CreateUserAccountRequest(
     @NotEmpty(message = "Informe o e-mail.")
@@ -19,6 +21,13 @@ public record CreateUserAccountRequest(
         enumClass = UserAccountRole.class, 
         message = "O tipo de conta informado não é válido."
     ) 
-    String role
+    String role,
+
+    @Size(max = 160, message = "O nome completo deve ter no máximo 160 caracteres.")
+    String fullName
 ) {
+    @AssertTrue(message = "Informe o nome completo para paciente ou nutricionista.")
+    public boolean isFullNameValidForRole() {
+        return "ADMIN".equals(role) || (fullName != null && !fullName.isBlank());
+    }
 }
