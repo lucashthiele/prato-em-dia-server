@@ -4,9 +4,6 @@ import com.ulvratech.pratoemdia.server.shared.application.exception.CodedApplica
 
 public class InvalidRefreshTokenException extends CodedApplicationException {
     public InvalidRefreshTokenException() {
-        super(
-            "AUTH_REFRESH_TOKEN_INVALID",
-            "O token de renovação é inválido ou foi revogado."
-        );
+        super("AUTH_REFRESH_TOKEN_INVALID");
     }
 }

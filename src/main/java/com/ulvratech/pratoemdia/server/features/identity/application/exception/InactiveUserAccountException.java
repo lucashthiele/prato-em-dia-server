@@ -4,6 +4,6 @@ import com.ulvratech.pratoemdia.server.shared.application.exception.CodedApplica
 
 public class InactiveUserAccountException extends CodedApplicationException {
     public InactiveUserAccountException() {
-        super("AUTH_ACCOUNT_INACTIVE", "Esta conta está inativa.");
+        super("AUTH_ACCOUNT_INACTIVE");
     }
 }

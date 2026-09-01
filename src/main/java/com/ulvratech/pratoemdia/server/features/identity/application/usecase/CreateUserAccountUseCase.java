@@ -27,7 +27,7 @@ public class CreateUserAccountUseCase implements CreateUserAccount {
     @Override
     public CreateUserAccountOutput execute(CreateUserAccountInput input) {
         var lowerCaseUserEmail = input.email().toLowerCase();
-        
+
         log.info(
             "Creating user account. email={}, role={}",
             lowerCaseUserEmail,
@@ -39,7 +39,7 @@ public class CreateUserAccountUseCase implements CreateUserAccount {
         if (optionalExistingUser.isPresent()) {
             log.error("User with email={} already exists", lowerCaseUserEmail);
             
-            throw new UserAccountAlreadyExistsException(lowerCaseUserEmail) ;
+            throw new UserAccountAlreadyExistsException();
         }
         
         String passwordHash = passwordHasher.hash(input.rawPassword());
@@ -72,4 +72,3 @@ public class CreateUserAccountUseCase implements CreateUserAccount {
             savedUserAccount.getStatus());
     }
 }
- 

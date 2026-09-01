@@ -1,6 +1,12 @@
 spring:
   application:
     name: server
+server:
+  error:
+    include-binding-errors: never
+    include-exception: false
+    include-message: never
+    include-stacktrace: never
 logging:
   level:
     org.springframework.security: INFO
