@@ -4,6 +4,6 @@ import com.ulvratech.pratoemdia.server.shared.application.exception.CodedApplica
 
 public class InvalidCredentialsException extends CodedApplicationException {
     public InvalidCredentialsException() {
-        super("AUTH_INVALID_CREDENTIALS", "E-mail ou senha inválidos.");
+        super("AUTH_INVALID_CREDENTIALS");
     }
 }

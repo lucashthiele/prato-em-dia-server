@@ -32,7 +32,11 @@ public class IdentityExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleUserAccountAlreadyExists(
         UserAccountAlreadyExistsException exception
     ) {
-        return response(HttpStatus.CONFLICT, exception);
+        return response(
+            HttpStatus.CONFLICT,
+            exception.getCode(),
+            "Já existe uma conta cadastrada com este e-mail."
+        );
     }
 
     @ExceptionHandler({
@@ -44,7 +48,11 @@ public class IdentityExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleAuthenticationFailure(
         CodedApplicationException exception
     ) {
-        return response(HttpStatus.UNAUTHORIZED, exception);
+        return response(
+            HttpStatus.UNAUTHORIZED,
+            exception.getCode(),
+            authenticationFailureMessage(exception)
+        );
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -55,7 +63,7 @@ public class IdentityExceptionHandler {
             .map(error -> new ApiFieldError(
                 error.getField(),
                 validationCode(error.getCode()),
-                error.getDefaultMessage()
+                validationMessage(error.getCode())
             ))
             .toList();
 
@@ -80,7 +88,12 @@ public class IdentityExceptionHandler {
                         .annotationType()
                         .getSimpleName()
                 ),
-                violation.getMessage()
+                validationMessage(
+                    violation.getConstraintDescriptor()
+                        .getAnnotation()
+                        .annotationType()
+                        .getSimpleName()
+                )
             ))
             .toList();
 
@@ -143,18 +156,19 @@ public class IdentityExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleUnexpectedFailure(Exception exception) {
         log.error("Unexpected request failure", exception);
-        return response(
-            HttpStatus.INTERNAL_SERVER_ERROR,
-            "INTERNAL_ERROR",
-            "Não foi possível concluir a operação. Tente novamente mais tarde."
-        );
+        return internalErrorResponse();
     }
 
-    private ResponseEntity<ApiErrorResponse> response(
-        HttpStatus status,
+    @ExceptionHandler(CodedApplicationException.class)
+    public ResponseEntity<ApiErrorResponse> handleUnhandledApplicationFailure(
         CodedApplicationException exception
     ) {
-        return response(status, exception.getCode(), exception.getMessage());
+        log.error(
+            "Unhandled application failure. code={}",
+            exception.getCode(),
+            exception
+        );
+        return internalErrorResponse();
     }
 
     private ResponseEntity<ApiErrorResponse> response(
@@ -181,5 +195,39 @@ public class IdentityExceptionHandler {
             case "Pattern" -> "INVALID_FORMAT";
             default -> "INVALID_VALUE";
         };
+    }
+
+    private String validationMessage(String constraintCode) {
+        if (constraintCode == null) {
+            return "O valor informado é inválido.";
+        }
+
+        return switch (constraintCode) {
+            case "NotBlank", "NotEmpty", "NotNull" -> "Este campo é obrigatório.";
+            case "Email" -> "Informe um e-mail válido.";
+            case "Size" -> "O tamanho informado é inválido.";
+            case "Pattern" -> "O formato informado é inválido.";
+            case "EnumValue" -> "O valor informado não é permitido.";
+            default -> "O valor informado é inválido.";
+        };
+    }
+
+    private String authenticationFailureMessage(CodedApplicationException exception) {
+        return switch (exception.getCode()) {
+            case "AUTH_INVALID_CREDENTIALS" -> "E-mail ou senha inválidos.";
+            case "AUTH_ACCOUNT_INACTIVE" -> "Esta conta está inativa.";
+            case "AUTH_REFRESH_TOKEN_INVALID" ->
+                "O token de renovação é inválido ou foi revogado.";
+            case "AUTH_REFRESH_TOKEN_EXPIRED" -> "O token de renovação expirou.";
+            default -> "Não foi possível autenticar a solicitação.";
+        };
+    }
+
+    private ResponseEntity<ApiErrorResponse> internalErrorResponse() {
+        return response(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "INTERNAL_ERROR",
+            "Não foi possível concluir a operação. Tente novamente mais tarde."
+        );
     }
 }
