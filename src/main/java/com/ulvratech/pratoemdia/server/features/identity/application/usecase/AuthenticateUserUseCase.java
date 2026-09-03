@@ -13,7 +13,9 @@ import com.ulvratech.pratoemdia.server.features.identity.domain.entity.RefreshTo
 import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccountStatus;
 import com.ulvratech.pratoemdia.server.features.identity.domain.port.out.RefreshTokenRepository;
 import com.ulvratech.pratoemdia.server.features.identity.domain.port.out.UserAccountRepository;
+
 import jakarta.transaction.Transactional;
+
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -39,8 +41,7 @@ public class AuthenticateUserUseCase implements AuthenticateUser {
         AccessTokenProvider accessTokenProvider,
         RefreshTokenGenerator refreshTokenGenerator,
         RefreshTokenHasher refreshTokenHasher,
-        Clock clock
-    ) {
+        Clock clock) {
         this.userAccountRepository = userAccountRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordHasher = passwordHasher;
@@ -53,8 +54,10 @@ public class AuthenticateUserUseCase implements AuthenticateUser {
     @Override
     public AuthenticateUserOutput execute(AuthenticateUserInput input) {
         var normalizedEmail = input.email().strip().toLowerCase(Locale.ROOT);
-        var userAccount = userAccountRepository.findByEmailIgnoreCase(normalizedEmail)
-            .orElseThrow(InvalidCredentialsException::new);
+        var userAccount =
+            userAccountRepository
+                .findByEmailIgnoreCase(normalizedEmail)
+                .orElseThrow(InvalidCredentialsException::new);
 
         if (!passwordHasher.matches(input.rawPassword(), userAccount.getPasswordHash())) {
             throw new InvalidCredentialsException();
@@ -66,20 +69,20 @@ public class AuthenticateUserUseCase implements AuthenticateUser {
         var now = clock.instant();
         var accessToken = accessTokenProvider.generate(userAccount);
         var generatedRefreshToken = refreshTokenGenerator.generate();
-        var refreshToken = RefreshToken.issue(
-            UUID.randomUUID(),
-            userAccount.getId(),
-            refreshTokenHasher.hash(generatedRefreshToken.value()),
-            generatedRefreshToken.expiresAt(),
-            now
-        );
+        var refreshToken =
+            RefreshToken.issue(
+                UUID.randomUUID(),
+                userAccount.getId(),
+                refreshTokenHasher.hash(generatedRefreshToken.value()),
+                generatedRefreshToken.expiresAt(),
+                now);
         refreshTokenRepository.save(refreshToken);
 
         return new AuthenticateUserOutput(
             accessToken.value(),
             generatedRefreshToken.value(),
             "Bearer",
-            Duration.between(now, accessToken.expiresAt()).toSeconds()
-        );
+            Duration.between(now, accessToken.expiresAt()).toSeconds(),
+            userAccount.isPasswordChangeRequired());
     }
 }

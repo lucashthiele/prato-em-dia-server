@@ -30,52 +30,42 @@ public class AuthenticationController {
     public AuthenticationController(
         AuthenticateUser authenticateUser,
         RefreshAccessToken refreshAccessToken,
-        LogoutUser logoutUser
-    ) {
+        LogoutUser logoutUser) {
         this.authenticateUser = authenticateUser;
         this.refreshAccessToken = refreshAccessToken;
         this.logoutUser = logoutUser;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthenticationResponse> login(
-        @Valid @RequestBody LoginRequest request
-    ) {
-        var output = authenticateUser.execute(
-            new AuthenticateUserInput(request.email(), request.password())
-        );
-        return ResponseEntity.ok(new AuthenticationResponse(
-            output.accessToken(),
-            output.refreshToken(),
-            output.tokenType(),
-            output.expiresIn()
-        ));
+    public ResponseEntity<AuthenticationResponse> login(@Valid @RequestBody LoginRequest request) {
+        var output =
+            authenticateUser.execute(new AuthenticateUserInput(request.email(), request.password()));
+        return ResponseEntity.ok(
+            new AuthenticationResponse(
+                output.accessToken(),
+                output.refreshToken(),
+                output.tokenType(),
+                output.expiresIn(),
+                output.passwordChangeRequired()));
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<AuthenticationResponse> refresh(
-        @Valid @RequestBody RefreshTokenRequest request
-    ) {
-        var output = refreshAccessToken.execute(
-            new RefreshAccessTokenInput(request.refreshToken())
-        );
-        return ResponseEntity.ok(new AuthenticationResponse(
-            output.accessToken(),
-            output.refreshToken(),
-            output.tokenType(),
-            output.expiresIn()
-        ));
+        @Valid @RequestBody RefreshTokenRequest request) {
+        var output = refreshAccessToken.execute(new RefreshAccessTokenInput(request.refreshToken()));
+        return ResponseEntity.ok(
+            new AuthenticationResponse(
+                output.accessToken(),
+                output.refreshToken(),
+                output.tokenType(),
+                output.expiresIn(),
+                output.passwordChangeRequired()));
     }
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
-        @AuthenticationPrincipal Jwt jwt,
-        @Valid @RequestBody RefreshTokenRequest request
-    ) {
-        logoutUser.execute(new LogoutInput(
-            UUID.fromString(jwt.getSubject()),
-            request.refreshToken()
-        ));
+        @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody RefreshTokenRequest request) {
+        logoutUser.execute(new LogoutInput(UUID.fromString(jwt.getSubject()), request.refreshToken()));
         return ResponseEntity.noContent().build();
     }
 }

@@ -4,6 +4,6 @@ public record AuthenticationResponse(
     String accessToken,
     String refreshToken,
     String tokenType,
-    long expiresIn
-) {
+    long expiresIn,
+    boolean passwordChangeRequired) {
 }

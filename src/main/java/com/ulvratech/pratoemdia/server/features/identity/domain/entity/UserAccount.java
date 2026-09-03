@@ -6,25 +6,49 @@ import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccoun
 import java.util.UUID;
 
 public class UserAccount {
+    private final UserAccountRole role;
     private UUID id;
     private String email;
-    private final String passwordHash;
-    private final UserAccountRole role;
+    private String passwordHash;
     private UserAccountStatus status;
+    private boolean passwordChangeRequired;
 
-    public UserAccount(UUID id, String email, String passwordHash, UserAccountRole role, UserAccountStatus status) {
+    public UserAccount(
+        UUID id,
+        String email,
+        String passwordHash,
+        UserAccountRole role,
+        UserAccountStatus status) {
+        this(id, email, passwordHash, role, status, false);
+    }
+
+    public UserAccount(
+        UUID id,
+        String email,
+        String passwordHash,
+        UserAccountRole role,
+        UserAccountStatus status,
+        boolean passwordChangeRequired) {
         this.id = id;
         this.email = email;
         this.passwordHash = passwordHash;
         this.role = role;
         this.status = status;
+        this.passwordChangeRequired = passwordChangeRequired;
     }
 
-    public UserAccount(String email, String passwordHash, UserAccountRole role, UserAccountStatus status) {
-        this.email = email;
-        this.passwordHash = passwordHash;
-        this.role = role;
-        this.status = status;
+    public UserAccount(
+        String email, String passwordHash, UserAccountRole role, UserAccountStatus status) {
+        this(null, email, passwordHash, role, status, false);
+    }
+
+    public UserAccount(
+        String email,
+        String passwordHash,
+        UserAccountRole role,
+        UserAccountStatus status,
+        boolean passwordChangeRequired) {
+        this(null, email, passwordHash, role, status, passwordChangeRequired);
     }
 
     public UUID getId() {
@@ -34,7 +58,7 @@ public class UserAccount {
     public String getEmail() {
         return email;
     }
-    
+
     public String getPasswordHash() {
         return passwordHash;
     }
@@ -47,13 +71,26 @@ public class UserAccount {
         return status;
     }
 
+    public boolean isPasswordChangeRequired() {
+        return passwordChangeRequired;
+    }
+
+    public void replacePassword(String passwordHash, boolean changeRequired) {
+        if (passwordHash == null || passwordHash.isBlank()) {
+            throw new IllegalArgumentException("Password hash cannot be blank");
+        }
+        this.passwordHash = passwordHash;
+        this.passwordChangeRequired = changeRequired;
+    }
+
     public void inactivate() {
         this.status = UserAccountStatus.INACTIVE;
     }
+
     public void activate() {
         this.status = UserAccountStatus.ACTIVE;
     }
-    
+
     public void updateEmail(String email) {
         if (email == null) {
             throw new IllegalArgumentException("Email cannot be null");

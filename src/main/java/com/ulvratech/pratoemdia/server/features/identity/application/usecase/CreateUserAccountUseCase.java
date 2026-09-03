@@ -1,9 +1,9 @@
 package com.ulvratech.pratoemdia.server.features.identity.application.usecase;
 
-import com.ulvratech.pratoemdia.server.features.identity.application.exception.UserAccountAlreadyExistsException;
-import com.ulvratech.pratoemdia.server.features.identity.application.port.in.CreateUserAccount;
 import com.ulvratech.pratoemdia.server.features.identity.application.dto.CreateUserAccountInput;
 import com.ulvratech.pratoemdia.server.features.identity.application.dto.CreateUserAccountOutput;
+import com.ulvratech.pratoemdia.server.features.identity.application.exception.UserAccountAlreadyExistsException;
+import com.ulvratech.pratoemdia.server.features.identity.application.port.in.CreateUserAccount;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.PasswordHasher;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.UserProfileInitializer;
 import com.ulvratech.pratoemdia.server.features.identity.domain.entity.UserAccount;
@@ -40,28 +40,28 @@ public class CreateUserAccountUseCase implements CreateUserAccount {
             lowerCaseUserEmail,
             input.role()
         );
-        
+
         var optionalExistingUser = repository.findByEmailIgnoreCase(lowerCaseUserEmail);
-        
+
         if (optionalExistingUser.isPresent()) {
             log.error("User with email={} already exists", lowerCaseUserEmail);
-            
+
             throw new UserAccountAlreadyExistsException();
         }
-        
+
         String passwordHash = passwordHasher.hash(input.rawPassword());
-        
+
         log.debug(
             "Password hashed successfully for user. email={}",
             lowerCaseUserEmail
         );
-        
+
         UserAccount userAccount = new UserAccount(
             lowerCaseUserEmail,
             passwordHash,
             input.role(),
             UserAccountStatus.ACTIVE); // new user should always be active
-        
+
         UserAccount savedUserAccount = repository.save(userAccount);
         profileInitializer.initialize(
             savedUserAccount.getId(),
@@ -76,7 +76,7 @@ public class CreateUserAccountUseCase implements CreateUserAccount {
             savedUserAccount.getRole(),
             savedUserAccount.getStatus()
         );
-        
+
         return new CreateUserAccountOutput(
             savedUserAccount.getId(),
             savedUserAccount.getEmail(),

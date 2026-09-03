@@ -23,27 +23,27 @@ public class UserAccountController {
     public UserAccountController(CreateUserAccount createUserAccountCommand) {
         this.createUserAccountCommand = createUserAccountCommand;
     }
-    
+
     @PostMapping
     ResponseEntity<CreateUserAccountResponse> create(
         @Valid @RequestBody CreateUserAccountRequest request
     ) {
-            var commandInput = new CreateUserAccountInput(
-                request.email(),
-                request.password(),
-                UserAccountRole.valueOf(request.role()),
-                request.fullName()
-            );
-            
-            var output = createUserAccountCommand.execute(commandInput);
-            
-            var response = new CreateUserAccountResponse(
-                output.id(),
-                output.email(),
-                output.role().name(),
-                output.status().name()
-            );
-            
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        var commandInput = new CreateUserAccountInput(
+            request.email(),
+            request.password(),
+            UserAccountRole.valueOf(request.role()),
+            request.fullName()
+        );
+
+        var output = createUserAccountCommand.execute(commandInput);
+
+        var response = new CreateUserAccountResponse(
+            output.id(),
+            output.email(),
+            output.role().name(),
+            output.status().name()
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }
