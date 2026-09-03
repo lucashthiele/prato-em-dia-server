@@ -13,7 +13,9 @@ import com.ulvratech.pratoemdia.server.features.identity.domain.entity.RefreshTo
 import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccountStatus;
 import com.ulvratech.pratoemdia.server.features.identity.domain.port.out.RefreshTokenRepository;
 import com.ulvratech.pratoemdia.server.features.identity.domain.port.out.UserAccountRepository;
+
 import jakarta.transaction.Transactional;
+
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -36,8 +38,7 @@ public class RefreshAccessTokenUseCase implements RefreshAccessToken {
         RefreshTokenHasher refreshTokenHasher,
         RefreshTokenGenerator refreshTokenGenerator,
         AccessTokenProvider accessTokenProvider,
-        Clock clock
-    ) {
+        Clock clock) {
         this.refreshTokenRepository = refreshTokenRepository;
         this.userAccountRepository = userAccountRepository;
         this.refreshTokenHasher = refreshTokenHasher;
@@ -49,9 +50,10 @@ public class RefreshAccessTokenUseCase implements RefreshAccessToken {
     @Override
     public RefreshAccessTokenOutput execute(RefreshAccessTokenInput input) {
         var now = clock.instant();
-        var currentToken = refreshTokenRepository
-            .findByTokenHashForUpdate(refreshTokenHasher.hash(input.refreshToken()))
-            .orElseThrow(InvalidRefreshTokenException::new);
+        var currentToken =
+            refreshTokenRepository
+                .findByTokenHashForUpdate(refreshTokenHasher.hash(input.refreshToken()))
+                .orElseThrow(InvalidRefreshTokenException::new);
 
         if (currentToken.isRevoked()) {
             throw new InvalidRefreshTokenException();
@@ -60,20 +62,22 @@ public class RefreshAccessTokenUseCase implements RefreshAccessToken {
             throw new ExpiredRefreshTokenException();
         }
 
-        var userAccount = userAccountRepository.findById(currentToken.getUserAccountId())
-            .orElseThrow(InvalidRefreshTokenException::new);
+        var userAccount =
+            userAccountRepository
+                .findById(currentToken.getUserAccountId())
+                .orElseThrow(InvalidRefreshTokenException::new);
         if (userAccount.getStatus() != UserAccountStatus.ACTIVE) {
             throw new InactiveUserAccountException();
         }
 
         var generatedRefreshToken = refreshTokenGenerator.generate();
-        var replacementToken = RefreshToken.issue(
-            UUID.randomUUID(),
-            userAccount.getId(),
-            refreshTokenHasher.hash(generatedRefreshToken.value()),
-            generatedRefreshToken.expiresAt(),
-            now
-        );
+        var replacementToken =
+            RefreshToken.issue(
+                UUID.randomUUID(),
+                userAccount.getId(),
+                refreshTokenHasher.hash(generatedRefreshToken.value()),
+                generatedRefreshToken.expiresAt(),
+                now);
 
         refreshTokenRepository.save(replacementToken);
         currentToken.revoke(now, replacementToken.getId());
@@ -84,7 +88,7 @@ public class RefreshAccessTokenUseCase implements RefreshAccessToken {
             accessToken.value(),
             generatedRefreshToken.value(),
             "Bearer",
-            Duration.between(now, accessToken.expiresAt()).toSeconds()
-        );
+            Duration.between(now, accessToken.expiresAt()).toSeconds(),
+            userAccount.isPasswordChangeRequired());
     }
 }

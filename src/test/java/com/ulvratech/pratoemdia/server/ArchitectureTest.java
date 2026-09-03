@@ -26,14 +26,48 @@ import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.sli
 )
 class ArchitectureTest {
     static final String BASE_PACKAGE = "com.ulvratech.pratoemdia.server";
-
+    @ArchTest
+    static final ArchRule ports_are_interfaces = classes()
+        .that().resideInAnyPackage(
+            "..features.*.application.port.in..",
+            "..features.*.application.port.out..",
+            "..features.*.domain.port.out.."
+        )
+        .should().beInterfaces();
+    @ArchTest
+    static final ArchRule use_cases_implement_inbound_ports = classes()
+        .that().resideInAPackage("..features.*.application.usecase..")
+        .should().implement(resideInAPackage("..features.*.application.port.in.."));
+    @ArchTest
+    static final ArchRule persistence_models_stay_in_infrastructure = classes()
+        .that().areAnnotatedWith(Entity.class)
+        .should().resideInAPackage("..infrastructure.persistence.model..");
+    @ArchTest
+    static final ArchRule spring_data_repositories_stay_in_infrastructure = classes()
+        .that().areAssignableTo(JpaRepository.class)
+        .should().resideInAPackage("..infrastructure.persistence.adapter..");
+    @ArchTest
+    static final ArchRule repository_adapters_stay_in_infrastructure = classes()
+        .that().haveSimpleNameEndingWith("RepositoryAdapter")
+        .should().resideInAPackage("..infrastructure.persistence.adapter..");
+    @ArchTest
+    static final ArchRule repository_adapters_implement_repository_ports = classes()
+        .that().haveSimpleNameEndingWith("RepositoryAdapter")
+        .should().implement(resideInAPackage("..features.*.domain.port.out.."));
+    @ArchTest
+    static final ArchRule features_are_free_of_cycles = slices()
+        .matching(BASE_PACKAGE + ".features.(*)..")
+        .should().beFreeOfCycles();
     private static final String FEATURES = BASE_PACKAGE + ".features..";
+    @ArchTest
+    static final ArchRule features_do_not_access_another_features_repositories =
+        classes()
+            .that().resideInAPackage(FEATURES)
+            .should(notAccessRepositoriesFromAnotherFeature());
     private static final String DOMAIN = "..features.*.domain..";
     private static final String APPLICATION = "..features.*.application..";
     private static final String INFRASTRUCTURE = "..features.*.infrastructure..";
     private static final String PRESENTATION = "..features.*.presentation..";
-    private static final String CONTROLLERS = "..features.*.presentation..controller..";
-
     @ArchTest
     static final ArchRule domain_is_independent_from_outer_layers = noClasses()
         .that().resideInAPackage(DOMAIN)
@@ -42,7 +76,6 @@ class ArchitectureTest {
             INFRASTRUCTURE,
             PRESENTATION
         );
-
     @ArchTest
     static final ArchRule application_does_not_depend_on_adapters_or_presentation =
         noClasses()
@@ -51,12 +84,11 @@ class ArchitectureTest {
                 INFRASTRUCTURE,
                 PRESENTATION
             );
-
     @ArchTest
     static final ArchRule infrastructure_does_not_depend_on_presentation = noClasses()
         .that().resideInAPackage(INFRASTRUCTURE)
         .should().dependOnClassesThat().resideInAPackage(PRESENTATION);
-
+    private static final String CONTROLLERS = "..features.*.presentation..controller..";
     @ArchTest
     static final ArchRule controllers_do_not_bypass_inbound_ports = noClasses()
         .that().areAnnotatedWith(RestController.class)
@@ -67,57 +99,11 @@ class ArchitectureTest {
             "..features.*.domain.port.out..",
             INFRASTRUCTURE
         );
-
     @ArchTest
     static final ArchRule controllers_do_not_access_repositories = noClasses()
         .that().areAnnotatedWith(RestController.class)
         .or().resideInAPackage(CONTROLLERS)
         .should().dependOnClassesThat().haveSimpleNameEndingWith("Repository");
-
-    @ArchTest
-    static final ArchRule ports_are_interfaces = classes()
-        .that().resideInAnyPackage(
-            "..features.*.application.port.in..",
-            "..features.*.application.port.out..",
-            "..features.*.domain.port.out.."
-        )
-        .should().beInterfaces();
-
-    @ArchTest
-    static final ArchRule use_cases_implement_inbound_ports = classes()
-        .that().resideInAPackage("..features.*.application.usecase..")
-        .should().implement(resideInAPackage("..features.*.application.port.in.."));
-
-    @ArchTest
-    static final ArchRule persistence_models_stay_in_infrastructure = classes()
-        .that().areAnnotatedWith(Entity.class)
-        .should().resideInAPackage("..infrastructure.persistence.model..");
-
-    @ArchTest
-    static final ArchRule spring_data_repositories_stay_in_infrastructure = classes()
-        .that().areAssignableTo(JpaRepository.class)
-        .should().resideInAPackage("..infrastructure.persistence.adapter..");
-
-    @ArchTest
-    static final ArchRule repository_adapters_stay_in_infrastructure = classes()
-        .that().haveSimpleNameEndingWith("RepositoryAdapter")
-        .should().resideInAPackage("..infrastructure.persistence.adapter..");
-
-    @ArchTest
-    static final ArchRule repository_adapters_implement_repository_ports = classes()
-        .that().haveSimpleNameEndingWith("RepositoryAdapter")
-        .should().implement(resideInAPackage("..features.*.domain.port.out.."));
-
-    @ArchTest
-    static final ArchRule features_do_not_access_another_features_repositories =
-        classes()
-            .that().resideInAPackage(FEATURES)
-            .should(notAccessRepositoriesFromAnotherFeature());
-
-    @ArchTest
-    static final ArchRule features_are_free_of_cycles = slices()
-        .matching(BASE_PACKAGE + ".features.(*)..")
-        .should().beFreeOfCycles();
 
     private static ArchCondition<JavaClass> notAccessRepositoriesFromAnotherFeature() {
         return new ArchCondition<>("not access repositories from another feature") {
@@ -144,8 +130,8 @@ class ArchitectureTest {
 
         return target.getSimpleName().contains("Repository")
             && (packageName.contains(".domain.port.out")
-                || packageName.contains(".application.port.out")
-                || packageName.contains(".infrastructure.persistence.adapter"));
+            || packageName.contains(".application.port.out")
+            || packageName.contains(".infrastructure.persistence.adapter"));
     }
 
     private static Optional<String> featureName(JavaClass javaClass) {

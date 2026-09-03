@@ -8,5 +8,6 @@ import java.util.UUID;
 
 public interface UserProfileRepository {
     UserProfile save(UserProfile profile);
+
     Optional<UserProfile> findByUserAccountId(UUID userAccountId, ProfileType type);
 }

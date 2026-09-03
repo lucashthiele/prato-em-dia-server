@@ -10,14 +10,14 @@ public class UserProfile {
     private final UUID id;
     private final UUID userAccountId;
     private final ProfileType type;
+    private final Instant createdAt;
+    private final Instant updatedAt;
+    private final long version;
     private String fullName;
     private String phone;
     private String registrationNumber;
     private String bio;
     private LocalDate birthDate;
-    private final Instant createdAt;
-    private final Instant updatedAt;
-    private final long version;
 
     public UserProfile(
         UUID id,
@@ -101,15 +101,47 @@ public class UserProfile {
         return normalized.isEmpty() ? null : normalized;
     }
 
-    public UUID getId() { return id; }
-    public UUID getUserAccountId() { return userAccountId; }
-    public ProfileType getType() { return type; }
-    public String getFullName() { return fullName; }
-    public String getPhone() { return phone; }
-    public String getRegistrationNumber() { return registrationNumber; }
-    public String getBio() { return bio; }
-    public LocalDate getBirthDate() { return birthDate; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
-    public long getVersion() { return version; }
+    public UUID getId() {
+        return id;
+    }
+
+    public UUID getUserAccountId() {
+        return userAccountId;
+    }
+
+    public ProfileType getType() {
+        return type;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public String getRegistrationNumber() {
+        return registrationNumber;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public LocalDate getBirthDate() {
+        return birthDate;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public long getVersion() {
+        return version;
+    }
 }
