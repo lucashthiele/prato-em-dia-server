@@ -2,6 +2,7 @@ package com.ulvratech.pratoemdia.server.features.catalog.application.dto;
 
 import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.Food;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.FoodPortion;
+import com.ulvratech.pratoemdia.server.features.catalog.domain.enums.FoodOrigin;
 
 import java.time.Instant;
 import java.util.List;
@@ -16,6 +17,7 @@ public record FoodDetailsOutput(
     String preparationMethod,
     boolean active,
     UUID createdByUserId,
+    FoodOrigin origin,
     Instant createdAt,
     Instant updatedAt,
     long version,
@@ -25,8 +27,8 @@ public record FoodDetailsOutput(
         return new FoodDetailsOutput(
             food.getId(), food.getName(), food.getCategory(), food.getDefaultUnit(),
             food.getNotes(), food.getPreparationMethod(), food.isActive(),
-            food.getCreatedByUserId(), food.getCreatedAt(), food.getUpdatedAt(), food.getVersion(),
-            portions.stream().map(FoodPortionOutput::from).toList()
+            food.getCreatedByUserId(), food.getOrigin(), food.getCreatedAt(), food.getUpdatedAt(),
+            food.getVersion(), portions.stream().map(FoodPortionOutput::from).toList()
         );
     }
 }

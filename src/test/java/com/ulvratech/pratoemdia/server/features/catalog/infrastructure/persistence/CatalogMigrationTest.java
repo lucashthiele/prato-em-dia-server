@@ -45,7 +45,7 @@ class CatalogMigrationTest {
             );
 
             try (var statement = connection.prepareStatement(
-                "select notes,preparation_method,created_by_user_id from food where id=?"
+                "select notes,preparation_method,created_by_user_id,origin from food where id=?"
             )) {
                 statement.setObject(1, foodId);
                 try (var result = statement.executeQuery()) {
@@ -53,6 +53,7 @@ class CatalogMigrationTest {
                     assertEquals("Sem sal", result.getString("notes"));
                     assertEquals("Cozinhar em água", result.getString("preparation_method"));
                     assertEquals(accountId, result.getObject("created_by_user_id", UUID.class));
+                    assertEquals("IMPORTED", result.getString("origin"));
                 }
             }
 

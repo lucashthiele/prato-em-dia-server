@@ -1,5 +1,6 @@
 package com.ulvratech.pratoemdia.server.features.catalog.domain.entity;
 
+import com.ulvratech.pratoemdia.server.features.catalog.domain.enums.FoodOrigin;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -13,7 +14,7 @@ class FoodTest {
 
         var food = Food.create(
             " Arroz integral ", " Cereais ", " g ", " Sem sal ",
-            " Cozinhar em água ", author
+            " Cozinhar em água ", author, FoodOrigin.NUTRITIONIST
         );
 
         assertEquals("Arroz integral", food.getName());
@@ -22,6 +23,7 @@ class FoodTest {
         assertEquals("Sem sal", food.getNotes());
         assertEquals("Cozinhar em água", food.getPreparationMethod());
         assertEquals(author, food.getCreatedByUserId());
+        assertEquals(FoodOrigin.NUTRITIONIST, food.getOrigin());
         assertTrue(food.isActive());
     }
 
@@ -31,18 +33,19 @@ class FoodTest {
 
         assertThrows(
             IllegalArgumentException.class,
-            () -> Food.create(" ", null, "g", null, null, author)
+            () -> Food.create(" ", null, "g", null, null, author, FoodOrigin.PATIENT)
         );
         assertThrows(
             IllegalArgumentException.class,
-            () -> Food.create("Arroz", null, " ", null, null, author)
+            () -> Food.create("Arroz", null, " ", null, null, author, FoodOrigin.PATIENT)
         );
     }
 
     @Test
     void fullyReplacesFoodFieldsOnUpdate() {
         var food = Food.create(
-            "Arroz", "Cereais", "g", "Sem sal", "Cozinhar", UUID.randomUUID()
+            "Arroz", "Cereais", "g", "Sem sal", "Cozinhar", UUID.randomUUID(),
+            FoodOrigin.ADMIN
         );
 
         food.update("Arroz integral", null, "kg", null, null, false);

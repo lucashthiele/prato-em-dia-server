@@ -4,6 +4,7 @@ import com.ulvratech.pratoemdia.server.features.catalog.application.dto.CreateFo
 import com.ulvratech.pratoemdia.server.features.catalog.application.dto.CreateFoodPortionInput;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.Food;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.FoodPortion;
+import com.ulvratech.pratoemdia.server.features.catalog.domain.enums.FoodOrigin;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.port.out.FoodPortionRepository;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.port.out.FoodRepository;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,7 @@ class CreateFoodUseCaseTest {
         var useCase = new CreateFoodUseCase(foods, portions);
 
         var output = useCase.execute(new CreateFoodInput(
-            UUID.randomUUID(), "Arroz", "Cereais", "g", null, null,
+            UUID.randomUUID(), FoodOrigin.NUTRITIONIST, "Arroz", "Cereais", "g", null, null,
             List.of(new CreateFoodPortionInput(
                 "Colher", new BigDecimal("25"), "g", new BigDecimal("25")
             ))
@@ -38,6 +39,7 @@ class CreateFoodUseCaseTest {
         verify(portions).saveAll(captor.capture());
         var captured = captor.getValue();
         assertEquals(1, captured.size());
+        assertEquals(FoodOrigin.NUTRITIONIST, output.origin());
         assertEquals(output.id(), captured.getFirst().getFoodId());
         assertEquals("Colher", captured.getFirst().getLabel());
     }

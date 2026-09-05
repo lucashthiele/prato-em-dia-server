@@ -25,7 +25,7 @@ public class CreateFoodUseCase implements CreateFood {
     public FoodOutput execute(CreateFoodInput input) {
         var food = Food.create(
             input.name(), input.category(), input.defaultUnit(), input.notes(),
-            input.preparationMethod(), input.actorUserId()
+            input.preparationMethod(), input.actorUserId(), input.origin()
         );
         var savedFood = repository.save(food);
         var foodPortions = input.portions().stream()

@@ -16,6 +16,7 @@ public class FoodMapper {
             .preparationMethod(food.getPreparationMethod())
             .active(food.isActive())
             .createdByUserId(food.getCreatedByUserId())
+            .origin(food.getOrigin())
             .createdAt(food.getCreatedAt())
             .updatedAt(food.getUpdatedAt())
             .version(food.getVersion())
@@ -26,7 +27,8 @@ public class FoodMapper {
         return new Food(
             food.getId(), food.getName(), food.getCategory(), food.getDefaultUnit(),
             food.getNotes(), food.getPreparationMethod(), food.isActive(),
-            food.getCreatedByUserId(), food.getCreatedAt(), food.getUpdatedAt(), food.getVersion()
+            food.getCreatedByUserId(), food.getOrigin(), food.getCreatedAt(), food.getUpdatedAt(),
+            food.getVersion()
         );
     }
 }

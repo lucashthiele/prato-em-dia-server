@@ -2,6 +2,7 @@ package com.ulvratech.pratoemdia.server.features.catalog.presentation.web.contro
 
 import com.ulvratech.pratoemdia.server.features.catalog.application.dto.*;
 import com.ulvratech.pratoemdia.server.features.catalog.application.port.in.*;
+import com.ulvratech.pratoemdia.server.features.catalog.domain.enums.FoodOrigin;
 import com.ulvratech.pratoemdia.server.features.catalog.presentation.web.request.CreateFoodPortionRequest;
 import com.ulvratech.pratoemdia.server.features.catalog.presentation.web.request.CreateFoodRequest;
 import com.ulvratech.pratoemdia.server.features.catalog.presentation.web.request.UpdateFoodRequest;
@@ -67,7 +68,8 @@ public class FoodController {
         @Valid @RequestBody CreateFoodRequest request
     ) {
         var output = createFood.execute(new CreateFoodInput(
-            userId(jwt), request.name(), request.category(), request.defaultUnit(),
+            userId(jwt), FoodOrigin.valueOf(jwt.getClaimAsString("role")),
+            request.name(), request.category(), request.defaultUnit(),
             request.notes(), request.preparationMethod(), request.portions().stream()
                 .map(portion -> new CreateFoodPortionInput(
                     portion.label(), portion.quantity(), portion.unit(), portion.gramsEquivalent()

@@ -1,11 +1,14 @@
 package com.ulvratech.pratoemdia.server.features.catalog.domain.entity;
 
+import com.ulvratech.pratoemdia.server.features.catalog.domain.enums.FoodOrigin;
+
 import java.time.Instant;
 import java.util.UUID;
 
 public class Food {
     private final UUID id;
     private final UUID createdByUserId;
+    private final FoodOrigin origin;
     private final Instant createdAt;
     private final long version;
     private String name;
@@ -25,6 +28,7 @@ public class Food {
         String preparationMethod,
         boolean active,
         UUID createdByUserId,
+        FoodOrigin origin,
         Instant createdAt,
         Instant updatedAt,
         long version
@@ -37,6 +41,8 @@ public class Food {
         this.preparationMethod = optional(preparationMethod);
         this.active = active;
         this.createdByUserId = createdByUserId;
+        if (origin == null) throw new IllegalArgumentException("origin is required");
+        this.origin = origin;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.version = version;
@@ -48,12 +54,13 @@ public class Food {
         String defaultUnit,
         String notes,
         String preparationMethod,
-        UUID createdByUserId
+        UUID createdByUserId,
+        FoodOrigin origin
     ) {
         if (createdByUserId == null) throw new IllegalArgumentException("createdByUserId is required");
         return new Food(
             UUID.randomUUID(), name, category, defaultUnit, notes, preparationMethod,
-            true, createdByUserId, null, null, 0
+            true, createdByUserId, origin, null, null, 0
         );
     }
 
@@ -90,6 +97,7 @@ public class Food {
     public String getPreparationMethod() { return preparationMethod; }
     public boolean isActive() { return active; }
     public UUID getCreatedByUserId() { return createdByUserId; }
+    public FoodOrigin getOrigin() { return origin; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public long getVersion() { return version; }

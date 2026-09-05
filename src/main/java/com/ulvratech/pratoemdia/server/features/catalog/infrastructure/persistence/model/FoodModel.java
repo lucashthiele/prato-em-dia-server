@@ -1,9 +1,12 @@
 package com.ulvratech.pratoemdia.server.features.catalog.infrastructure.persistence.model;
 
+import com.ulvratech.pratoemdia.server.features.catalog.domain.enums.FoodOrigin;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -39,6 +42,11 @@ public class FoodModel {
 
     @Column(name = "created_by_user_id", nullable = false)
     private UUID createdByUserId;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(nullable = false)
+    private FoodOrigin origin;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

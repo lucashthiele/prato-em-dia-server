@@ -3,6 +3,7 @@ package com.ulvratech.pratoemdia.server.features.catalog.application.usecase;
 import com.ulvratech.pratoemdia.server.features.catalog.application.dto.UpdateFoodInput;
 import com.ulvratech.pratoemdia.server.features.catalog.application.exception.FoodAccessDeniedException;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.Food;
+import com.ulvratech.pratoemdia.server.features.catalog.domain.enums.FoodOrigin;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.port.out.FoodRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ class UpdateFoodUseCaseTest {
     @Test
     void allowsAuthorToUpdateFood() {
         UUID author = UUID.randomUUID();
-        var food = Food.create("Arroz", null, "g", null, null, author);
+        var food = Food.create("Arroz", null, "g", null, null, author, FoodOrigin.PATIENT);
         when(repository.findById(food.getId())).thenReturn(Optional.of(food));
         when(repository.save(food)).thenReturn(food);
 
@@ -38,7 +39,9 @@ class UpdateFoodUseCaseTest {
 
     @Test
     void allowsAdministratorToUpdateAnotherUsersFood() {
-        var food = Food.create("Arroz", null, "g", null, null, UUID.randomUUID());
+        var food = Food.create(
+            "Arroz", null, "g", null, null, UUID.randomUUID(), FoodOrigin.PATIENT
+        );
         when(repository.findById(food.getId())).thenReturn(Optional.of(food));
         when(repository.save(food)).thenReturn(food);
 
@@ -49,7 +52,9 @@ class UpdateFoodUseCaseTest {
 
     @Test
     void rejectsUpdateFromAnotherNonAdminUser() {
-        var food = Food.create("Arroz", null, "g", null, null, UUID.randomUUID());
+        var food = Food.create(
+            "Arroz", null, "g", null, null, UUID.randomUUID(), FoodOrigin.PATIENT
+        );
         when(repository.findById(food.getId())).thenReturn(Optional.of(food));
 
         assertThrows(
