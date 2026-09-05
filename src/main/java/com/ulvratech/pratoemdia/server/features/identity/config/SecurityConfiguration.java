@@ -112,6 +112,8 @@ public class SecurityConfiguration {
                         .hasRole("NUTRITIONIST")
                         .requestMatchers("/api/v1/patients/**")
                         .hasRole("PATIENT")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/foods/*/portions")
+                        .hasAnyRole("NUTRITIONIST", "ADMIN")
                         .anyRequest()
                         .authenticated())
             .exceptionHandling(
