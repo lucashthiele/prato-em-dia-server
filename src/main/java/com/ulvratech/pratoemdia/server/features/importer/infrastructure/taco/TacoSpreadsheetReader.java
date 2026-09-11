@@ -2,7 +2,7 @@ package com.ulvratech.pratoemdia.server.features.importer.infrastructure.taco;
 
 import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.NutrientValue;
 import com.ulvratech.pratoemdia.server.features.importer.application.dto.TacoFoodRecord;
-import com.ulvratech.pratoemdia.server.features.importer.application.dto.TacoImportIssue;
+import com.ulvratech.pratoemdia.server.features.importer.application.dto.CatalogImportIssue;
 import com.ulvratech.pratoemdia.server.features.importer.application.dto.TacoSpreadsheetData;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
@@ -83,7 +83,7 @@ public class TacoSpreadsheetReader {
 
     private TacoSpreadsheetData readRows(Sheet sheet) {
         var records = new ArrayList<TacoFoodRecord>();
-        var issues = new ArrayList<TacoImportIssue>();
+        var issues = new ArrayList<CatalogImportIssue>();
         var externalIds = new HashSet<String>();
         String category = null;
         int rowsRead = 0;
@@ -122,7 +122,7 @@ public class TacoSpreadsheetReader {
                 }
                 records.add(new TacoFoodRecord(externalId, description, category, nutrients));
             } catch (IllegalArgumentException exception) {
-                issues.add(new TacoImportIssue(spreadsheetRow, exception.getMessage()));
+                issues.add(new CatalogImportIssue(spreadsheetRow, exception.getMessage()));
             }
         }
         return new TacoSpreadsheetData(rowsRead, records, issues);

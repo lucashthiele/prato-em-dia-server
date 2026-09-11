@@ -20,10 +20,10 @@ public class ImportRunModel {
     private String source;
     @Column(name = "source_version", length = 100)
     private String sourceVersion;
-    @Column(name = "file_name", nullable = false, length = 255)
-    private String fileName;
-    @Column(name = "file_checksum", nullable = false, length = 64)
-    private String fileChecksum;
+    @Column(name = "source_location", nullable = false, length = 255)
+    private String sourceLocation;
+    @Column(name = "source_checksum", nullable = false, length = 64)
+    private String sourceChecksum;
     @Column(name = "dry_run", nullable = false)
     private boolean dryRun;
     @Column(name = "started_at", nullable = false)

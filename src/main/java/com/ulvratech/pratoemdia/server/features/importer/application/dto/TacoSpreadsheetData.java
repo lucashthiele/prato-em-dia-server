@@ -5,7 +5,7 @@ import java.util.List;
 public record TacoSpreadsheetData(
     int rowsRead,
     List<TacoFoodRecord> records,
-    List<TacoImportIssue> issues
+    List<CatalogImportIssue> issues
 ) {
     public TacoSpreadsheetData {
         records = List.copyOf(records);

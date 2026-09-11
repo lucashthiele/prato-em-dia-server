@@ -1,11 +1,12 @@
 package com.ulvratech.pratoemdia.server.features.catalog.application.usecase;
 
-import com.ulvratech.pratoemdia.server.features.catalog.application.dto.ImportedFoodInput;
-import com.ulvratech.pratoemdia.server.features.catalog.application.dto.SyncImportedFoodsInput;
+import com.ulvratech.pratoemdia.server.features.catalog.application.dto.*;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.CatalogIds;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.Food;
+import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.FoodPortion;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.NutrientValue;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.enums.NutrientValueStatus;
+import com.ulvratech.pratoemdia.server.features.catalog.domain.port.out.FoodPortionRepository;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.port.out.FoodRepository;
 import org.junit.jupiter.api.Test;
 
@@ -19,25 +20,31 @@ import static org.mockito.Mockito.*;
 
 class SyncImportedFoodsUseCaseTest {
     @Test
-    void insertsThenSkipsAndUpdatesTheSameSourceFood() {
+    void insertsThenSkipsAndUpdatesTheSameSourceFoodAndItsPortions() {
         var repository = mock(FoodRepository.class);
+        var portionRepository = mock(FoodPortionRepository.class);
         when(repository.findBySourceAndExternalIds(anyString(), anyCollection()))
             .thenReturn(List.of());
-        when(repository.saveAll(anyCollection())).thenAnswer(call -> List.copyOf(call.getArgument(0)));
-        var useCase = new SyncImportedFoodsUseCase(repository);
+        when(portionRepository.findImportedByFoodIds(anyCollection())).thenReturn(List.of());
+        var useCase = new SyncImportedFoodsUseCase(repository, portionRepository);
 
-        var first = useCase.execute(input("Arroz, integral, cozido", false));
+        var first = useCase.execute(input("Arroz, integral, cozido", "123.5", false));
         @SuppressWarnings("unchecked")
-        var saved = (List<Food>) mockingDetails(repository).getInvocations().stream()
+        var savedFoods = (List<Food>) mockingDetails(repository).getInvocations().stream()
             .filter(invocation -> invocation.getMethod().getName().equals("saveAll"))
             .findFirst().orElseThrow().getArgument(0);
-        Food imported = saved.getFirst();
+        @SuppressWarnings("unchecked")
+        var savedPortions = (List<FoodPortion>) mockingDetails(portionRepository).getInvocations().stream()
+            .filter(invocation -> invocation.getMethod().getName().equals("replaceImportedForFoods"))
+            .findFirst().orElseThrow().getArgument(1);
+        Food imported = savedFoods.getFirst();
         assertEquals(1, first.inserted());
 
         when(repository.findBySourceAndExternalIds(anyString(), anyCollection()))
             .thenReturn(List.of(imported));
-        assertEquals(1, useCase.execute(input("Arroz, integral, cozido", false)).skipped());
-        assertEquals(1, useCase.execute(input("Arroz integral, cozido", false)).updated());
+        when(portionRepository.findImportedByFoodIds(anyCollection())).thenReturn(savedPortions);
+        assertEquals(1, useCase.execute(input("Arroz, integral, cozido", "123.5", false)).skipped());
+        assertEquals(1, useCase.execute(input("Arroz integral, cozido", "124", false)).updated());
         assertEquals("Arroz integral, cozido", imported.getSourceDescription());
         assertEquals(CatalogIds.tacoFood("1"), imported.getId());
     }
@@ -45,21 +52,29 @@ class SyncImportedFoodsUseCaseTest {
     @Test
     void dryRunNeverWrites() {
         var repository = mock(FoodRepository.class);
+        var portionRepository = mock(FoodPortionRepository.class);
         when(repository.findBySourceAndExternalIds(anyString(), anyCollection())).thenReturn(List.of());
+        when(portionRepository.findImportedByFoodIds(anyCollection())).thenReturn(List.of());
 
-        var result = new SyncImportedFoodsUseCase(repository).execute(input("Arroz", true));
+        var result = new SyncImportedFoodsUseCase(repository, portionRepository)
+            .execute(input("Arroz", "123.5", true));
 
         assertEquals(1, result.inserted());
         verify(repository, never()).saveAll(anyCollection());
+        verify(portionRepository, never()).replaceImportedForFoods(anyCollection(), anyCollection());
     }
 
-    private SyncImportedFoodsInput input(String description, boolean dryRun) {
+    private SyncImportedFoodsInput input(String description, String amount, boolean dryRun) {
         var nutrients = Map.of("energy_kcal", new NutrientValue(
-            new BigDecimal("123.5"), "kcal", NutrientValueStatus.VALUE, "123.5"
+            new BigDecimal(amount), "kcal", NutrientValueStatus.VALUE, amount
         ));
+        var portion = new ImportedFoodPortionInput(
+            "STANDARD", "100 g", "Valor por 100g", new BigDecimal("100"), "g", nutrients
+        );
         return new SyncImportedFoodsInput(
             "TACO", "TACO 4a edicao (2011)",
-            List.of(new ImportedFoodInput("1", description, "Cereais", nutrients)), dryRun
+            List.of(new ImportedFoodInput("1", description, "Cereais", null, List.of(portion))),
+            dryRun
         );
     }
 }

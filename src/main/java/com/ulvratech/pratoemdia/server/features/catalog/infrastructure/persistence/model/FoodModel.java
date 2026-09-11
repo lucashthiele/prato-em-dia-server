@@ -6,12 +6,9 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.BatchSize;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -27,6 +24,9 @@ public class FoodModel {
 
     @Column(nullable = false, length = 180)
     private String name;
+
+    @Column(length = 180)
+    private String brand;
 
     @Column(length = 100)
     private String category;
@@ -65,15 +65,6 @@ public class FoodModel {
 
     @Column(name = "normalized_name", length = 180)
     private String normalizedName;
-
-    @OneToMany(
-        mappedBy = "food",
-        cascade = CascadeType.ALL,
-        orphanRemoval = true
-    )
-    @BatchSize(size = 100)
-    @Builder.Default
-    private List<FoodNutrientModel> nutrients = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

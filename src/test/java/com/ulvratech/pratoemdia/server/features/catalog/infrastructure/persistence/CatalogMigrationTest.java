@@ -5,11 +5,18 @@ import com.ulvratech.pratoemdia.server.features.catalog.domain.CatalogIds;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.NutrientValue;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.enums.NutrientValueStatus;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.port.out.FoodRepository;
+import com.ulvratech.pratoemdia.server.features.catalog.domain.port.out.FoodPortionRepository;
 import com.ulvratech.pratoemdia.server.features.importer.application.dto.ImportTacoCatalogInput;
 import com.ulvratech.pratoemdia.server.features.importer.application.dto.TacoFoodRecord;
 import com.ulvratech.pratoemdia.server.features.importer.application.dto.TacoSpreadsheetData;
 import com.ulvratech.pratoemdia.server.features.importer.application.usecase.ImportTacoCatalogUseCase;
+import com.ulvratech.pratoemdia.server.features.importer.application.usecase.ImportMongoCatalogUseCase;
+import com.ulvratech.pratoemdia.server.features.importer.application.dto.ImportMongoCatalogInput;
+import com.ulvratech.pratoemdia.server.features.importer.infrastructure.config.MongoImportProperties;
+import com.ulvratech.pratoemdia.server.features.importer.infrastructure.mongodb.MongoCatalogReader;
+import com.ulvratech.pratoemdia.server.features.catalog.application.port.in.SyncImportedFoods;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -40,6 +47,12 @@ class CatalogMigrationTest {
 
     @Autowired
     FoodRepository foods;
+
+    @Autowired
+    FoodPortionRepository portions;
+
+    @Autowired
+    SyncImportedFoods syncImportedFoods;
 
     @Test
     void persistsFoodDetailsAndEnforcesPositivePortionQuantity() throws Exception {
@@ -106,7 +119,7 @@ class CatalogMigrationTest {
 
     @Test
     void persistsNutrientsAndKeepsRepeatedImportIdempotent() {
-        var useCase = new ImportTacoCatalogUseCase(new SyncImportedFoodsUseCase(foods));
+        var useCase = new ImportTacoCatalogUseCase(new SyncImportedFoodsUseCase(foods, portions));
         var nutrients = Map.of("sodium", new NutrientValue(
             new BigDecimal("1.25"), "mg", NutrientValueStatus.VALUE, "1.25"
         ));
@@ -129,6 +142,9 @@ class CatalogMigrationTest {
             List.of()
         );
         var third = useCase.execute(new ImportTacoCatalogInput(changedSpreadsheet, false));
+        var persistedPortion = portions.findImportedByFoodIds(
+            List.of(CatalogIds.tacoFood("9999"))
+        ).getFirst();
         var persisted = foods.findById(CatalogIds.tacoFood("9999")).orElseThrow();
 
         assertEquals(1, first.inserted());
@@ -136,26 +152,22 @@ class CatalogMigrationTest {
         assertEquals(1, third.updated());
         assertEquals(
             0,
-            new BigDecimal("2.50").compareTo(persisted.getNutrients().get("sodium").amount())
+            new BigDecimal("2.50").compareTo(persistedPortion.getNutrients().get("sodium").amount())
         );
         assertNull(persisted.getCreatedByUserId());
 
         try (var connection = DriverManager.getConnection(
             POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()
         ); var statement = connection.prepareStatement(
-            "select count(*) from food_nutrient where food_id=?"
+            "select count(*) from food_portion_nutrient nutrient "
+                + "join food_portion portion on portion.id=nutrient.food_portion_id "
+                + "where portion.food_id=?"
         )) {
             statement.setObject(1, CatalogIds.tacoFood("9999"));
             try (var result = statement.executeQuery()) {
                 assertTrue(result.next());
                 assertEquals(1, result.getInt(1));
             }
-
-            execute(
-                connection,
-                "insert into food_portion(id,food_id,label,quantity,unit) values (?,?,?,?,?)",
-                UUID.randomUUID(), CatalogIds.tacoFood("9999"), "100 g", 100, "g"
-            );
 
             execute(
                 connection,
@@ -181,6 +193,28 @@ class CatalogMigrationTest {
         } catch (SQLException exception) {
             fail(exception);
         }
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "MONGODB_URI", matches = ".+")
+    void importsTheConfiguredMongoCatalogEndToEnd() {
+        var properties = new MongoImportProperties();
+        properties.setUri(System.getenv("MONGODB_URI"));
+        properties.setDatabase(System.getenv().getOrDefault("MONGODB_DATABASE", "tbca"));
+        properties.setCollection(System.getenv().getOrDefault("MONGODB_COLLECTION", "foods"));
+        var data = new MongoCatalogReader(properties).read();
+        var importer = new ImportMongoCatalogUseCase(syncImportedFoods);
+
+        var first = importer.execute(new ImportMongoCatalogInput(data, false));
+        var second = importer.execute(new ImportMongoCatalogInput(data, false));
+
+        assertFalse(first.aborted());
+        assertEquals(data.records().size(), first.inserted());
+        assertEquals(data.records().size(), second.skipped());
+        assertTrue(portions.findImportedByFoodIds(data.records().stream()
+            .map(record -> CatalogIds.importedFood("TBCA", record.externalId()))
+            .toList()).stream().anyMatch(portion -> portion.getNutrients().values().stream()
+                .anyMatch(value -> value.status() == NutrientValueStatus.NOT_ANALYZED)));
     }
 
     private static void execute(

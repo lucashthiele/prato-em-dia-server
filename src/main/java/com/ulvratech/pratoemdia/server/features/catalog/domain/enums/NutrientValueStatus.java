@@ -4,5 +4,6 @@ public enum NutrientValueStatus {
     VALUE,
     TRACE,
     NOT_AVAILABLE,
-    NOT_APPLICABLE
+    NOT_APPLICABLE,
+    NOT_ANALYZED
 }

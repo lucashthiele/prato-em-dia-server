@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 public final class CatalogIds {
@@ -30,14 +31,29 @@ public final class CatalogIds {
         );
     }
 
-    public static UUID foodNutrient(UUID foodId, String nutrientCode) {
+    public static UUID importedFoodPortion(
+        UUID foodId, String type, String label, BigDecimal quantity, String unit
+    ) {
         if (foodId == null) throw new IllegalArgumentException("foodId is required");
+        if (type == null || type.isBlank()) throw new IllegalArgumentException("type is required");
+        if (label == null || label.isBlank()) throw new IllegalArgumentException("label is required");
+        if (quantity == null) throw new IllegalArgumentException("quantity is required");
+        return uuidV5(
+            PRATO_EM_DIA_CATALOG_NAMESPACE,
+            "FOOD:PORTION:" + foodId + ":" + type.trim() + ":" + label.trim()
+                + ":" + quantity.stripTrailingZeros().toPlainString() + ":"
+                + (unit == null ? "" : unit.trim())
+        );
+    }
+
+    public static UUID foodPortionNutrient(UUID portionId, String nutrientCode) {
+        if (portionId == null) throw new IllegalArgumentException("portionId is required");
         if (nutrientCode == null || nutrientCode.isBlank()) {
             throw new IllegalArgumentException("nutrientCode is required");
         }
         return uuidV5(
             PRATO_EM_DIA_CATALOG_NAMESPACE,
-            "FOOD:NUTRIENT:" + foodId + ":" + nutrientCode.trim()
+            "FOOD:PORTION:NUTRIENT:" + portionId + ":" + nutrientCode.trim()
         );
     }
 
