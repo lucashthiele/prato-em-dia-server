@@ -1,0 +1,10 @@
+spring:
+  main:
+    web-application-type: none
+
+# The catalog importer runs without an HTTP server. This fallback only satisfies
+# identity beans that are part of the shared application context and is never
+# exposed as an API signing key.
+security:
+  jwt:
+    secret: ${JWT_SECRET:catalog-import-non-web-context-secret}
