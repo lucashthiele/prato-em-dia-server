@@ -1,0 +1,20 @@
+#!/bin/sh
+
+set -eu
+
+worktree_root=$(git rev-parse --show-toplevel)
+common_git_dir=$(git rev-parse --path-format=absolute --git-common-dir)
+primary_worktree=$(dirname "$common_git_dir")
+source_env="$primary_worktree/local.env"
+target_env="$worktree_root/local.env"
+
+if [ "$worktree_root" = "$primary_worktree" ] || [ -e "$target_env" ]; then
+    exit 0
+fi
+
+if [ -f "$source_env" ]; then
+    cp "$source_env" "$target_env"
+    printf 'Copied local.env from the primary worktree.\n'
+else
+    printf 'Warning: %s does not exist; local.env was not copied.\n' "$source_env" >&2
+fi
