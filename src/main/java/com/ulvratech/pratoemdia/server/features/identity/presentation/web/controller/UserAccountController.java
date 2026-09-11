@@ -5,6 +5,10 @@ import com.ulvratech.pratoemdia.server.features.identity.application.port.in.Cre
 import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccountRole;
 import com.ulvratech.pratoemdia.server.features.identity.presentation.web.request.CreateUserAccountRequest;
 import com.ulvratech.pratoemdia.server.features.identity.presentation.web.response.CreateUserAccountResponse;
+import com.ulvratech.pratoemdia.server.shared.openapi.OpenApiConfiguration;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -17,6 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/identity/useraccounts")
 @Slf4j
+@SecurityRequirement(name = OpenApiConfiguration.BEARER_AUTH)
+@Tag(name = "Contas de usuário", description = "Criação e gerenciamento de contas de acesso.")
 public class UserAccountController {
     private final CreateUserAccount createUserAccountCommand;
 
@@ -25,6 +31,10 @@ public class UserAccountController {
     }
 
     @PostMapping
+    @Operation(
+        summary = "Criar conta de usuário",
+        description = "Cadastra uma nova conta com e-mail, senha, papel e dados básicos."
+    )
     ResponseEntity<CreateUserAccountResponse> create(
         @Valid @RequestBody CreateUserAccountRequest request
     ) {

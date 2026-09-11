@@ -7,6 +7,10 @@ import com.ulvratech.pratoemdia.server.features.catalog.presentation.web.request
 import com.ulvratech.pratoemdia.server.features.catalog.presentation.web.request.CreateFoodRequest;
 import com.ulvratech.pratoemdia.server.features.catalog.presentation.web.request.UpdateFoodRequest;
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageResult;
+import com.ulvratech.pratoemdia.server.shared.openapi.OpenApiConfiguration;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -25,6 +29,8 @@ import java.util.UUID;
 @RestController
 @Validated
 @RequestMapping("/api/v1/foods")
+@SecurityRequirement(name = OpenApiConfiguration.BEARER_AUTH)
+@Tag(name = "Alimentos", description = "Consulta e manutenção do catálogo de alimentos.")
 public class FoodController {
     private final CreateFood createFood;
     private final UpdateFood updateFood;
@@ -50,6 +56,10 @@ public class FoodController {
     }
 
     @GetMapping
+    @Operation(
+        summary = "Listar alimentos",
+        description = "Retorna uma página do catálogo de alimentos."
+    )
     PageResult<FoodOutput> list(
         @RequestParam(defaultValue = "0") @Min(0) int page,
         @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
@@ -58,11 +68,19 @@ public class FoodController {
     }
 
     @GetMapping("/{foodId}")
+    @Operation(
+        summary = "Consultar alimento",
+        description = "Retorna os detalhes e as porções de um alimento pelo identificador."
+    )
     FoodDetailsOutput get(@PathVariable UUID foodId) {
         return getFood.execute(new FoodQueryInput(foodId));
     }
 
     @PostMapping
+    @Operation(
+        summary = "Criar alimento",
+        description = "Adiciona um alimento e suas porções iniciais ao catálogo."
+    )
     ResponseEntity<FoodOutput> create(
         @AuthenticationPrincipal Jwt jwt,
         @Valid @RequestBody CreateFoodRequest request
@@ -80,6 +98,10 @@ public class FoodController {
     }
 
     @PutMapping("/{foodId}")
+    @Operation(
+        summary = "Atualizar alimento",
+        description = "Substitui os dados editáveis de um alimento existente."
+    )
     FoodOutput update(
         @AuthenticationPrincipal Jwt jwt,
         @PathVariable UUID foodId,
@@ -93,11 +115,19 @@ public class FoodController {
     }
 
     @GetMapping("/{foodId}/portions")
+    @Operation(
+        summary = "Listar porções do alimento",
+        description = "Retorna as porções cadastradas para o alimento informado."
+    )
     List<FoodPortionOutput> portions(@PathVariable UUID foodId) {
         return listPortions.execute(new FoodQueryInput(foodId));
     }
 
     @PostMapping("/{foodId}/portions")
+    @Operation(
+        summary = "Criar porções do alimento",
+        description = "Adiciona uma ou mais porções a um alimento existente."
+    )
     ResponseEntity<List<FoodPortionOutput>> createPortions(
         @PathVariable UUID foodId,
         @RequestBody @NotEmpty(message = "Informe ao menos uma porção.")

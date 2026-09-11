@@ -1,3 +1,5 @@
+name: server
+
 services:
   postgres:
     image: 'postgres:latest'
