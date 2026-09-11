@@ -9,6 +9,7 @@ import java.util.UUID;
 public record FoodOutput(
     UUID id,
     String name,
+    String brand,
     String category,
     String defaultUnit,
     String notes,
@@ -27,7 +28,7 @@ public record FoodOutput(
 ) {
     public static FoodOutput from(Food food) {
         return new FoodOutput(
-            food.getId(), food.getName(), food.getCategory(), food.getDefaultUnit(),
+            food.getId(), food.getName(), food.getBrand(), food.getCategory(), food.getDefaultUnit(),
             food.getNotes(), food.getPreparationMethod(), food.isActive(),
             food.getCreatedByUserId(), food.getOrigin(), food.getCreatedAt(), food.getUpdatedAt(),
             food.getVersion(), food.getSource(), food.getSourceExternalId(),

@@ -19,6 +19,7 @@ public record NutrientValue(
         if (status != NutrientValueStatus.VALUE && amount != null) {
             throw new IllegalArgumentException("amount is only allowed for numeric nutrients");
         }
+        if (amount != null) amount = amount.stripTrailingZeros();
         unit = unit.trim();
     }
 }

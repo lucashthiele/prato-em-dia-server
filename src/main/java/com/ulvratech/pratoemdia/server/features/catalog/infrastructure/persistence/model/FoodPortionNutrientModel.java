@@ -12,10 +12,10 @@ import java.util.UUID;
 
 @Entity
 @Table(
-    name = "food_nutrient",
+    name = "food_portion_nutrient",
     uniqueConstraints = @UniqueConstraint(
-        name = "uq_food_nutrient_food_code",
-        columnNames = {"food_id", "nutrient_code"}
+        name = "uq_food_portion_nutrient_portion_code",
+        columnNames = {"food_portion_id", "nutrient_code"}
     )
 )
 @Getter
@@ -23,13 +23,13 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FoodNutrientModel {
+public class FoodPortionNutrientModel {
     @Id
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "food_id", nullable = false)
-    private FoodModel food;
+    @JoinColumn(name = "food_portion_id", nullable = false)
+    private FoodPortionModel portion;
 
     @Column(name = "nutrient_code", nullable = false, length = 64)
     private String nutrientCode;

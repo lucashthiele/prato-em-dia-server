@@ -1,0 +1,15 @@
+spring:
+  main:
+    web-application-type: none
+
+security:
+  jwt:
+    secret: ${JWT_SECRET:catalog-import-non-web-context-secret}
+
+catalog:
+  import:
+    mongodb:
+      uri: ${MONGODB_URI}
+      database: ${MONGODB_DATABASE:tbca}
+      collection: ${MONGODB_COLLECTION:foods}
+      dry-run: ${MONGODB_IMPORT_DRY_RUN:true}

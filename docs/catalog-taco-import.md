@@ -28,8 +28,8 @@ Depois de revisar o relatorio, execute a carga com:
 As configuracoes normais de conexao Spring (`spring.datasource.*`) determinam o
 banco de destino. Nenhum caminho de maquina ou dado da TACO fica em migration.
 
-Valores numericos sao persistidos na tabela relacional `food_nutrient`, com sua
-unidade e valor bruto. `Tr` permanece
+Os nutrientes sao associados a uma porcao padrao de 100 g e persistidos em
+`food_portion_nutrient`, com sua unidade e valor bruto. `Tr` permanece
 como `TRACE`, `NA` como `NOT_APPLICABLE`, e celulas vazias ou `*` como
 `NOT_AVAILABLE`. A correcao conhecida `,0,02` da piridoxina do alimento 373 e
 convertida explicitamente para `0.02`. Residuos negativos de carboidrato de ate

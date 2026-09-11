@@ -5,6 +5,8 @@ import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.FoodPortio
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.Map;
+import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.NutrientValue;
 
 public record FoodPortionOutput(
     UUID id,
@@ -13,6 +15,9 @@ public record FoodPortionOutput(
     BigDecimal quantity,
     String unit,
     BigDecimal gramsEquivalent,
+    String type,
+    String rawLabel,
+    Map<String, NutrientValue> nutrients,
     boolean active,
     Instant createdAt,
     Instant updatedAt
@@ -20,7 +25,8 @@ public record FoodPortionOutput(
     public static FoodPortionOutput from(FoodPortion portion) {
         return new FoodPortionOutput(
             portion.getId(), portion.getFoodId(), portion.getLabel(), portion.getQuantity(),
-            portion.getUnit(), portion.getGramsEquivalent(), portion.isActive(),
+            portion.getUnit(), portion.getGramsEquivalent(), portion.getSourceType(),
+            portion.getRawLabel(), portion.getNutrients(), portion.isActive(),
             portion.getCreatedAt(), portion.getUpdatedAt()
         );
     }

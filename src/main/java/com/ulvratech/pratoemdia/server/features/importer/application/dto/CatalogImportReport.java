@@ -2,7 +2,7 @@ package com.ulvratech.pratoemdia.server.features.importer.application.dto;
 
 import java.util.List;
 
-public record TacoImportReport(
+public record CatalogImportReport(
     int rowsRead,
     int valid,
     int invalid,
@@ -12,9 +12,9 @@ public record TacoImportReport(
     int failed,
     boolean dryRun,
     boolean aborted,
-    List<TacoImportIssue> issues
+    List<CatalogImportIssue> issues
 ) {
-    public TacoImportReport {
+    public CatalogImportReport {
         issues = List.copyOf(issues);
     }
 
@@ -23,8 +23,8 @@ public record TacoImportReport(
     public int toSkip() { return skipped; }
 
     public String formatted() {
-        var text = new StringBuilder("TACO import\n\n")
-            .append(String.format("Rows read:   %6d%n", rowsRead))
+        var text = new StringBuilder("Catalog import\n\n")
+            .append(String.format("Records read:%6d%n", rowsRead))
             .append(String.format("Valid:       %6d%n", valid))
             .append(String.format("Invalid:     %6d%n%n", invalid));
         if (dryRun) {
@@ -47,7 +47,7 @@ public record TacoImportReport(
         if (!issues.isEmpty()) {
             text.append("\n\nIssues:");
             issues.stream().limit(20).forEach(issue -> text.append(String.format(
-                "%n- Row %d: %s", issue.rowNumber(), issue.message()
+                "%n- Record %d: %s", issue.recordNumber(), issue.message()
             )));
         }
         return text.toString();

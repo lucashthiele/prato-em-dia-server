@@ -21,8 +21,8 @@ class CatalogIdsTest {
         UUID foodId = CatalogIds.tacoFood("1");
 
         assertEquals(
-            UUID.fromString("be5d4d81-c86f-55b1-bfd8-9eebc25cc9f7"),
-            CatalogIds.foodNutrient(foodId, "sodium")
+            UUID.fromString("31ee1e06-b44e-5428-89b7-e42f1f4829d9"),
+            CatalogIds.foodPortionNutrient(foodId, "sodium")
         );
     }
 }
