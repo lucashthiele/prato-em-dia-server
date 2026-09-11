@@ -5,6 +5,8 @@ import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageRequest;
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageResult;
 
 import java.util.Optional;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 public interface FoodRepository {
@@ -12,4 +14,6 @@ public interface FoodRepository {
     Optional<Food> findById(UUID id);
     Optional<Food> findActiveById(UUID id);
     PageResult<Food> findActive(PageRequest page);
+    List<Food> findBySourceAndExternalIds(String source, Collection<String> externalIds);
+    List<Food> saveAll(Collection<Food> foods);
 }

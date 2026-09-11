@@ -8,6 +8,7 @@ import com.ulvratech.pratoemdia.server.features.catalog.application.port.in.Upda
 import com.ulvratech.pratoemdia.server.features.catalog.domain.port.out.FoodRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+import java.util.Objects;
 
 @Service
 @Transactional
@@ -21,7 +22,7 @@ public class UpdateFoodUseCase implements UpdateFood {
     @Override
     public FoodOutput execute(UpdateFoodInput input) {
         var food = repository.findById(input.foodId()).orElseThrow(FoodNotFoundException::new);
-        if (!input.admin() && !food.getCreatedByUserId().equals(input.actorUserId())) {
+        if (!input.admin() && !Objects.equals(food.getCreatedByUserId(), input.actorUserId())) {
             throw new FoodAccessDeniedException();
         }
         food.update(

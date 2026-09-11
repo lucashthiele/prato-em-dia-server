@@ -18,14 +18,20 @@ public record FoodOutput(
     FoodOrigin origin,
     Instant createdAt,
     Instant updatedAt,
-    long version
+    long version,
+    String source,
+    String sourceExternalId,
+    String sourceDescription,
+    String sourceVersion,
+    String normalizedName
 ) {
     public static FoodOutput from(Food food) {
         return new FoodOutput(
             food.getId(), food.getName(), food.getCategory(), food.getDefaultUnit(),
             food.getNotes(), food.getPreparationMethod(), food.isActive(),
             food.getCreatedByUserId(), food.getOrigin(), food.getCreatedAt(), food.getUpdatedAt(),
-            food.getVersion()
+            food.getVersion(), food.getSource(), food.getSourceExternalId(),
+            food.getSourceDescription(), food.getSourceVersion(), food.getNormalizedName()
         );
     }
 }

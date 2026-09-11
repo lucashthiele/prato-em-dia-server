@@ -7,11 +7,15 @@ import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageRequest;
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageResult;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
+@Transactional
 public class FoodRepositoryAdapter implements FoodRepository {
     private final FoodJpaRepository repository;
     private final FoodMapper mapper;
@@ -46,5 +50,21 @@ public class FoodRepositoryAdapter implements FoodRepository {
             page.getContent().stream().map(mapper::toDomain).toList(),
             page.getNumber(), page.getSize(), page.getTotalElements(), page.getTotalPages()
         );
+    }
+
+    @Override
+    public List<Food> findBySourceAndExternalIds(
+        String source, Collection<String> externalIds
+    ) {
+        return repository.findAllBySourceAndSourceExternalIdIn(source, externalIds).stream()
+            .map(mapper::toDomain)
+            .toList();
+    }
+
+    @Override
+    public List<Food> saveAll(Collection<Food> foods) {
+        return repository.saveAll(foods.stream().map(mapper::toModel).toList()).stream()
+            .map(mapper::toDomain)
+            .toList();
     }
 }

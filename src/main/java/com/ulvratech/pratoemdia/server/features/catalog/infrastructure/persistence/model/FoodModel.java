@@ -6,9 +6,12 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -40,13 +43,37 @@ public class FoodModel {
     @Column(nullable = false)
     private boolean active;
 
-    @Column(name = "created_by_user_id", nullable = false)
+    @Column(name = "created_by_user_id")
     private UUID createdByUserId;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(nullable = false)
     private FoodOrigin origin;
+
+    @Column(length = 32)
+    private String source;
+
+    @Column(name = "source_external_id", length = 64)
+    private String sourceExternalId;
+
+    @Column(name = "source_description", length = 255)
+    private String sourceDescription;
+
+    @Column(name = "source_version", length = 100)
+    private String sourceVersion;
+
+    @Column(name = "normalized_name", length = 180)
+    private String normalizedName;
+
+    @OneToMany(
+        mappedBy = "food",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
+    )
+    @BatchSize(size = 100)
+    @Builder.Default
+    private List<FoodNutrientModel> nutrients = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
