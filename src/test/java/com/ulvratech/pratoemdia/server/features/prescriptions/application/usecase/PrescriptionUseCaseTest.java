@@ -2,7 +2,7 @@ package com.ulvratech.pratoemdia.server.features.prescriptions.application.useca
 
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.*;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionInputs.*;
-import com.ulvratech.pratoemdia.server.features.prescriptions.application.exception.PrescriptionAccessDeniedException;
+import com.ulvratech.pratoemdia.server.features.prescriptions.application.exception.*;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.port.out.PrescriptionReferences;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.Prescription;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PrescriptionVersionStatus;
@@ -29,7 +29,8 @@ class PrescriptionUseCaseTest {
         when(references.nutritionistProfileId(nutritionistAccount)).thenReturn(Optional.of(nutritionist));
         when(references.hasActiveRelationship(nutritionist, patient)).thenReturn(true);
         when(references.isActiveFood(food)).thenReturn(true);
-        when(repository.findByNutritionistAndPatient(nutritionist, patient)).thenReturn(List.of());
+        when(repository.findByNutritionistAndPatient(nutritionist, patient)).thenAnswer(
+            invocation -> stored.get() == null ? List.of() : List.of(stored.get()));
         when(repository.save(any())).thenAnswer(invocation -> {
             var value = invocation.<Prescription>getArgument(0);
             stored.set(value);
@@ -44,13 +45,26 @@ class PrescriptionUseCaseTest {
 
         var created = useCase.create(new Create(actor, patient, content(food)));
         var published = useCase.publish(new VersionQuery(actor, created.versions().getFirst().id()));
-        useCase.createVersion(new PrescriptionQuery(actor, created.id()));
+        var draft = useCase.createVersion(new PrescriptionQuery(actor, created.id()));
+        var updated = useCase.updateVersion(new UpdateVersion(actor, draft.id(), content(food)));
+        var listed = useCase.list(new PatientQuery(actor, patient));
+        var versions = useCase.listVersions(new PrescriptionQuery(actor, created.id()));
+        var selected = useCase.getVersion(new VersionQuery(actor, draft.id()));
         var patientView = useCase.get(new PrescriptionQuery(
             new Actor(patientAccount, "PATIENT"), created.id()));
+        when(repository.findCurrentByPatient(patient)).thenReturn(Optional.of(stored.get()));
+        var current = useCase.current(new Actor(patientAccount, "PATIENT"));
+        var archived = useCase.archive(new VersionQuery(actor, published.id()));
 
         assertEquals(PrescriptionVersionStatus.PUBLISHED, published.status());
+        assertEquals(draft.id(), updated.id());
+        assertEquals(draft.id(), selected.id());
+        assertEquals(1, listed.size());
+        assertEquals(2, versions.size());
         assertEquals(1, patientView.versions().size());
         assertEquals(PrescriptionVersionStatus.PUBLISHED, patientView.versions().getFirst().status());
+        assertEquals(published.id(), current.id());
+        assertEquals(PrescriptionVersionStatus.ARCHIVED, archived.status());
         verify(references, atLeastOnce()).hasActiveRelationship(nutritionist, patient);
     }
 
@@ -67,6 +81,43 @@ class PrescriptionUseCaseTest {
             () -> useCase.create(new Create(new Actor(account, "NUTRITIONIST"),
                 UUID.randomUUID(), new PrescriptionContentInput(null, null, List.of()))));
         verify(repository, never()).save(any());
+    }
+
+    @Test
+    void rejectsInvalidReferencesAndUnauthorizedReaders() {
+        var repository = mock(PrescriptionRepository.class);
+        var references = mock(PrescriptionReferences.class);
+        var account = UUID.randomUUID(); var nutritionist = UUID.randomUUID(); var patient = UUID.randomUUID();
+        when(references.nutritionistProfileId(account)).thenReturn(Optional.of(nutritionist));
+        when(references.hasActiveRelationship(nutritionist, patient)).thenReturn(true);
+        var useCase = new PrescriptionUseCase(repository, references, Clock.systemUTC());
+
+        assertThrows(InvalidPrescriptionReferenceException.class,
+            () -> useCase.create(new Create(new Actor(account, "NUTRITIONIST"), patient,
+                content(UUID.randomUUID()))));
+        assertThrows(PrescriptionNotFoundException.class,
+            () -> useCase.get(new PrescriptionQuery(new Actor(account, "ADMIN"), UUID.randomUUID())));
+        assertThrows(PrescriptionAccessDeniedException.class,
+            () -> useCase.current(new Actor(account, "ADMIN")));
+    }
+
+    @Test
+    void rejectsDuplicatePrescriptionAndMissingProfiles() {
+        var repository = mock(PrescriptionRepository.class);
+        var references = mock(PrescriptionReferences.class);
+        var account = UUID.randomUUID(); var nutritionist = UUID.randomUUID(); var patient = UUID.randomUUID();
+        when(references.nutritionistProfileId(account)).thenReturn(Optional.of(nutritionist));
+        when(references.hasActiveRelationship(nutritionist, patient)).thenReturn(true);
+        when(repository.findByNutritionistAndPatient(nutritionist, patient))
+            .thenReturn(List.of(mock(Prescription.class)));
+        var useCase = new PrescriptionUseCase(repository, references, Clock.systemUTC());
+
+        assertThrows(PrescriptionConflictException.class,
+            () -> useCase.create(new Create(new Actor(account, "NUTRITIONIST"), patient,
+                new PrescriptionContentInput(null, null, List.of()))));
+        assertThrows(PrescriptionAccessDeniedException.class,
+            () -> new PrescriptionUseCase(repository, mock(PrescriptionReferences.class), Clock.systemUTC())
+                .list(new PatientQuery(new Actor(account, "NUTRITIONIST"), patient)));
     }
 
     private PrescriptionContentInput content(UUID food) {
