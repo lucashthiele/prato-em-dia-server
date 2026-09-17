@@ -13,8 +13,16 @@ import org.junit.jupiter.api.Test;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 class ProvisionPatientAccountUseCaseTest {
     @Test
@@ -28,18 +36,20 @@ class ProvisionPatientAccountUseCaseTest {
         when(passwords.generate()).thenReturn("TemporaryPassword123");
         when(hasher.hash("TemporaryPassword123")).thenReturn("hash");
         when(accounts.save(any()))
-            .thenReturn(
-                new UserAccount(
-                    id,
-                    "patient@example.com",
-                    "hash",
-                    UserAccountRole.PATIENT,
-                    UserAccountStatus.ACTIVE,
-                    true));
-        var result =
-            new ProvisionPatientAccountUseCase(accounts, hasher, passwords, profiles)
+                .thenReturn(
+                        new UserAccount(
+                                id,
+                                "patient@example.com",
+                                "hash",
+                                UserAccountRole.PATIENT,
+                                UserAccountStatus.ACTIVE,
+                                true
+                        )
+                );
+        var result = new ProvisionPatientAccountUseCase(accounts, hasher, passwords, profiles)
                 .execute(
-                    new ProvisionPatientAccountInput(" Patient@Example.com ", " Ana "));
+                        new ProvisionPatientAccountInput(" Patient@Example.com ", " Ana ")
+                );
         assertTrue(result.created());
         assertTrue(result.passwordChangeRequired());
         assertEquals("TemporaryPassword123", result.initialPassword());
@@ -52,20 +62,20 @@ class ProvisionPatientAccountUseCaseTest {
         var hasher = mock(PasswordHasher.class);
         var passwords = mock(InitialPasswordGenerator.class);
         var profiles = mock(UserProfileInitializer.class);
-        var account =
-            new UserAccount(
+        var account = new UserAccount(
                 UUID.randomUUID(),
                 "patient@example.com",
                 "old-hash",
                 UserAccountRole.PATIENT,
                 UserAccountStatus.ACTIVE,
-                false);
+                false
+        );
         when(accounts.findByEmailIgnoreCase("patient@example.com"))
-            .thenReturn(Optional.of(account));
-        var result =
-            new ProvisionPatientAccountUseCase(accounts, hasher, passwords, profiles)
+                .thenReturn(Optional.of(account));
+        var result = new ProvisionPatientAccountUseCase(accounts, hasher, passwords, profiles)
                 .execute(
-                    new ProvisionPatientAccountInput("patient@example.com", "Ignored"));
+                        new ProvisionPatientAccountInput("patient@example.com", "Ignored")
+                );
         assertFalse(result.created());
         assertNull(result.initialPassword());
         verify(accounts, never()).save(any());

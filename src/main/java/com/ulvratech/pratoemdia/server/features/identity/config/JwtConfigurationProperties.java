@@ -6,11 +6,10 @@ import java.time.Duration;
 
 @ConfigurationProperties(prefix = "security.jwt")
 public record JwtConfigurationProperties(
-    String issuer,
-    Duration accessTokenTtl,
-    Duration refreshTokenTtl,
-    String secret
-) {
+        String issuer,
+        Duration accessTokenTtl,
+        Duration refreshTokenTtl,
+        String secret) {
     public JwtConfigurationProperties {
         if (issuer == null || issuer.isBlank()) {
             throw new IllegalArgumentException("security.jwt.issuer must not be blank");

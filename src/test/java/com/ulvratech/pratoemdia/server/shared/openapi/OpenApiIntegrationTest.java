@@ -20,9 +20,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest(properties = {
-    "security.jwt.secret=01234567890123456789012345678901",
-    "spring.docker.compose.enabled=false",
-    "spring.jpa.hibernate.ddl-auto=validate"
+        "security.jwt.secret=01234567890123456789012345678901",
+        "spring.docker.compose.enabled=false",
+        "spring.jpa.hibernate.ddl-auto=validate"
 })
 @AutoConfigureMockMvc
 class OpenApiIntegrationTest {
@@ -36,65 +36,71 @@ class OpenApiIntegrationTest {
     @Test
     void publishesTheControllerBasedSpecificationWithoutAuthentication() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.info.title").value("Prato em Dia API"))
-            .andExpect(jsonPath("$.paths['/api/v1/auth/login'].post").exists())
-            .andExpect(jsonPath("$.paths['/api/v1/auth/refresh'].post").exists())
-            .andExpect(jsonPath("$.paths['/api/v1/foods'].get").exists())
-            .andExpect(jsonPath("$.paths['/api/v1/prescriptions/{prescriptionId}'].get").exists());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.info.title").value("Prato em Dia API"))
+                .andExpect(jsonPath("$.paths['/api/v1/auth/login'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/auth/refresh'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/foods'].get").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/prescriptions/{prescriptionId}'].get").exists());
     }
 
     @Test
     void describesBearerAuthenticationOnlyOnProtectedOperations() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"))
-            .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
-            .andExpect(jsonPath("$.paths['/api/v1/auth/login'].post.security").doesNotExist())
-            .andExpect(jsonPath("$.paths['/api/v1/auth/refresh'].post.security").doesNotExist())
-            .andExpect(jsonPath("$.paths['/api/v1/auth/logout'].post.security[0].bearerAuth").isArray())
-            .andExpect(jsonPath("$.paths['/api/v1/me'].get.security[0].bearerAuth").isArray());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
+                .andExpect(jsonPath("$.paths['/api/v1/auth/login'].post.security").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/v1/auth/refresh'].post.security").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/v1/auth/logout'].post.security[0].bearerAuth").isArray())
+                .andExpect(jsonPath("$.paths['/api/v1/me'].get.security[0].bearerAuth").isArray());
     }
 
     @Test
     void exposesSwaggerWithoutWeakeningApiAuthentication() throws Exception {
         mockMvc.perform(get("/swagger-ui.html"))
-            .andExpect(status().is3xxRedirection());
+                .andExpect(status().is3xxRedirection());
 
         mockMvc.perform(get("/swagger-ui/index.html"))
-            .andExpect(status().isOk());
+                .andExpect(status().isOk());
 
         mockMvc.perform(get("/v3/api-docs/swagger-config"))
-            .andExpect(status().isOk());
+                .andExpect(status().isOk());
 
         mockMvc.perform(get("/v3/api-docs.yaml"))
-            .andExpect(status().isOk());
+                .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/v1/me"))
-            .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
     void ignoresInvalidBearerTokensOnPublicDocumentationEndpoints() throws Exception {
-        mockMvc.perform(get("/v3/api-docs")
-                .header("Authorization", "Bearer invalid-token"))
-            .andExpect(status().isOk());
+        mockMvc.perform(
+                get("/v3/api-docs")
+                        .header("Authorization", "Bearer invalid-token")
+        )
+                .andExpect(status().isOk());
 
-        mockMvc.perform(get("/swagger-ui/index.html")
-                .header("Authorization", "Bearer invalid-token"))
-            .andExpect(status().isOk());
+        mockMvc.perform(
+                get("/swagger-ui/index.html")
+                        .header("Authorization", "Bearer invalid-token")
+        )
+                .andExpect(status().isOk());
     }
 
     @Test
     void groupsOperationsWithCustomNamesAndDescribesEveryEndpoint() throws Exception {
         var response = mockMvc.perform(get("/v3/api-docs"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.paths['/api/v1/foods'].get.tags[0]").value("Alimentos"))
-            .andExpect(jsonPath("$.paths['/api/v1/auth/login'].post.tags[0]")
-                .value("Autenticação"))
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/v1/foods'].get.tags[0]").value("Alimentos"))
+                .andExpect(
+                        jsonPath("$.paths['/api/v1/auth/login'].post.tags[0]")
+                                .value("Autenticação")
+                )
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
         var document = Json.mapper().readTree(response);
         var httpMethods = Set.of("get", "post", "put", "patch", "delete");
         var paths = document.path("paths");
@@ -108,10 +114,14 @@ class OpenApiIntegrationTest {
                 var methodName = methodNames.next();
                 if (httpMethods.contains(methodName)) {
                     var operation = path.path(methodName);
-                    assertFalse(operation.path("summary").asText().isBlank(),
-                        methodName + " " + pathName + " must have a summary");
-                    assertFalse(operation.path("description").asText().isBlank(),
-                        methodName + " " + pathName + " must have a description");
+                    assertFalse(
+                            operation.path("summary").asText().isBlank(),
+                            methodName + " " + pathName + " must have a summary"
+                    );
+                    assertFalse(
+                            operation.path("description").asText().isBlank(),
+                            methodName + " " + pathName + " must have a description"
+                    );
                 }
             }
         }

@@ -20,9 +20,9 @@ public interface RefreshTokenJpaRepository extends JpaRepository<RefreshTokenMod
     Optional<RefreshTokenModel> findByTokenHashForUpdate(@Param("tokenHash") String tokenHash);
 
     @Modifying
-    @Query(
-        "update RefreshTokenModel token set token.revokedAt = :revokedAt where"
+    @Query("update RefreshTokenModel token set token.revokedAt = :revokedAt where"
             + " token.userAccountId = :userAccountId and token.revokedAt is null")
     int revokeAllByUserAccountId(
-        @Param("userAccountId") UUID userAccountId, @Param("revokedAt") Instant revokedAt);
+            @Param("userAccountId") UUID userAccountId, @Param("revokedAt") Instant revokedAt
+    );
 }

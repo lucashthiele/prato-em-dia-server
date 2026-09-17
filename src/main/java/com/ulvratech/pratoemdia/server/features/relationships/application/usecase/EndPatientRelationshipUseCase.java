@@ -24,12 +24,10 @@ public class EndPatientRelationshipUseCase implements EndPatientRelationship {
     }
 
     public void execute(UUID id) {
-        var view =
-            repository
+        var view = repository
                 .findActiveViewByPatientAccount(id)
                 .orElseThrow(RelationshipConflictException::new);
-        var relationship =
-            repository
+        var relationship = repository
                 .findById(view.relationshipId())
                 .orElseThrow(RelationshipNotFoundException::new);
         relationship.end(id, clock.instant());

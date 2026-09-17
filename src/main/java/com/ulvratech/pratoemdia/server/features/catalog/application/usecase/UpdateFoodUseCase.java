@@ -26,8 +26,8 @@ public class UpdateFoodUseCase implements UpdateFood {
             throw new FoodAccessDeniedException();
         }
         food.update(
-            input.name(), input.category(), input.defaultUnit(), input.notes(),
-            input.preparationMethod(), input.active()
+                input.name(), input.category(), input.defaultUnit(), input.notes(),
+                input.preparationMethod(), input.active()
         );
         return FoodOutput.from(repository.save(food));
     }

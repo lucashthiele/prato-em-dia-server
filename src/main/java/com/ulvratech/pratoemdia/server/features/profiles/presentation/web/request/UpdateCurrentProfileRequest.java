@@ -7,19 +7,13 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 public record UpdateCurrentProfileRequest(
-    @NotBlank(message = "Informe o nome completo.")
-    @Size(max = 160, message = "O nome completo deve ter no máximo 160 caracteres.")
-    String fullName,
+        @NotBlank(message = "Informe o nome completo.") @Size(max = 160, message = "O nome completo deve ter no máximo 160 caracteres.") String fullName,
 
-    @Size(max = 32, message = "O telefone deve ter no máximo 32 caracteres.")
-    String phone,
+        @Size(max = 32, message = "O telefone deve ter no máximo 32 caracteres.") String phone,
 
-    @Size(max = 80, message = "O registro profissional deve ter no máximo 80 caracteres.")
-    String registrationNumber,
+        @Size(max = 80, message = "O registro profissional deve ter no máximo 80 caracteres.") String registrationNumber,
 
-    String bio,
+        String bio,
 
-    @PastOrPresent(message = "A data de nascimento não pode estar no futuro.")
-    LocalDate birthDate
-) {
+        @PastOrPresent(message = "A data de nascimento não pode estar no futuro.") LocalDate birthDate) {
 }

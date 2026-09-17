@@ -14,9 +14,10 @@ public class SmtpPatientRelationshipEmailSender implements PatientRelationshipEm
     private final String appUrl;
 
     public SmtpPatientRelationshipEmailSender(
-        JavaMailSender sender,
-        @Value("${relationships.mail.from}") String from,
-        @Value("${relationships.mail.app-url}") String appUrl) {
+            JavaMailSender sender,
+            @Value("${relationships.mail.from}") String from,
+            @Value("${relationships.mail.app-url}") String appUrl
+    ) {
         this.sender = sender;
         this.from = from;
         this.appUrl = appUrl;
@@ -24,32 +25,34 @@ public class SmtpPatientRelationshipEmailSender implements PatientRelationshipEm
 
     public void sendInitialAccess(String name, String email, String nutritionist, String password) {
         send(
-            email,
-            "Seu acesso ao Prato em Dia",
-            "Olá, "
-                + name
-                + ".\n\n"
-                + nutritionist
-                + " criou seu acesso ao Prato em Dia.\nE-mail: "
-                + email
-                + "\nSenha inicial: "
-                + password
-                + "\n\nEntre em "
-                + appUrl
-                + " e altere a senha no primeiro acesso.");
+                email,
+                "Seu acesso ao Prato em Dia",
+                "Olá, "
+                        + name
+                        + ".\n\n"
+                        + nutritionist
+                        + " criou seu acesso ao Prato em Dia.\nE-mail: "
+                        + email
+                        + "\nSenha inicial: "
+                        + password
+                        + "\n\nEntre em "
+                        + appUrl
+                        + " e altere a senha no primeiro acesso."
+        );
     }
 
     public void sendRelationshipNotice(String name, String email, String nutritionist) {
         send(
-            email,
-            "Novo vínculo no Prato em Dia",
-            "Olá, "
-                + name
-                + ".\n\nSeu perfil foi vinculado ao nutricionista "
-                + nutritionist
-                + ". Acesse "
-                + appUrl
-                + " com suas credenciais atuais.");
+                email,
+                "Novo vínculo no Prato em Dia",
+                "Olá, "
+                        + name
+                        + ".\n\nSeu perfil foi vinculado ao nutricionista "
+                        + nutritionist
+                        + ". Acesse "
+                        + appUrl
+                        + " com suas credenciais atuais."
+        );
     }
 
     private void send(String to, String subject, String text) {

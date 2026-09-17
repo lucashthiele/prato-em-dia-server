@@ -29,6 +29,7 @@
     </scm>
     <properties>
         <java.version>25</java.version>
+        <spotless-maven-plugin.version>3.10.2</spotless-maven-plugin.version>
         <springdoc-openapi.version>3.1.1</springdoc-openapi.version>
     </properties>
     <dependencies>
@@ -151,6 +152,59 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>${spotless-maven-plugin.version}</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                    <lineEndings>UNIX</lineEndings>
+                    <formats>
+                        <format>
+                            <includes>
+                                <include>.editorconfig</include>
+                                <include>*.xml</include>
+                                <include>.github/workflows/*.yml</include>
+                                <include>.github/workflows/*.yaml</include>
+                                <include>.run/*.xml</include>
+                                <include>src/**/*.properties</include>
+                                <include>src/**/*.sql</include>
+                                <include>src/**/*.xml</include>
+                                <include>src/**/*.yml</include>
+                                <include>src/**/*.yaml</include>
+                            </includes>
+                            <trimTrailingWhitespace/>
+                            <endWithNewline/>
+                        </format>
+                        <format>
+                            <includes>
+                                <include>**/*.md</include>
+                            </includes>
+                            <endWithNewline/>
+                        </format>
+                    </formats>
+                    <java>
+                        <eclipse>
+                            <file>${project.basedir}/eclipse-formatter.xml</file>
+                        </eclipse>
+                        <removeUnusedImports>
+                            <engine>cleanthat-javaparser-unnecessaryimport</engine>
+                        </removeUnusedImports>
+                        <forbidWildcardImports/>
+                        <trimTrailingWhitespace/>
+                        <endWithNewline/>
+                    </java>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>check-formatting</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

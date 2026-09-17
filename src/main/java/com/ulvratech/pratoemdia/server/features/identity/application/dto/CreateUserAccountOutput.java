@@ -6,9 +6,8 @@ import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccoun
 import java.util.UUID;
 
 public record CreateUserAccountOutput(
-    UUID id,
-    String email,
-    UserAccountRole role,
-    UserAccountStatus status
-) {
+        UUID id,
+        String email,
+        UserAccountRole role,
+        UserAccountStatus status) {
 }

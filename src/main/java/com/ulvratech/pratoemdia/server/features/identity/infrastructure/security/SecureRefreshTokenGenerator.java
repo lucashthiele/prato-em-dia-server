@@ -16,9 +16,9 @@ public class SecureRefreshTokenGenerator implements RefreshTokenGenerator {
     private final JwtConfigurationProperties properties;
 
     public SecureRefreshTokenGenerator(
-        SecureRandom secureRandom,
-        Clock clock,
-        JwtConfigurationProperties properties
+            SecureRandom secureRandom,
+            Clock clock,
+            JwtConfigurationProperties properties
     ) {
         this.secureRandom = secureRandom;
         this.clock = clock;
@@ -31,8 +31,8 @@ public class SecureRefreshTokenGenerator implements RefreshTokenGenerator {
         secureRandom.nextBytes(randomBytes);
         var value = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
         return new GeneratedRefreshToken(
-            value,
-            clock.instant().plus(properties.refreshTokenTtl())
+                value,
+                clock.instant().plus(properties.refreshTokenTtl())
         );
     }
 }

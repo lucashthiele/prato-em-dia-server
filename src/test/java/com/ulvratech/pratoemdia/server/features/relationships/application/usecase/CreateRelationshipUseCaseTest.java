@@ -22,7 +22,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class CreateRelationshipUseCaseTest {
     @Test
@@ -32,18 +36,19 @@ class CreateRelationshipUseCaseTest {
         var emails = mock(PatientRelationshipEmailSender.class);
         var transactions = mock(TransactionTemplate.class);
         when(transactions.execute(any()))
-            .thenAnswer(
-                inv ->
-                    ((TransactionCallback<?>) inv.getArgument(0))
-                        .doInTransaction(mock(TransactionStatus.class)));
+                .thenAnswer(
+                        inv -> ((TransactionCallback<?>) inv.getArgument(0))
+                                .doInTransaction(mock(TransactionStatus.class))
+                );
         doAnswer(
-            inv -> {
-                ((TransactionCallbackWithoutResult) inv.getArgument(0))
-                    .doInTransaction(mock(TransactionStatus.class));
-                return null;
-            })
-            .when(transactions)
-            .executeWithoutResult(any());
+                inv -> {
+                    ((TransactionCallbackWithoutResult) inv.getArgument(0))
+                            .doInTransaction(mock(TransactionStatus.class));
+                    return null;
+                }
+        )
+                .when(transactions)
+                .executeWithoutResult(any());
         var nAccount = UUID.randomUUID();
         var nProfile = UUID.randomUUID();
         var pAccount = UUID.randomUUID();
@@ -51,20 +56,21 @@ class CreateRelationshipUseCaseTest {
         var relationshipId = UUID.randomUUID();
         var now = Instant.parse("2026-09-01T12:00:00Z");
         when(repository.findNutritionistProfileIdByAccount(nAccount))
-            .thenReturn(Optional.of(nProfile));
+                .thenReturn(Optional.of(nProfile));
         when(accounts.execute(any()))
-            .thenReturn(
-                new ProvisionPatientAccountOutput(
-                    pAccount,
-                    "patient@example.com",
-                    true,
-                    true,
-                    "TemporaryPassword123"));
+                .thenReturn(
+                        new ProvisionPatientAccountOutput(
+                                pAccount,
+                                "patient@example.com",
+                                true,
+                                true,
+                                "TemporaryPassword123"
+                        )
+                );
         when(repository.findPatientProfileIdByAccount(pAccount)).thenReturn(Optional.of(pProfile));
         when(repository.findActiveByPatient(pProfile)).thenReturn(Optional.empty());
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        var pending =
-            new RelationshipView(
+        var pending = new RelationshipView(
                 relationshipId,
                 pProfile,
                 pAccount,
@@ -75,9 +81,9 @@ class CreateRelationshipUseCaseTest {
                 "Nutritionist",
                 RelationshipStatus.ACTIVE,
                 RelationshipEmailStatus.PENDING,
-                now);
-        var failed =
-            new RelationshipView(
+                now
+        );
+        var failed = new RelationshipView(
                 relationshipId,
                 pProfile,
                 pAccount,
@@ -88,24 +94,28 @@ class CreateRelationshipUseCaseTest {
                 "Nutritionist",
                 RelationshipStatus.ACTIVE,
                 RelationshipEmailStatus.FAILED,
-                now);
+                now
+        );
         when(repository.findViewById(any())).thenReturn(Optional.of(pending), Optional.of(failed));
         when(repository.findById(relationshipId))
-            .thenReturn(
-                Optional.of(ProfessionalPatientRelationship.create(nProfile, pProfile)));
+                .thenReturn(
+                        Optional.of(ProfessionalPatientRelationship.create(nProfile, pProfile))
+                );
         doThrow(new RuntimeException("smtp down"))
-            .when(emails)
-            .sendInitialAccess(any(), any(), any(), any());
-        var result =
-            new CreateRelationshipUseCase(
+                .when(emails)
+                .sendInitialAccess(any(), any(), any(), any());
+        var result = new CreateRelationshipUseCase(
                 repository,
                 accounts,
                 emails,
                 transactions,
-                Clock.fixed(now, ZoneOffset.UTC))
+                Clock.fixed(now, ZoneOffset.UTC)
+        )
                 .execute(
-                    new CreateRelationshipInput(
-                        nAccount, "patient@example.com", "Patient"));
+                        new CreateRelationshipInput(
+                                nAccount, "patient@example.com", "Patient"
+                        )
+                );
         assertEquals("FAILED", result.emailDeliveryStatus());
     }
 }

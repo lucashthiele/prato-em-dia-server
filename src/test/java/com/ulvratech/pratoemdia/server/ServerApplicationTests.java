@@ -7,7 +7,7 @@ class ServerApplicationTests {
     @Test
     void applicationEntryPointIsAvailable() {
         org.junit.jupiter.api.Assertions.assertDoesNotThrow(
-            () -> ServerApplication.class.getDeclaredMethod("main", String[].class)
+                () -> ServerApplication.class.getDeclaredMethod("main", String[].class)
         );
     }
 

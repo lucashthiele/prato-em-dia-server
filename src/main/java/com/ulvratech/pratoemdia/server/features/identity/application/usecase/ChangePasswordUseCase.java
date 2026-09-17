@@ -32,13 +32,14 @@ public class ChangePasswordUseCase implements ChangePassword {
     private final Clock clock;
 
     public ChangePasswordUseCase(
-        UserAccountRepository accounts,
-        RefreshTokenRepository refreshTokens,
-        PasswordHasher passwordHasher,
-        AccessTokenProvider accessTokens,
-        RefreshTokenGenerator refreshTokenGenerator,
-        RefreshTokenHasher refreshTokenHasher,
-        Clock clock) {
+            UserAccountRepository accounts,
+            RefreshTokenRepository refreshTokens,
+            PasswordHasher passwordHasher,
+            AccessTokenProvider accessTokens,
+            RefreshTokenGenerator refreshTokenGenerator,
+            RefreshTokenHasher refreshTokenHasher,
+            Clock clock
+    ) {
         this.accounts = accounts;
         this.refreshTokens = refreshTokens;
         this.passwordHasher = passwordHasher;
@@ -50,8 +51,7 @@ public class ChangePasswordUseCase implements ChangePassword {
 
     @Override
     public AuthenticateUserOutput execute(ChangePasswordInput input) {
-        var account =
-            accounts.findById(input.userAccountId())
+        var account = accounts.findById(input.userAccountId())
                 .orElseThrow(InvalidCredentialsException::new);
         if (!passwordHasher.matches(input.currentPassword(), account.getPasswordHash())) {
             throw new InvalidCredentialsException();
@@ -63,18 +63,21 @@ public class ChangePasswordUseCase implements ChangePassword {
         refreshTokens.revokeAllByUserAccountId(account.getId(), now);
         var generated = refreshTokenGenerator.generate();
         refreshTokens.save(
-            RefreshToken.issue(
-                UUID.randomUUID(),
-                account.getId(),
-                refreshTokenHasher.hash(generated.value()),
-                generated.expiresAt(),
-                now));
+                RefreshToken.issue(
+                        UUID.randomUUID(),
+                        account.getId(),
+                        refreshTokenHasher.hash(generated.value()),
+                        generated.expiresAt(),
+                        now
+                )
+        );
         var access = accessTokens.generate(account);
         return new AuthenticateUserOutput(
-            access.value(),
-            generated.value(),
-            "Bearer",
-            Duration.between(now, access.expiresAt()).toSeconds(),
-            false);
+                access.value(),
+                generated.value(),
+                "Bearer",
+                Duration.between(now, access.expiresAt()).toSeconds(),
+                false
+        );
     }
 }

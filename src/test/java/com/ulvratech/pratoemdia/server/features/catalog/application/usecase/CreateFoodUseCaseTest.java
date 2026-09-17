@@ -16,7 +16,11 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class CreateFoodUseCaseTest {
     @Test
@@ -27,12 +31,16 @@ class CreateFoodUseCaseTest {
         when(portions.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
         var useCase = new CreateFoodUseCase(foods, portions);
 
-        var output = useCase.execute(new CreateFoodInput(
-            UUID.randomUUID(), FoodOrigin.NUTRITIONIST, "Arroz", "Cereais", "g", null, null,
-            List.of(new CreateFoodPortionInput(
-                "Colher", new BigDecimal("25"), "g", new BigDecimal("25")
-            ))
-        ));
+        var output = useCase.execute(
+                new CreateFoodInput(
+                        UUID.randomUUID(), FoodOrigin.NUTRITIONIST, "Arroz", "Cereais", "g", null, null,
+                        List.of(
+                                new CreateFoodPortionInput(
+                                        "Colher", new BigDecimal("25"), "g", new BigDecimal("25")
+                                )
+                        )
+                )
+        );
 
         @SuppressWarnings("unchecked")
         var captor = ArgumentCaptor.forClass((Class<List<FoodPortion>>) (Class<?>) List.class);

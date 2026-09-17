@@ -27,11 +27,12 @@ public class ResendPatientAccessEmailUseCase implements ResendPatientAccessEmail
     private final Clock clock;
 
     public ResendPatientAccessEmailUseCase(
-        RelationshipRepository r,
-        RotateInitialPassword p,
-        PatientRelationshipEmailSender e,
-        TransactionTemplate t,
-        Clock c) {
+            RelationshipRepository r,
+            RotateInitialPassword p,
+            PatientRelationshipEmailSender e,
+            TransactionTemplate t,
+            Clock c
+    ) {
         repository = r;
         rotate = p;
         emails = e;
@@ -40,41 +41,45 @@ public class ResendPatientAccessEmailUseCase implements ResendPatientAccessEmail
     }
 
     public void execute(RelationshipQueryInput i) {
-        var access =
-            transactions.execute(
+        var access = transactions.execute(
                 s -> {
-                    var view =
-                        repository
+                    var view = repository
                             .findActiveViewByNutritionistAccountAndPatient(
-                                i.accountId(), i.patientId())
+                                    i.accountId(), i.patientId()
+                            )
                             .orElseThrow(RelationshipNotFoundException::new);
                     return new PatientAccessEmail(
-                        view, rotate.execute(view.patientUserAccountId()));
-                });
+                            view, rotate.execute(view.patientUserAccountId())
+                    );
+                }
+        );
         boolean sent = true;
         try {
             emails.sendInitialAccess(
-                access.view().patientFullName(),
-                access.view().patientEmail(),
-                access.view().nutritionistFullName(),
-                access.password());
+                    access.view().patientFullName(),
+                    access.view().patientEmail(),
+                    access.view().nutritionistFullName(),
+                    access.password()
+            );
         } catch (RuntimeException e) {
             sent = false;
             log.error(
-                "Failed to send patient relationship email. operation=resend, relationshipId={}",
-                access.view().relationshipId(),
-                e);
+                    "Failed to send patient relationship email. operation=resend, relationshipId={}",
+                    access.view().relationshipId(),
+                    e
+            );
         }
         var result = sent ? RelationshipEmailStatus.SENT : RelationshipEmailStatus.FAILED;
         transactions.executeWithoutResult(
-            s -> {
-                var relationship =
-                    repository
-                        .findById(access.view().relationshipId())
-                        .orElseThrow(RelationshipNotFoundException::new);
-                relationship.recordEmail(result, clock.instant());
-                repository.save(relationship);
-            });
-        if (!sent) throw new RelationshipEmailException();
+                s -> {
+                    var relationship = repository
+                            .findById(access.view().relationshipId())
+                            .orElseThrow(RelationshipNotFoundException::new);
+                    relationship.recordEmail(result, clock.instant());
+                    repository.save(relationship);
+                }
+        );
+        if (!sent)
+            throw new RelationshipEmailException();
     }
 }

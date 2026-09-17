@@ -18,7 +18,7 @@ public class GetCurrentProfileUseCase implements GetCurrentProfile {
     @Override
     public ProfileOutput execute(GetProfileInput input) {
         return repository.findByUserAccountId(input.userAccountId(), input.type())
-            .map(ProfileOutput::from)
-            .orElseThrow(ProfileNotFoundException::new);
+                .map(ProfileOutput::from)
+                .orElseThrow(ProfileNotFoundException::new);
     }
 }

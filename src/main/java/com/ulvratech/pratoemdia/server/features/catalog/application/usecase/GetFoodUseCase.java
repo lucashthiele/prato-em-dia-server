@@ -21,7 +21,7 @@ public class GetFoodUseCase implements GetFood {
     @Override
     public FoodDetailsOutput execute(FoodQueryInput input) {
         var food = repository.findActiveById(input.foodId())
-            .orElseThrow(FoodNotFoundException::new);
+                .orElseThrow(FoodNotFoundException::new);
         return FoodDetailsOutput.from(food, portions.findActiveByFoodId(food.getId()));
     }
 }

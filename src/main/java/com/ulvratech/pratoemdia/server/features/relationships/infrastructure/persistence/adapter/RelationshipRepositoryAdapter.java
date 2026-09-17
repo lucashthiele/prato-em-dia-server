@@ -19,7 +19,8 @@ public class RelationshipRepositoryAdapter implements RelationshipRepository {
     private final RelationshipMapper mapper;
 
     public RelationshipRepositoryAdapter(
-        RelationshipJpaRepository repository, RelationshipMapper mapper) {
+            RelationshipJpaRepository repository, RelationshipMapper mapper
+    ) {
         this.repository = repository;
         this.mapper = mapper;
     }
@@ -33,20 +34,22 @@ public class RelationshipRepositoryAdapter implements RelationshipRepository {
     }
 
     public Optional<ProfessionalPatientRelationship> findActiveByNutritionistAndPatient(
-        UUID n, UUID p) {
+            UUID n, UUID p
+    ) {
         return repository
-            .findByNutritionistIdAndPatientIdAndStatus(n, p, RelationshipStatus.ACTIVE)
-            .map(mapper::toDomain);
+                .findByNutritionistIdAndPatientIdAndStatus(n, p, RelationshipStatus.ACTIVE)
+                .map(mapper::toDomain);
     }
 
     public Optional<ProfessionalPatientRelationship> findActiveByPatient(UUID p) {
         return repository
-            .findByPatientIdAndStatus(p, RelationshipStatus.ACTIVE)
-            .map(mapper::toDomain);
+                .findByPatientIdAndStatus(p, RelationshipStatus.ACTIVE)
+                .map(mapper::toDomain);
     }
 
     public Optional<RelationshipView> findActiveViewByNutritionistAccountAndPatient(
-        UUID a, UUID p) {
+            UUID a, UUID p
+    ) {
         return repository.findActiveViewByNutritionist(a, p);
     }
 
@@ -59,15 +62,16 @@ public class RelationshipRepositoryAdapter implements RelationshipRepository {
     }
 
     public PageResult<RelationshipView> findActiveByNutritionistAccount(UUID a, PageRequest p) {
-        var page =
-            repository.findActiveByNutritionistAccount(
-                a, org.springframework.data.domain.PageRequest.of(p.page(), p.size()));
+        var page = repository.findActiveByNutritionistAccount(
+                a, org.springframework.data.domain.PageRequest.of(p.page(), p.size())
+        );
         return new PageResult<>(
-            page.getContent(),
-            page.getNumber(),
-            page.getSize(),
-            page.getTotalElements(),
-            page.getTotalPages());
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages()
+        );
     }
 
     public Optional<UUID> findNutritionistProfileIdByAccount(UUID a) {

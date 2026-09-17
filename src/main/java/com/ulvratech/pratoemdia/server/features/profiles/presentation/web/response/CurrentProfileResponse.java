@@ -7,22 +7,21 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 public record CurrentProfileResponse(
-    UUID id,
-    UUID userAccountId,
-    String role,
-    String fullName,
-    String phone,
-    String registrationNumber,
-    String bio,
-    LocalDate birthDate,
-    Instant createdAt,
-    Instant updatedAt
-) {
+        UUID id,
+        UUID userAccountId,
+        String role,
+        String fullName,
+        String phone,
+        String registrationNumber,
+        String bio,
+        LocalDate birthDate,
+        Instant createdAt,
+        Instant updatedAt) {
     public static CurrentProfileResponse from(ProfileOutput output) {
         return new CurrentProfileResponse(
-            output.id(), output.userAccountId(), output.role(), output.fullName(),
-            output.phone(), output.registrationNumber(), output.bio(),
-            output.birthDate(), output.createdAt(), output.updatedAt()
+                output.id(), output.userAccountId(), output.role(), output.fullName(),
+                output.phone(), output.registrationNumber(), output.bio(),
+                output.birthDate(), output.createdAt(), output.updatedAt()
         );
     }
 }

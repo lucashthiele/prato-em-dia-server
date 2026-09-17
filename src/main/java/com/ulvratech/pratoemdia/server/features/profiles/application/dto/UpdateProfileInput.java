@@ -6,12 +6,11 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 public record UpdateProfileInput(
-    UUID userAccountId,
-    ProfileType type,
-    String fullName,
-    String phone,
-    String registrationNumber,
-    String bio,
-    LocalDate birthDate
-) {
+        UUID userAccountId,
+        ProfileType type,
+        String fullName,
+        String phone,
+        String registrationNumber,
+        String bio,
+        LocalDate birthDate) {
 }

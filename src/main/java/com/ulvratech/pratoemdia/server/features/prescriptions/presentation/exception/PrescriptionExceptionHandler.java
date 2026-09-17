@@ -1,11 +1,16 @@
 package com.ulvratech.pratoemdia.server.features.prescriptions.presentation.exception;
 
 import com.ulvratech.pratoemdia.server.features.identity.presentation.exception.dto.ApiErrorResponse;
-import com.ulvratech.pratoemdia.server.features.prescriptions.application.exception.*;
+import com.ulvratech.pratoemdia.server.features.prescriptions.application.exception.InvalidPrescriptionReferenceException;
+import com.ulvratech.pratoemdia.server.features.prescriptions.application.exception.PrescriptionAccessDeniedException;
+import com.ulvratech.pratoemdia.server.features.prescriptions.application.exception.PrescriptionConflictException;
+import com.ulvratech.pratoemdia.server.features.prescriptions.application.exception.PrescriptionNotFoundException;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.*;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.List;
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -38,6 +43,6 @@ public class PrescriptionExceptionHandler {
 
     private ResponseEntity<ApiErrorResponse> response(HttpStatus status, String code, String message) {
         return ResponseEntity.status(status)
-            .body(new ApiErrorResponse(status.value(), code, message, List.of()));
+                .body(new ApiErrorResponse(status.value(), code, message, List.of()));
     }
 }

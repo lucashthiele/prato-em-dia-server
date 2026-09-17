@@ -18,9 +18,9 @@ public class LogoutUserUseCase implements LogoutUser {
     private final Clock clock;
 
     public LogoutUserUseCase(
-        RefreshTokenRepository refreshTokenRepository,
-        RefreshTokenHasher refreshTokenHasher,
-        Clock clock
+            RefreshTokenRepository refreshTokenRepository,
+            RefreshTokenHasher refreshTokenHasher,
+            Clock clock
     ) {
         this.refreshTokenRepository = refreshTokenRepository;
         this.refreshTokenHasher = refreshTokenHasher;
@@ -30,11 +30,11 @@ public class LogoutUserUseCase implements LogoutUser {
     @Override
     public void execute(LogoutInput input) {
         var refreshToken = refreshTokenRepository
-            .findByTokenHashForUpdate(refreshTokenHasher.hash(input.refreshToken()))
-            .orElseThrow(InvalidRefreshTokenException::new);
+                .findByTokenHashForUpdate(refreshTokenHasher.hash(input.refreshToken()))
+                .orElseThrow(InvalidRefreshTokenException::new);
 
         if (refreshToken.isRevoked()
-            || !refreshToken.getUserAccountId().equals(input.userAccountId())) {
+                || !refreshToken.getUserAccountId().equals(input.userAccountId())) {
             throw new InvalidRefreshTokenException();
         }
 

@@ -11,9 +11,14 @@ import java.util.UUID;
 
 public interface FoodRepository {
     Food save(Food food);
+
     Optional<Food> findById(UUID id);
+
     Optional<Food> findActiveById(UUID id);
+
     PageResult<Food> findActive(PageRequest page);
+
     List<Food> findBySourceAndExternalIds(String source, Collection<String> externalIds);
+
     List<Food> saveAll(Collection<Food> foods);
 }

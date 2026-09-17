@@ -21,20 +21,24 @@ public class FoodPortion {
     private final Map<String, NutrientValue> nutrients;
 
     public FoodPortion(
-        UUID id, UUID foodId, String label, BigDecimal quantity, String unit,
-        BigDecimal gramsEquivalent, boolean active, Instant createdAt, Instant updatedAt
+            UUID id, UUID foodId, String label, BigDecimal quantity, String unit,
+            BigDecimal gramsEquivalent, boolean active, Instant createdAt, Instant updatedAt
     ) {
-        this(id, foodId, label, quantity, unit, gramsEquivalent, active, createdAt,
-            updatedAt, null, null, Map.of());
+        this(
+                id, foodId, label, quantity, unit, gramsEquivalent, active, createdAt,
+                updatedAt, null, null, Map.of()
+        );
     }
 
     public FoodPortion(
-        UUID id, UUID foodId, String label, BigDecimal quantity, String unit,
-        BigDecimal gramsEquivalent, boolean active, Instant createdAt, Instant updatedAt,
-        String sourceType, String rawLabel, Map<String, NutrientValue> nutrients
+            UUID id, UUID foodId, String label, BigDecimal quantity, String unit,
+            BigDecimal gramsEquivalent, boolean active, Instant createdAt, Instant updatedAt,
+            String sourceType, String rawLabel, Map<String, NutrientValue> nutrients
     ) {
-        if (foodId == null) throw new IllegalArgumentException("foodId is required");
-        if (label == null || label.isBlank()) throw new IllegalArgumentException("label is required");
+        if (foodId == null)
+            throw new IllegalArgumentException("foodId is required");
+        if (label == null || label.isBlank())
+            throw new IllegalArgumentException("label is required");
         if (quantity == null || quantity.signum() <= 0) {
             throw new IllegalArgumentException("quantity must be positive");
         }
@@ -56,26 +60,26 @@ public class FoodPortion {
         this.sourceType = optional(sourceType);
         this.rawLabel = optional(rawLabel);
         this.nutrients = nutrients == null
-            ? Map.of()
-            : Map.copyOf(new LinkedHashMap<>(nutrients));
+                ? Map.of()
+                : Map.copyOf(new LinkedHashMap<>(nutrients));
     }
 
     public static FoodPortion create(
-        UUID foodId, String label, BigDecimal quantity, String unit, BigDecimal gramsEquivalent
+            UUID foodId, String label, BigDecimal quantity, String unit, BigDecimal gramsEquivalent
     ) {
         return new FoodPortion(
-            UUID.randomUUID(), foodId, label, quantity, unit, gramsEquivalent, true, null, null
+                UUID.randomUUID(), foodId, label, quantity, unit, gramsEquivalent, true, null, null
         );
     }
 
     public static FoodPortion imported(
-        UUID id, UUID foodId, String sourceType, String label, String rawLabel,
-        BigDecimal quantity, String unit, Map<String, NutrientValue> nutrients
+            UUID id, UUID foodId, String sourceType, String label, String rawLabel,
+            BigDecimal quantity, String unit, Map<String, NutrientValue> nutrients
     ) {
         BigDecimal gramsEquivalent = "g".equals(unit) ? quantity : null;
         return new FoodPortion(
-            id, foodId, label, quantity, unit, gramsEquivalent, true, null, null,
-            sourceType, rawLabel, nutrients
+                id, foodId, label, quantity, unit, gramsEquivalent, true, null, null,
+                sourceType, rawLabel, nutrients
         );
     }
 
@@ -83,16 +87,51 @@ public class FoodPortion {
         return value == null || value.isBlank() ? null : value.trim();
     }
 
-    public UUID getId() { return id; }
-    public UUID getFoodId() { return foodId; }
-    public String getLabel() { return label; }
-    public BigDecimal getQuantity() { return quantity; }
-    public String getUnit() { return unit; }
-    public BigDecimal getGramsEquivalent() { return gramsEquivalent; }
-    public boolean isActive() { return active; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
-    public String getSourceType() { return sourceType; }
-    public String getRawLabel() { return rawLabel; }
-    public Map<String, NutrientValue> getNutrients() { return nutrients; }
+    public UUID getId() {
+        return id;
+    }
+
+    public UUID getFoodId() {
+        return foodId;
+    }
+
+    public String getLabel() {
+        return label;
+    }
+
+    public BigDecimal getQuantity() {
+        return quantity;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public BigDecimal getGramsEquivalent() {
+        return gramsEquivalent;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public String getSourceType() {
+        return sourceType;
+    }
+
+    public String getRawLabel() {
+        return rawLabel;
+    }
+
+    public Map<String, NutrientValue> getNutrients() {
+        return nutrients;
+    }
 }

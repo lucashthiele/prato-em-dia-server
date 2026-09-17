@@ -22,37 +22,39 @@ public class ProfileExceptionHandler {
     @ExceptionHandler(ProfileNotAvailableException.class)
     ResponseEntity<ApiErrorResponse> handleNotAvailable(ProfileNotAvailableException exception) {
         return response(
-            HttpStatus.FORBIDDEN,
-            exception.getCode(),
-            "Este tipo de conta não possui perfil editável."
+                HttpStatus.FORBIDDEN,
+                exception.getCode(),
+                "Este tipo de conta não possui perfil editável."
         );
     }
 
     @ExceptionHandler(InvalidProfileFieldsException.class)
     ResponseEntity<ApiErrorResponse> handleInvalidFields(InvalidProfileFieldsException exception) {
         return response(
-            HttpStatus.BAD_REQUEST,
-            exception.getCode(),
-            "Um ou mais campos não pertencem a este tipo de perfil."
+                HttpStatus.BAD_REQUEST,
+                exception.getCode(),
+                "Um ou mais campos não pertencem a este tipo de perfil."
         );
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<ApiErrorResponse> handleInvalidValue() {
         return response(
-            HttpStatus.BAD_REQUEST,
-            "PROFILE_INVALID_VALUE",
-            "Um ou mais valores do perfil são inválidos."
+                HttpStatus.BAD_REQUEST,
+                "PROFILE_INVALID_VALUE",
+                "Um ou mais valores do perfil são inválidos."
         );
     }
 
     private ResponseEntity<ApiErrorResponse> response(
-        HttpStatus status,
-        String code,
-        String message
+            HttpStatus status,
+            String code,
+            String message
     ) {
-        return ResponseEntity.status(status).body(new ApiErrorResponse(
-            status.value(), code, message
-        ));
+        return ResponseEntity.status(status).body(
+                new ApiErrorResponse(
+                        status.value(), code, message
+                )
+        );
     }
 }

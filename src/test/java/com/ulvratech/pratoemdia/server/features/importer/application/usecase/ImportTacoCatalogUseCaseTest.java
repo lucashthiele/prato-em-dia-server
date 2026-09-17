@@ -12,7 +12,11 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class ImportTacoCatalogUseCaseTest {
     @Test
@@ -20,11 +24,11 @@ class ImportTacoCatalogUseCaseTest {
         var catalog = mock(SyncImportedFoods.class);
         when(catalog.execute(any())).thenReturn(new SyncImportedFoodsOutput(0, 0, 0));
         var spreadsheet = new TacoSpreadsheetData(
-            1, List.of(), List.of(new CatalogImportIssue(5, "invalid value"))
+                1, List.of(), List.of(new CatalogImportIssue(5, "invalid value"))
         );
 
         var report = new ImportTacoCatalogUseCase(catalog)
-            .execute(new ImportTacoCatalogInput(spreadsheet, false));
+                .execute(new ImportTacoCatalogInput(spreadsheet, false));
 
         assertTrue(report.aborted());
         verify(catalog).execute(argThat(SyncImportedFoodsInput::dryRun));

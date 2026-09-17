@@ -14,7 +14,10 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class CreateUserAccountUseCaseTest {
     @Test
@@ -26,23 +29,27 @@ class CreateUserAccountUseCaseTest {
         UUID accountId = UUID.randomUUID();
 
         when(accounts.findByEmailIgnoreCase("patient@example.com"))
-            .thenReturn(Optional.empty());
+                .thenReturn(Optional.empty());
         when(hasher.hash("secret")).thenReturn("hash");
-        when(accounts.save(any(UserAccount.class))).thenReturn(new UserAccount(
-            accountId,
-            "patient@example.com",
-            "hash",
-            UserAccountRole.PATIENT,
-            UserAccountStatus.ACTIVE
-        ));
+        when(accounts.save(any(UserAccount.class))).thenReturn(
+                new UserAccount(
+                        accountId,
+                        "patient@example.com",
+                        "hash",
+                        UserAccountRole.PATIENT,
+                        UserAccountStatus.ACTIVE
+                )
+        );
 
-        var output = useCase.execute(new CreateUserAccountInput(
-            "Patient@Example.com", "secret", UserAccountRole.PATIENT, "  Ana Silva  "
-        ));
+        var output = useCase.execute(
+                new CreateUserAccountInput(
+                        "Patient@Example.com", "secret", UserAccountRole.PATIENT, "  Ana Silva  "
+                )
+        );
 
         assertEquals(accountId, output.id());
         verify(profileInitializer).initialize(
-            accountId, UserAccountRole.PATIENT, "Ana Silva"
+                accountId, UserAccountRole.PATIENT, "Ana Silva"
         );
     }
 }

@@ -15,7 +15,10 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class CreateFoodPortionUseCaseTest {
     @Test
@@ -23,16 +26,20 @@ class CreateFoodPortionUseCaseTest {
         var foods = mock(FoodRepository.class);
         var portions = mock(FoodPortionRepository.class);
         var food = Food.create(
-            "Arroz", null, "g", null, null, UUID.randomUUID(), FoodOrigin.PATIENT
+                "Arroz", null, "g", null, null, UUID.randomUUID(), FoodOrigin.PATIENT
         );
         when(foods.findActiveById(food.getId())).thenReturn(Optional.of(food));
         when(portions.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
         var useCase = new CreateFoodPortionUseCase(foods, portions);
 
-        var output = useCase.execute(new CreateFoodPortionsInput(food.getId(), List.of(
-            new CreateFoodPortionInput("Colher", new BigDecimal("25"), "g", null),
-            new CreateFoodPortionInput("Xícara", new BigDecimal("160"), "g", null)
-        )));
+        var output = useCase.execute(
+                new CreateFoodPortionsInput(
+                        food.getId(), List.of(
+                                new CreateFoodPortionInput("Colher", new BigDecimal("25"), "g", null),
+                                new CreateFoodPortionInput("Xícara", new BigDecimal("160"), "g", null)
+                        )
+                )
+        );
 
         assertEquals(2, output.size());
         verify(foods, times(1)).findActiveById(food.getId());

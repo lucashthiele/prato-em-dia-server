@@ -14,12 +14,14 @@ public interface RelationshipRepository {
     Optional<ProfessionalPatientRelationship> findById(UUID id);
 
     Optional<ProfessionalPatientRelationship> findActiveByNutritionistAndPatient(
-        UUID nutritionistId, UUID patientId);
+            UUID nutritionistId, UUID patientId
+    );
 
     Optional<ProfessionalPatientRelationship> findActiveByPatient(UUID patientId);
 
     Optional<RelationshipView> findActiveViewByNutritionistAccountAndPatient(
-        UUID accountId, UUID patientId);
+            UUID accountId, UUID patientId
+    );
 
     Optional<RelationshipView> findActiveViewByPatientAccount(UUID accountId);
 

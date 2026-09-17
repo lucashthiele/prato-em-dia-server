@@ -10,7 +10,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
@@ -22,25 +26,22 @@ public class PatientRelationshipController {
     private final GetPatientRelationship get;
     private final EndPatientRelationship end;
 
-    public PatientRelationshipController(GetPatientRelationship getPatientRelationship, EndPatientRelationship endPatientRelationship) {
+    public PatientRelationshipController(
+            GetPatientRelationship getPatientRelationship,
+            EndPatientRelationship endPatientRelationship
+    ) {
         get = getPatientRelationship;
         end = endPatientRelationship;
     }
 
     @GetMapping
-    @Operation(
-        summary = "Consultar vínculo atual",
-        description = "Retorna o vínculo ativo do paciente com seu nutricionista."
-    )
+    @Operation(summary = "Consultar vínculo atual", description = "Retorna o vínculo ativo do paciente com seu nutricionista.")
     RelationshipOutput get(@AuthenticationPrincipal Jwt jwt) {
         return get.execute(id(jwt));
     }
 
     @DeleteMapping
-    @Operation(
-        summary = "Encerrar vínculo atual",
-        description = "Encerra o vínculo ativo do paciente com seu nutricionista."
-    )
+    @Operation(summary = "Encerrar vínculo atual", description = "Encerra o vínculo ativo do paciente com seu nutricionista.")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void end(@AuthenticationPrincipal Jwt jwt) {
         end.execute(id(jwt));

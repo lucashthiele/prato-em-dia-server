@@ -16,7 +16,8 @@ public class RefreshTokenRepositoryAdapter implements RefreshTokenRepository {
     private final RefreshTokenMapper mapper;
 
     public RefreshTokenRepositoryAdapter(
-        RefreshTokenJpaRepository repository, RefreshTokenMapper mapper) {
+            RefreshTokenJpaRepository repository, RefreshTokenMapper mapper
+    ) {
         this.repository = repository;
         this.mapper = mapper;
     }

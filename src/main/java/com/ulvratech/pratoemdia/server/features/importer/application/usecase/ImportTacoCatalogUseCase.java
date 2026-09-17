@@ -23,22 +23,28 @@ public class ImportTacoCatalogUseCase implements ImportTacoCatalog {
         var spreadsheet = input.spreadsheet();
         boolean aborted = !input.dryRun() && !spreadsheet.issues().isEmpty();
         var foods = spreadsheet.records().stream()
-            .map(record -> new ImportedFoodInput(
-                record.externalId(), record.description(), record.category(), null,
-                java.util.List.of(new ImportedFoodPortionInput(
-                    "STANDARD", "100 g", "Valor por 100g", new java.math.BigDecimal("100"),
-                    "g", record.nutrients()
-                ))
-            ))
-            .toList();
-        var result = catalog.execute(new SyncImportedFoodsInput(
-            SOURCE, SOURCE_VERSION, foods, input.dryRun() || aborted
-        ));
+                .map(
+                        record -> new ImportedFoodInput(
+                                record.externalId(), record.description(), record.category(), null,
+                                java.util.List.of(
+                                        new ImportedFoodPortionInput(
+                                                "STANDARD", "100 g", "Valor por 100g", new java.math.BigDecimal("100"),
+                                                "g", record.nutrients()
+                                        )
+                                )
+                        )
+                )
+                .toList();
+        var result = catalog.execute(
+                new SyncImportedFoodsInput(
+                        SOURCE, SOURCE_VERSION, foods, input.dryRun() || aborted
+                )
+        );
 
         return new CatalogImportReport(
-            spreadsheet.rowsRead(), foods.size(), spreadsheet.issues().size(),
-            result.inserted(), result.updated(), result.skipped(), spreadsheet.issues().size(),
-            input.dryRun(), aborted, spreadsheet.issues()
+                spreadsheet.rowsRead(), foods.size(), spreadsheet.issues().size(),
+                result.inserted(), result.updated(), result.skipped(), spreadsheet.issues().size(),
+                input.dryRun(), aborted, spreadsheet.issues()
         );
     }
 }

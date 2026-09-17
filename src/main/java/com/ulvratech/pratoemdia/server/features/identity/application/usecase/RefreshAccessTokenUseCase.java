@@ -33,12 +33,13 @@ public class RefreshAccessTokenUseCase implements RefreshAccessToken {
     private final Clock clock;
 
     public RefreshAccessTokenUseCase(
-        RefreshTokenRepository refreshTokenRepository,
-        UserAccountRepository userAccountRepository,
-        RefreshTokenHasher refreshTokenHasher,
-        RefreshTokenGenerator refreshTokenGenerator,
-        AccessTokenProvider accessTokenProvider,
-        Clock clock) {
+            RefreshTokenRepository refreshTokenRepository,
+            UserAccountRepository userAccountRepository,
+            RefreshTokenHasher refreshTokenHasher,
+            RefreshTokenGenerator refreshTokenGenerator,
+            AccessTokenProvider accessTokenProvider,
+            Clock clock
+    ) {
         this.refreshTokenRepository = refreshTokenRepository;
         this.userAccountRepository = userAccountRepository;
         this.refreshTokenHasher = refreshTokenHasher;
@@ -50,8 +51,7 @@ public class RefreshAccessTokenUseCase implements RefreshAccessToken {
     @Override
     public RefreshAccessTokenOutput execute(RefreshAccessTokenInput input) {
         var now = clock.instant();
-        var currentToken =
-            refreshTokenRepository
+        var currentToken = refreshTokenRepository
                 .findByTokenHashForUpdate(refreshTokenHasher.hash(input.refreshToken()))
                 .orElseThrow(InvalidRefreshTokenException::new);
 
@@ -62,8 +62,7 @@ public class RefreshAccessTokenUseCase implements RefreshAccessToken {
             throw new ExpiredRefreshTokenException();
         }
 
-        var userAccount =
-            userAccountRepository
+        var userAccount = userAccountRepository
                 .findById(currentToken.getUserAccountId())
                 .orElseThrow(InvalidRefreshTokenException::new);
         if (userAccount.getStatus() != UserAccountStatus.ACTIVE) {
@@ -71,13 +70,13 @@ public class RefreshAccessTokenUseCase implements RefreshAccessToken {
         }
 
         var generatedRefreshToken = refreshTokenGenerator.generate();
-        var replacementToken =
-            RefreshToken.issue(
+        var replacementToken = RefreshToken.issue(
                 UUID.randomUUID(),
                 userAccount.getId(),
                 refreshTokenHasher.hash(generatedRefreshToken.value()),
                 generatedRefreshToken.expiresAt(),
-                now);
+                now
+        );
 
         refreshTokenRepository.save(replacementToken);
         currentToken.revoke(now, replacementToken.getId());
@@ -85,10 +84,11 @@ public class RefreshAccessTokenUseCase implements RefreshAccessToken {
 
         var accessToken = accessTokenProvider.generate(userAccount);
         return new RefreshAccessTokenOutput(
-            accessToken.value(),
-            generatedRefreshToken.value(),
-            "Bearer",
-            Duration.between(now, accessToken.expiresAt()).toSeconds(),
-            userAccount.isPasswordChangeRequired());
+                accessToken.value(),
+                generatedRefreshToken.value(),
+                "Bearer",
+                Duration.between(now, accessToken.expiresAt()).toSeconds(),
+                userAccount.isPasswordChangeRequired()
+        );
     }
 }

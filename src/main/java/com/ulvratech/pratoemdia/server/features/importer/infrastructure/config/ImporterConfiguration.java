@@ -34,10 +34,10 @@ public class ImporterConfiguration {
 
     @Bean
     ApplicationRunner tacoCatalogImportRunner(
-        TacoImportProperties properties,
-        TacoSpreadsheetReader reader,
-        ImportTacoCatalog importCatalog,
-        ImportRunJpaRepository runs
+            TacoImportProperties properties,
+            TacoSpreadsheetReader reader,
+            ImportTacoCatalog importCatalog,
+            ImportRunJpaRepository runs
     ) {
         return new TacoCatalogImportRunner(properties, reader, importCatalog, runs);
     }

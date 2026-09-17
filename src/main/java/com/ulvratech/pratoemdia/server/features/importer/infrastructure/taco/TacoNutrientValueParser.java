@@ -7,7 +7,8 @@ import java.math.BigDecimal;
 
 public class TacoNutrientValueParser {
     public NutrientValue parse(Object value, String unit) {
-        if (value == null) return special(unit, NutrientValueStatus.NOT_AVAILABLE, null);
+        if (value == null)
+            return special(unit, NutrientValueStatus.NOT_AVAILABLE, null);
         if (value instanceof Number number) {
             return numeric(new BigDecimal(number.toString()), unit, number.toString());
         }
@@ -39,7 +40,7 @@ public class TacoNutrientValueParser {
     }
 
     private NutrientValue special(
-        String unit, NutrientValueStatus status, String raw
+            String unit, NutrientValueStatus status, String raw
     ) {
         return new NutrientValue(null, unit, status, raw);
     }

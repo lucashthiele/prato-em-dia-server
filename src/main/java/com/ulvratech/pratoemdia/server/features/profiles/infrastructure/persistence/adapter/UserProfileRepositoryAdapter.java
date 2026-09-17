@@ -16,9 +16,9 @@ public class UserProfileRepositoryAdapter implements UserProfileRepository {
     private final UserProfileMapper mapper;
 
     public UserProfileRepositoryAdapter(
-        NutritionistProfileJpaRepository nutritionists,
-        PatientProfileJpaRepository patients,
-        UserProfileMapper mapper
+            NutritionistProfileJpaRepository nutritionists,
+            PatientProfileJpaRepository patients,
+            UserProfileMapper mapper
     ) {
         this.nutritionists = nutritionists;
         this.patients = patients;
@@ -35,8 +35,8 @@ public class UserProfileRepositoryAdapter implements UserProfileRepository {
 
     @Override
     public Optional<UserProfile> findByUserAccountId(
-        UUID userAccountId,
-        ProfileType type
+            UUID userAccountId,
+            ProfileType type
     ) {
         if (type == ProfileType.NUTRITIONIST) {
             return nutritionists.findByUserAccountId(userAccountId).map(mapper::toDomain);

@@ -8,9 +8,12 @@ import java.util.Collection;
 
 public interface FoodPortionRepository {
     List<FoodPortion> saveAll(List<FoodPortion> portions);
+
     List<FoodPortion> findActiveByFoodId(UUID foodId);
+
     List<FoodPortion> findImportedByFoodIds(Collection<UUID> foodIds);
+
     List<FoodPortion> replaceImportedForFoods(
-        Collection<UUID> foodIds, Collection<FoodPortion> portions
+            Collection<UUID> foodIds, Collection<FoodPortion> portions
     );
 }

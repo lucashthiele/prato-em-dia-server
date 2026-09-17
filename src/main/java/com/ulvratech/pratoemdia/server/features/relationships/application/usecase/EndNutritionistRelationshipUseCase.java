@@ -24,12 +24,10 @@ public class EndNutritionistRelationshipUseCase implements EndNutritionistRelati
     }
 
     public void execute(RelationshipQueryInput i) {
-        var view =
-            repository
+        var view = repository
                 .findActiveViewByNutritionistAccountAndPatient(i.accountId(), i.patientId())
                 .orElseThrow(RelationshipConflictException::new);
-        var relationship =
-            repository
+        var relationship = repository
                 .findById(view.relationshipId())
                 .orElseThrow(RelationshipNotFoundException::new);
         relationship.end(i.accountId(), clock.instant());

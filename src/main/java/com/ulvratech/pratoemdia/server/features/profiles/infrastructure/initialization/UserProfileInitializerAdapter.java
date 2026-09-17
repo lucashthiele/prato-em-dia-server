@@ -22,10 +22,12 @@ public class UserProfileInitializerAdapter implements UserProfileInitializer {
         if (role == UserAccountRole.ADMIN) {
             return;
         }
-        repository.save(UserProfile.create(
-            userAccountId,
-            ProfileType.valueOf(role.name()),
-            fullName
-        ));
+        repository.save(
+                UserProfile.create(
+                        userAccountId,
+                        ProfileType.valueOf(role.name()),
+                        fullName
+                )
+        );
     }
 }

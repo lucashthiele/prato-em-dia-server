@@ -8,8 +8,8 @@ class FoodNameNormalizerTest {
     @Test
     void removesAccentsPunctuationCaseAndRepeatedWhitespace() {
         assertEquals(
-            "arroz integral cozido",
-            FoodNameNormalizer.normalize(" Arroz,  integral, cozido ")
+                "arroz integral cozido",
+                FoodNameNormalizer.normalize(" Arroz,  integral, cozido ")
         );
     }
 }

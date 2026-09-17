@@ -11,15 +11,20 @@ public record PrescriptionContentInput(String title, String notes, List<MealInpu
     }
 
     public record MealInput(String name, int order, LocalTime suggestedTime, String notes,
-                            List<ItemInput> items) {
-        public MealInput { items = List.copyOf(items == null ? List.of() : items); }
+            List<ItemInput> items) {
+        public MealInput {
+            items = List.copyOf(items == null ? List.of() : items);
+        }
     }
 
     public record ItemInput(UUID foodId, UUID foodPortionId, BigDecimal quantity, String unit,
-                            int order, String notes, List<SubstitutionInput> substitutions) {
-        public ItemInput { substitutions = List.copyOf(substitutions == null ? List.of() : substitutions); }
+            int order, String notes, List<SubstitutionInput> substitutions) {
+        public ItemInput {
+            substitutions = List.copyOf(substitutions == null ? List.of() : substitutions);
+        }
     }
 
     public record SubstitutionInput(UUID foodId, UUID foodPortionId, BigDecimal quantity,
-                                    String unit, String notes) { }
+            String unit, String notes) {
+    }
 }

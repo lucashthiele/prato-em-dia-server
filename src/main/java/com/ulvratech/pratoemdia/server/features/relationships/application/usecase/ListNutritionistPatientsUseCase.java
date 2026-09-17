@@ -18,14 +18,15 @@ public class ListNutritionistPatientsUseCase implements ListNutritionistPatients
     }
 
     public PageResult<RelationshipOutput> execute(ListRelationshipsInput i) {
-        var p =
-            repository.findActiveByNutritionistAccount(
-                i.accountId(), new PageRequest(i.page(), i.size()));
+        var p = repository.findActiveByNutritionistAccount(
+                i.accountId(), new PageRequest(i.page(), i.size())
+        );
         return new PageResult<>(
-            p.content().stream().map(RelationshipOutput::from).toList(),
-            p.page(),
-            p.size(),
-            p.totalElements(),
-            p.totalPages());
+                p.content().stream().map(RelationshipOutput::from).toList(),
+                p.page(),
+                p.size(),
+                p.totalElements(),
+                p.totalPages()
+        );
     }
 }

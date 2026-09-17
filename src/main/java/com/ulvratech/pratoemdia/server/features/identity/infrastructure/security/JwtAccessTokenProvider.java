@@ -20,7 +20,8 @@ public class JwtAccessTokenProvider implements AccessTokenProvider {
     private final Clock clock;
 
     public JwtAccessTokenProvider(
-        JwtEncoder jwtEncoder, JwtConfigurationProperties properties, Clock clock) {
+            JwtEncoder jwtEncoder, JwtConfigurationProperties properties, Clock clock
+    ) {
         this.jwtEncoder = jwtEncoder;
         this.properties = properties;
         this.clock = clock;
@@ -32,8 +33,7 @@ public class JwtAccessTokenProvider implements AccessTokenProvider {
         var expiresAt = issuedAt.plus(properties.accessTokenTtl());
 
         var headers = JwsHeader.with(MacAlgorithm.HS256).build();
-        var claims =
-            JwtClaimsSet.builder()
+        var claims = JwtClaimsSet.builder()
                 .issuer(properties.issuer())
                 .subject(userAccount.getId().toString())
                 .issuedAt(issuedAt)

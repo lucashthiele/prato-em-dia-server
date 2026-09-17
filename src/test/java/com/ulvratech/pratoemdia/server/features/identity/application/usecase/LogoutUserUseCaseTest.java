@@ -15,7 +15,9 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class LogoutUserUseCaseTest {
     private static final Instant NOW = Instant.parse("2026-08-18T12:00:00Z");
@@ -26,20 +28,20 @@ class LogoutUserUseCaseTest {
         var hasher = mock(RefreshTokenHasher.class);
         var userId = UUID.randomUUID();
         var token = RefreshToken.issue(
-            UUID.randomUUID(),
-            userId,
-            "token-hash",
-            NOW.plusSeconds(3600),
-            NOW.minusSeconds(60)
+                UUID.randomUUID(),
+                userId,
+                "token-hash",
+                NOW.plusSeconds(3600),
+                NOW.minusSeconds(60)
         );
         when(hasher.hash("raw-token")).thenReturn("token-hash");
         when(repository.findByTokenHashForUpdate("token-hash"))
-            .thenReturn(Optional.of(token));
+                .thenReturn(Optional.of(token));
         when(repository.save(token)).thenReturn(token);
         var useCase = new LogoutUserUseCase(
-            repository,
-            hasher,
-            Clock.fixed(NOW, ZoneOffset.UTC)
+                repository,
+                hasher,
+                Clock.fixed(NOW, ZoneOffset.UTC)
         );
 
         useCase.execute(new LogoutInput(userId, "raw-token"));
@@ -53,24 +55,24 @@ class LogoutUserUseCaseTest {
         var repository = mock(RefreshTokenRepository.class);
         var hasher = mock(RefreshTokenHasher.class);
         var token = RefreshToken.issue(
-            UUID.randomUUID(),
-            UUID.randomUUID(),
-            "token-hash",
-            NOW.plusSeconds(3600),
-            NOW.minusSeconds(60)
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                "token-hash",
+                NOW.plusSeconds(3600),
+                NOW.minusSeconds(60)
         );
         when(hasher.hash("raw-token")).thenReturn("token-hash");
         when(repository.findByTokenHashForUpdate("token-hash"))
-            .thenReturn(Optional.of(token));
+                .thenReturn(Optional.of(token));
         var useCase = new LogoutUserUseCase(
-            repository,
-            hasher,
-            Clock.fixed(NOW, ZoneOffset.UTC)
+                repository,
+                hasher,
+                Clock.fixed(NOW, ZoneOffset.UTC)
         );
 
         assertThrows(
-            InvalidRefreshTokenException.class,
-            () -> useCase.execute(new LogoutInput(UUID.randomUUID(), "raw-token"))
+                InvalidRefreshTokenException.class,
+                () -> useCase.execute(new LogoutInput(UUID.randomUUID(), "raw-token"))
         );
     }
 }

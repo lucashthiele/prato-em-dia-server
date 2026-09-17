@@ -7,15 +7,15 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record RelationshipView(
-    UUID relationshipId,
-    UUID patientId,
-    UUID patientUserAccountId,
-    String patientFullName,
-    String patientEmail,
-    UUID nutritionistId,
-    UUID nutritionistUserAccountId,
-    String nutritionistFullName,
-    RelationshipStatus status,
-    RelationshipEmailStatus emailDeliveryStatus,
-    Instant createdAt) {
+        UUID relationshipId,
+        UUID patientId,
+        UUID patientUserAccountId,
+        String patientFullName,
+        String patientEmail,
+        UUID nutritionistId,
+        UUID nutritionistUserAccountId,
+        String nutritionistFullName,
+        RelationshipStatus status,
+        RelationshipEmailStatus emailDeliveryStatus,
+        Instant createdAt) {
 }

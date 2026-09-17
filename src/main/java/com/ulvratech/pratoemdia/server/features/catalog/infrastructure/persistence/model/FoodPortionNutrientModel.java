@@ -1,8 +1,21 @@
 package com.ulvratech.pratoemdia.server.features.catalog.infrastructure.persistence.model;
 
 import com.ulvratech.pratoemdia.server.features.catalog.domain.enums.NutrientValueStatus;
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -11,13 +24,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(
-    name = "food_portion_nutrient",
-    uniqueConstraints = @UniqueConstraint(
-        name = "uq_food_portion_nutrient_portion_code",
-        columnNames = {"food_portion_id", "nutrient_code"}
-    )
-)
+@Table(name = "food_portion_nutrient", uniqueConstraints = @UniqueConstraint(name = "uq_food_portion_nutrient_portion_code", columnNames = {
+        "food_portion_id", "nutrient_code" }))
 @Getter
 @Setter
 @Builder

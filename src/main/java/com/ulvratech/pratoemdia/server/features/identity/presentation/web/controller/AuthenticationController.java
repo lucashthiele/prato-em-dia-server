@@ -33,56 +33,53 @@ public class AuthenticationController {
     private final LogoutUser logoutUser;
 
     public AuthenticationController(
-        AuthenticateUser authenticateUser,
-        RefreshAccessToken refreshAccessToken,
-        LogoutUser logoutUser) {
+            AuthenticateUser authenticateUser,
+            RefreshAccessToken refreshAccessToken,
+            LogoutUser logoutUser
+    ) {
         this.authenticateUser = authenticateUser;
         this.refreshAccessToken = refreshAccessToken;
         this.logoutUser = logoutUser;
     }
 
     @PostMapping("/login")
-    @Operation(
-        summary = "Autenticar usuário",
-        description = "Valida e-mail e senha e retorna os tokens de acesso e renovação."
-    )
+    @Operation(summary = "Autenticar usuário", description = "Valida e-mail e senha e retorna os tokens de acesso e renovação.")
     public ResponseEntity<AuthenticationResponse> login(@Valid @RequestBody LoginRequest request) {
-        var output =
-            authenticateUser.execute(new AuthenticateUserInput(request.email(), request.password()));
+        var output = authenticateUser.execute(new AuthenticateUserInput(request.email(), request.password()));
         return ResponseEntity.ok(
-            new AuthenticationResponse(
-                output.accessToken(),
-                output.refreshToken(),
-                output.tokenType(),
-                output.expiresIn(),
-                output.passwordChangeRequired()));
+                new AuthenticationResponse(
+                        output.accessToken(),
+                        output.refreshToken(),
+                        output.tokenType(),
+                        output.expiresIn(),
+                        output.passwordChangeRequired()
+                )
+        );
     }
 
     @PostMapping("/refresh")
-    @Operation(
-        summary = "Renovar token de acesso",
-        description = "Emite um novo par de tokens a partir de um refresh token válido."
-    )
+    @Operation(summary = "Renovar token de acesso", description = "Emite um novo par de tokens a partir de um refresh token válido.")
     public ResponseEntity<AuthenticationResponse> refresh(
-        @Valid @RequestBody RefreshTokenRequest request) {
+            @Valid @RequestBody RefreshTokenRequest request
+    ) {
         var output = refreshAccessToken.execute(new RefreshAccessTokenInput(request.refreshToken()));
         return ResponseEntity.ok(
-            new AuthenticationResponse(
-                output.accessToken(),
-                output.refreshToken(),
-                output.tokenType(),
-                output.expiresIn(),
-                output.passwordChangeRequired()));
+                new AuthenticationResponse(
+                        output.accessToken(),
+                        output.refreshToken(),
+                        output.tokenType(),
+                        output.expiresIn(),
+                        output.passwordChangeRequired()
+                )
+        );
     }
 
     @PostMapping("/logout")
-    @Operation(
-        summary = "Encerrar sessão",
-        description = "Revoga o refresh token informado para encerrar a sessão atual."
-    )
+    @Operation(summary = "Encerrar sessão", description = "Revoga o refresh token informado para encerrar a sessão atual.")
     @SecurityRequirement(name = OpenApiConfiguration.BEARER_AUTH)
     public ResponseEntity<Void> logout(
-        @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody RefreshTokenRequest request) {
+            @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody RefreshTokenRequest request
+    ) {
         logoutUser.execute(new LogoutInput(UUID.fromString(jwt.getSubject()), request.refreshToken()));
         return ResponseEntity.noContent().build();
     }

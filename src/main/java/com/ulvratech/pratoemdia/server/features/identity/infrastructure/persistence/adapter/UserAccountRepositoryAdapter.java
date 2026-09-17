@@ -20,37 +20,41 @@ public class UserAccountRepositoryAdapter implements UserAccountRepository {
     private final UserAccountJpaRepository repository;
 
     public UserAccountRepositoryAdapter(
-        UserAccountMapper mapper, UserAccountJpaRepository repository) {
+            UserAccountMapper mapper, UserAccountJpaRepository repository
+    ) {
         this.mapper = mapper;
         this.repository = repository;
     }
 
     @Override
     public UserAccount save(UserAccount userAccount) {
-        var userAccountModel =
-            userAccount.getId() == null
+        var userAccountModel = userAccount.getId() == null
                 ? mapper.toModel(userAccount)
                 : repository
-                .findById(userAccount.getId())
-                .map(
-                    existing -> {
-                        existing.setEmail(userAccount.getEmail());
-                        existing.setPasswordHash(userAccount.getPasswordHash());
-                        existing.setRole(
-                            com.ulvratech.pratoemdia.server.features
-                                .identity.infrastructure.persistence
-                                .enums.UserAccountModelRole.valueOf(
-                                    userAccount.getRole().name()));
-                        existing.setStatus(
-                            com.ulvratech.pratoemdia.server.features
-                                .identity.infrastructure.persistence
-                                .enums.UserAccountModelStatus.valueOf(
-                                    userAccount.getStatus().name()));
-                        existing.setPasswordChangeRequired(
-                            userAccount.isPasswordChangeRequired());
-                        return existing;
-                    })
-                .orElseGet(() -> mapper.toModel(userAccount));
+                        .findById(userAccount.getId())
+                        .map(
+                                existing -> {
+                                    existing.setEmail(userAccount.getEmail());
+                                    existing.setPasswordHash(userAccount.getPasswordHash());
+                                    existing.setRole(
+                                            com.ulvratech.pratoemdia.server.features.identity.infrastructure.persistence.enums.UserAccountModelRole
+                                                    .valueOf(
+                                                            userAccount.getRole().name()
+                                                    )
+                                    );
+                                    existing.setStatus(
+                                            com.ulvratech.pratoemdia.server.features.identity.infrastructure.persistence.enums.UserAccountModelStatus
+                                                    .valueOf(
+                                                            userAccount.getStatus().name()
+                                                    )
+                                    );
+                                    existing.setPasswordChangeRequired(
+                                            userAccount.isPasswordChangeRequired()
+                                    );
+                                    return existing;
+                                }
+                        )
+                        .orElseGet(() -> mapper.toModel(userAccount));
         var persistedUserAccountModel = repository.save(userAccountModel);
         return mapper.toEntity(persistedUserAccountModel);
     }
@@ -62,18 +66,19 @@ public class UserAccountRepositoryAdapter implements UserAccountRepository {
 
     @Override
     public PageResult<UserAccount> findAll(PageRequest pageRequest) {
-        Pageable pageable =
-            org.springframework.data.domain.PageRequest.of(
-                pageRequest.page(), pageRequest.size());
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(
+                pageRequest.page(), pageRequest.size()
+        );
 
         Page<UserAccountModel> result = repository.findAll(pageable);
 
         return new PageResult<>(
-            result.getContent().stream().map(mapper::toEntity).toList(),
-            result.getNumber(),
-            result.getSize(),
-            result.getTotalElements(),
-            result.getTotalPages());
+                result.getContent().stream().map(mapper::toEntity).toList(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
     }
 
     @Override

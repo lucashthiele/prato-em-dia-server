@@ -21,18 +21,19 @@ public class ProfessionalPatientRelationship {
     private Instant emailLastAttemptAt;
 
     public ProfessionalPatientRelationship(
-        UUID id,
-        UUID nutritionistId,
-        UUID patientId,
-        RelationshipStatus status,
-        Instant endedAt,
-        UUID endedByUserAccountId,
-        RelationshipEmailStatus emailDeliveryStatus,
-        int emailAttemptCount,
-        Instant emailLastAttemptAt,
-        Instant createdAt,
-        Instant updatedAt,
-        long version) {
+            UUID id,
+            UUID nutritionistId,
+            UUID patientId,
+            RelationshipStatus status,
+            Instant endedAt,
+            UUID endedByUserAccountId,
+            RelationshipEmailStatus emailDeliveryStatus,
+            int emailAttemptCount,
+            Instant emailLastAttemptAt,
+            Instant createdAt,
+            Instant updatedAt,
+            long version
+    ) {
         this.id = id;
         this.nutritionistId = nutritionistId;
         this.patientId = patientId;
@@ -49,18 +50,19 @@ public class ProfessionalPatientRelationship {
 
     public static ProfessionalPatientRelationship create(UUID nutritionistId, UUID patientId) {
         return new ProfessionalPatientRelationship(
-            UUID.randomUUID(),
-            nutritionistId,
-            patientId,
-            RelationshipStatus.ACTIVE,
-            null,
-            null,
-            RelationshipEmailStatus.PENDING,
-            0,
-            null,
-            null,
-            null,
-            0);
+                UUID.randomUUID(),
+                nutritionistId,
+                patientId,
+                RelationshipStatus.ACTIVE,
+                null,
+                null,
+                RelationshipEmailStatus.PENDING,
+                0,
+                null,
+                null,
+                null,
+                0
+        );
     }
 
     public void end(UUID actor, Instant now) {

@@ -1,3 +1,5 @@
 package com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums;
 
-public enum PrescriptionVersionStatus { DRAFT, PUBLISHED, ARCHIVED }
+public enum PrescriptionVersionStatus {
+    DRAFT, PUBLISHED, ARCHIVED
+}

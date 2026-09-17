@@ -14,7 +14,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class GetFoodUseCaseTest {
     @Test
@@ -22,16 +24,16 @@ class GetFoodUseCaseTest {
         var foods = mock(FoodRepository.class);
         var portions = mock(FoodPortionRepository.class);
         var food = Food.create(
-            "Arroz", "Cereais", "g", null, null, UUID.randomUUID(), FoodOrigin.IMPORTED
+                "Arroz", "Cereais", "g", null, null, UUID.randomUUID(), FoodOrigin.IMPORTED
         );
         var portion = FoodPortion.create(
-            food.getId(), "Colher", new BigDecimal("25"), "g", new BigDecimal("25")
+                food.getId(), "Colher", new BigDecimal("25"), "g", new BigDecimal("25")
         );
         when(foods.findActiveById(food.getId())).thenReturn(Optional.of(food));
         when(portions.findActiveByFoodId(food.getId())).thenReturn(List.of(portion));
 
         var output = new GetFoodUseCase(foods, portions)
-            .execute(new FoodQueryInput(food.getId()));
+                .execute(new FoodQueryInput(food.getId()));
 
         assertEquals(food.getId(), output.id());
         assertEquals(FoodOrigin.IMPORTED, output.origin());

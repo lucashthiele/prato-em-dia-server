@@ -25,7 +25,7 @@ jobs:
           cache: maven
 
       - name: Build and run tests
-        run: mvn --batch-mode --update-snapshots clean verify
+        run: ./mvnw --batch-mode --update-snapshots clean verify
 
       - name: Upload test results
         if: always()
