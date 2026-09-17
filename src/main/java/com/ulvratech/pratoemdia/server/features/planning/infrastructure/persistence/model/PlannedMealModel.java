@@ -1,13 +1,26 @@
 package com.ulvratech.pratoemdia.server.features.planning.infrastructure.persistence.model;
 
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.MealType;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -20,34 +33,35 @@ import org.hibernate.type.SqlTypes;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PlannedMealModel {
-  @Id private UUID id;
+    @Id
+    private UUID id;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "weekly_plan_id")
-  private WeeklyPlanModel plan;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "weekly_plan_id")
+    private WeeklyPlanModel plan;
 
-  @Column(name = "prescribed_meal_id")
-  private UUID prescribedMealId;
+    @Column(name = "prescribed_meal_id")
+    private UUID prescribedMealId;
 
-  @Column(name = "meal_date", nullable = false)
-  private LocalDate date;
+    @Column(name = "meal_date", nullable = false)
+    private LocalDate date;
 
-  @Column(name = "meal_time")
-  private LocalTime time;
+    @Column(name = "meal_time")
+    private LocalTime time;
 
-  @Enumerated(EnumType.STRING)
-  @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-  @Column(name = "meal_type", nullable = false)
-  private MealType mealType;
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "meal_type", nullable = false)
+    private MealType mealType;
 
-  @Column(nullable = false, length = 120)
-  private String name;
+    @Column(nullable = false, length = 120)
+    private String name;
 
-  @Column(name = "meal_order", nullable = false)
-  private int order;
+    @Column(name = "meal_order", nullable = false)
+    private int order;
 
-  @OneToMany(mappedBy = "meal", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
-  @BatchSize(size = 200)
-  @Builder.Default
-  private List<PlannedMealItemModel> items = new ArrayList<>();
+    @OneToMany(mappedBy = "meal", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 200)
+    @Builder.Default
+    private List<PlannedMealItemModel> items = new ArrayList<>();
 }

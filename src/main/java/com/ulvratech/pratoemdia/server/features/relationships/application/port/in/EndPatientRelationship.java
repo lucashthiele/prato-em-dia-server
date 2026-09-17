@@ -3,5 +3,5 @@ package com.ulvratech.pratoemdia.server.features.relationships.application.port.
 import java.util.UUID;
 
 public interface EndPatientRelationship {
-  void execute(UUID patientAccountId);
+    void execute(UUID patientAccountId);
 }

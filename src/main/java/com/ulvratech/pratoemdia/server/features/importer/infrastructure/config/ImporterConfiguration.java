@@ -17,27 +17,28 @@ import org.springframework.context.annotation.Profile;
 @Profile("catalog-import")
 @EnableConfigurationProperties(TacoImportProperties.class)
 public class ImporterConfiguration {
-  @Bean
-  TacoNutrientValueParser tacoNutrientValueParser() {
-    return new TacoNutrientValueParser();
-  }
+    @Bean
+    TacoNutrientValueParser tacoNutrientValueParser() {
+        return new TacoNutrientValueParser();
+    }
 
-  @Bean
-  TacoSpreadsheetReader tacoSpreadsheetReader(TacoNutrientValueParser valueParser) {
-    return new TacoSpreadsheetReader(valueParser);
-  }
+    @Bean
+    TacoSpreadsheetReader tacoSpreadsheetReader(TacoNutrientValueParser valueParser) {
+        return new TacoSpreadsheetReader(valueParser);
+    }
 
-  @Bean
-  ImportTacoCatalog importTacoCatalog(SyncImportedFoods catalog) {
-    return new ImportTacoCatalogUseCase(catalog);
-  }
+    @Bean
+    ImportTacoCatalog importTacoCatalog(SyncImportedFoods catalog) {
+        return new ImportTacoCatalogUseCase(catalog);
+    }
 
-  @Bean
-  ApplicationRunner tacoCatalogImportRunner(
-      TacoImportProperties properties,
-      TacoSpreadsheetReader reader,
-      ImportTacoCatalog importCatalog,
-      ImportRunJpaRepository runs) {
-    return new TacoCatalogImportRunner(properties, reader, importCatalog, runs);
-  }
+    @Bean
+    ApplicationRunner tacoCatalogImportRunner(
+            TacoImportProperties properties,
+            TacoSpreadsheetReader reader,
+            ImportTacoCatalog importCatalog,
+            ImportRunJpaRepository runs
+    ) {
+        return new TacoCatalogImportRunner(properties, reader, importCatalog, runs);
+    }
 }

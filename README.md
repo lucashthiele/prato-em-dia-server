@@ -1,10 +1,10 @@
 # Prato em Dia — Server
 
-API do **Prato em Dia**, uma aplicação para conectar nutricionistas e pacientes, gerenciar perfis, catálogo de alimentos
-e prescrições alimentares.
+API do **Prato em Dia**, uma aplicação para conectar nutricionistas e pacientes,
+gerenciar perfis, catálogo de alimentos e prescrições alimentares.
 
-O servidor é uma aplicação Spring Boot organizada por funcionalidades e com separação entre domínio, aplicação,
-infraestrutura e apresentação.
+O servidor é uma aplicação Spring Boot organizada por funcionalidades e com
+separação entre domínio, aplicação, infraestrutura e apresentação.
 
 ## Funcionalidades
 
@@ -36,7 +36,8 @@ Não é necessário instalar o Maven: o projeto inclui o Maven Wrapper.
 
 ## Executando localmente
 
-1. Crie `local.env` na raiz do projeto e defina uma chave JWT com pelo menos 32 bytes:
+1. Crie `local.env` na raiz do projeto e defina uma chave JWT com pelo menos
+   32 bytes:
 
    ```properties
    JWT_SECRET=troque-esta-chave-local-por-uma-chave-segura
@@ -48,18 +49,19 @@ Não é necessário instalar o Maven: o projeto inclui o Maven Wrapper.
    ./mvnw spring-boot:run
    ```
 
-O suporte a Docker Compose do Spring Boot inicia automaticamente o PostgreSQL e o Mailpit definidos em `compose.yaml`.
-As migrations do Flyway são aplicadas na inicialização.
+O suporte a Docker Compose do Spring Boot inicia automaticamente o PostgreSQL e
+o Mailpit definidos em `compose.yaml`. As migrations do Flyway são aplicadas na
+inicialização.
 
 Depois que o servidor estiver pronto, os principais endereços locais são:
 
-| Serviço      | Endereço                                |
-|--------------|-----------------------------------------|
-| API          | `http://localhost:8080`                 |
-| Swagger UI   | `http://localhost:8080/swagger-ui.html` |
-| OpenAPI JSON | `http://localhost:8080/v3/api-docs`     |
-| Mailpit      | `http://localhost:8025`                 |
-| PostgreSQL   | `localhost:5432`                        |
+| Serviço | Endereço |
+| --- | --- |
+| API | `http://localhost:8080` |
+| Swagger UI | `http://localhost:8080/swagger-ui.html` |
+| OpenAPI JSON | `http://localhost:8080/v3/api-docs` |
+| Mailpit | `http://localhost:8025` |
+| PostgreSQL | `localhost:5432` |
 
 Para encerrar os serviços locais iniciados pelo Compose:
 
@@ -69,32 +71,71 @@ docker compose down
 
 ### Configuração
 
-A aplicação lê automaticamente o arquivo ignorado `local.env` como um arquivo de propriedades. Além de `JWT_SECRET`, as
-principais variáveis opcionais são:
+A aplicação lê automaticamente o arquivo ignorado `local.env` como um arquivo
+de propriedades. Além de `JWT_SECRET`, as principais variáveis opcionais são:
 
-| Variável | Valor padrão |---------------------------lidade | |----- -------------- ------| --- | --- | |
-`JWT_ISSUER`        | `prato-em-dia` | Emissor dos tokens | | `JWT_ACCESS_TOKE N_TTL`  | `PT15M` | Duraç ão do access
-token | | `JWT_REFRESH_TOK EN_TTL` | `P3             0D` | Duração do refresh token | |
-`MAIL_HOST`                          | `localhost ` | Servidor SMTP | | `MAIL_PORT`             | `1025` | Porta
-SMTP | | `MAIL_FRO               M`             | `no-reply@pratoemdia.local` | Remetente dos e-mails | |
-`APP_URL`                          | `http://localhost:3000` | URL usada nos links enviados por e-mail | |
-`SERVER_PORT`           | `8080` | Porta HTTP da aplicação |
+| Variável | Valor padrão | Finalidade |
+| --- | --- | --- |
+| `JWT_ISSUER` | `prato-em-dia` | Emissor dos tokens |
+| `JWT_ACCESS_TOKEN_TTL` | `PT15M` | Duração do access token |
+| `JWT_REFRESH_TOKEN_TTL` | `P30D` | Duração do refresh token |
+| `MAIL_HOST` | `localhost` | Servidor SMTP |
+| `MAIL_PORT` | `1025` | Porta SMTP |
+| `MAIL_FROM` | `no-reply@pratoemdia.local` | Remetente dos e-mails |
+| `APP_URL` | `http://localhost:3000` | URL usada nos links enviados por e-mail |
+| `SERVER_PORT` | `8080` | Porta HTTP da aplicação |
 
 As propriedades padrão do Spring, como `SPRING_DATASOURCE_URL`,
-`SPRING_DATASOURCE_USERNAME` e `SPRING_DATASOURCE_PASSWORD`, podem ser usadas para conectar a outro PostgreSQL. Nesse
-caso, use também
-`SPRING_DOCKER_COMPOSE_ENABLED=false` se os containers locais não forem necessários.
+`SPRING_DATASOURCE_USERNAME` e `SPRING_DATASOURCE_PASSWORD`, podem ser usadas
+para conectar a outro PostgreSQL. Nesse caso, use também
+`SPRING_DOCKER_COMPOSE_ENABLED=false` se os containers locais não forem
+necessários.
 
 ## Testes e build
 
-Execute a suíte completa, as verificações de arquitetura e a geração do relatório de cobertura com:
+Execute a suíte completa, as verificações de arquitetura e a geração do
+relatório de cobertura com:
 
 ```shell
 ./mvnw clean verify
 ```
 
-O relatório do JaCoCo será gerado em `target/site/jacoco/index.html`. Os testes de integração usam Testcontainers e, por
-isso, precisam de acesso ao Docker.
+O relatório do JaCoCo será gerado em `target/site/jacoco/index.html`.
+Os testes de integração usam Testcontainers e, por isso, precisam de acesso ao
+Docker.
+
+## Code formatting
+
+O Spotless é a fonte de verdade da formatação do projeto. O Eclipse JDT aplica
+o profile canônico [`eclipse-formatter.xml`](eclipse-formatter.xml), com 4
+espaços para indentação Java, continuação de 8 espaços e largura desejada de
+120 colunas. Não é necessário usar o IntelliJ IDEA para formatar corretamente.
+
+Para corrigir a formatação automaticamente:
+
+```shell
+./mvnw spotless:apply
+```
+
+Para validar sem modificar arquivos:
+
+```shell
+./mvnw spotless:check
+```
+
+A validação completa também verifica a formatação, antes da compilação e dos
+testes, e o CI rejeita arquivos fora do padrão:
+
+```shell
+./mvnw verify
+```
+
+No IntelliJ IDEA, a configuração recomendada em **Settings → Editor → Code
+Style → Java** é `Tab size: 4`, `Indent: 4` e `Continuation indent: 8`. Para
+usar exatamente o formatter canônico dentro da IDE, instale o plugin *Eclipse
+Code Formatter*, selecione o formatter Eclipse nas configurações do plugin e
+importe `eclipse-formatter.xml`. Essas preferências são apenas uma facilidade
+local; Maven/Spotless continua sendo a autoridade.
 
 ## Code formatting
 

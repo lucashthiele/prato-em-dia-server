@@ -6,38 +6,39 @@ import com.ulvratech.pratoemdia.server.features.identity.application.port.in.Log
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.RefreshTokenHasher;
 import com.ulvratech.pratoemdia.server.features.identity.domain.port.out.RefreshTokenRepository;
 import jakarta.transaction.Transactional;
-import java.time.Clock;
 import org.springframework.stereotype.Service;
+
+import java.time.Clock;
 
 @Service
 @Transactional
 public class LogoutUserUseCase implements LogoutUser {
-  private final RefreshTokenRepository refreshTokenRepository;
-  private final RefreshTokenHasher refreshTokenHasher;
-  private final Clock clock;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenHasher refreshTokenHasher;
+    private final Clock clock;
 
-  public LogoutUserUseCase(
-      RefreshTokenRepository refreshTokenRepository,
-      RefreshTokenHasher refreshTokenHasher,
-      Clock clock) {
-    this.refreshTokenRepository = refreshTokenRepository;
-    this.refreshTokenHasher = refreshTokenHasher;
-    this.clock = clock;
-  }
-
-  @Override
-  public void execute(LogoutInput input) {
-    var refreshToken =
-        refreshTokenRepository
-            .findByTokenHashForUpdate(refreshTokenHasher.hash(input.refreshToken()))
-            .orElseThrow(InvalidRefreshTokenException::new);
-
-    if (refreshToken.isRevoked()
-        || !refreshToken.getUserAccountId().equals(input.userAccountId())) {
-      throw new InvalidRefreshTokenException();
+    public LogoutUserUseCase(
+            RefreshTokenRepository refreshTokenRepository,
+            RefreshTokenHasher refreshTokenHasher,
+            Clock clock
+    ) {
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.refreshTokenHasher = refreshTokenHasher;
+        this.clock = clock;
     }
 
-    refreshToken.revoke(clock.instant(), null);
-    refreshTokenRepository.save(refreshToken);
-  }
+    @Override
+    public void execute(LogoutInput input) {
+        var refreshToken = refreshTokenRepository
+                .findByTokenHashForUpdate(refreshTokenHasher.hash(input.refreshToken()))
+                .orElseThrow(InvalidRefreshTokenException::new);
+
+        if (refreshToken.isRevoked()
+                || !refreshToken.getUserAccountId().equals(input.userAccountId())) {
+            throw new InvalidRefreshTokenException();
+        }
+
+        refreshToken.revoke(clock.instant(), null);
+        refreshTokenRepository.save(refreshToken);
+    }
 }

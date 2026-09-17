@@ -4,4 +4,5 @@ import com.ulvratech.pratoemdia.server.features.identity.application.dto.Authent
 import com.ulvratech.pratoemdia.server.features.identity.application.dto.ChangePasswordInput;
 import com.ulvratech.pratoemdia.server.shared.application.usecase.UseCase;
 
-public interface ChangePassword extends UseCase<ChangePasswordInput, AuthenticateUserOutput> {}
+public interface ChangePassword extends UseCase<ChangePasswordInput, AuthenticateUserOutput> {
+}

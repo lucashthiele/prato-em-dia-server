@@ -9,11 +9,11 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public record CreatePrescriptionRequest(
-    @NotNull PlanningMode planningMode,
-    @Size(max = 180) String title,
-    String notes,
-    @NotNull List<@Valid MealRequest> meals) {
-  public PrescriptionContentInput toInput() {
-    return new PrescriptionContentRequest(title, notes, meals).toInput();
-  }
+        @NotNull PlanningMode planningMode,
+        @Size(max = 180) String title,
+        String notes,
+        @NotNull List<@Valid MealRequest> meals) {
+    public PrescriptionContentInput toInput() {
+        return new PrescriptionContentRequest(title, notes, meals).toInput();
+    }
 }

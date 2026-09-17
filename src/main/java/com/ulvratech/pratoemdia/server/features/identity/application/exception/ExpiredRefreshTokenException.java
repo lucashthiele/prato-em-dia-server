@@ -3,7 +3,7 @@ package com.ulvratech.pratoemdia.server.features.identity.application.exception;
 import com.ulvratech.pratoemdia.server.shared.application.exception.CodedApplicationException;
 
 public class ExpiredRefreshTokenException extends CodedApplicationException {
-  public ExpiredRefreshTokenException() {
-    super("AUTH_REFRESH_TOKEN_EXPIRED");
-  }
+    public ExpiredRefreshTokenException() {
+        super("AUTH_REFRESH_TOKEN_EXPIRED");
+    }
 }

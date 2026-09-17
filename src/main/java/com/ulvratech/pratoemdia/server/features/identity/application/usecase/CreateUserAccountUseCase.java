@@ -17,61 +17,72 @@ import org.springframework.stereotype.Service;
 @Transactional
 @Slf4j
 public class CreateUserAccountUseCase implements CreateUserAccount {
-  private final UserAccountRepository repository;
-  private final PasswordHasher passwordHasher;
-  private final UserProfileInitializer profileInitializer;
+    private final UserAccountRepository repository;
+    private final PasswordHasher passwordHasher;
+    private final UserProfileInitializer profileInitializer;
 
-  public CreateUserAccountUseCase(
-      UserAccountRepository repository,
-      PasswordHasher passwordHasher,
-      UserProfileInitializer profileInitializer) {
-    this.repository = repository;
-    this.passwordHasher = passwordHasher;
-    this.profileInitializer = profileInitializer;
-  }
-
-  @Override
-  public CreateUserAccountOutput execute(CreateUserAccountInput input) {
-    var lowerCaseUserEmail = input.email().toLowerCase();
-
-    log.info("Creating user account. email={}, role={}", lowerCaseUserEmail, input.role());
-
-    var optionalExistingUser = repository.findByEmailIgnoreCase(lowerCaseUserEmail);
-
-    if (optionalExistingUser.isPresent()) {
-      log.error("User with email={} already exists", lowerCaseUserEmail);
-
-      throw new UserAccountAlreadyExistsException();
+    public CreateUserAccountUseCase(
+            UserAccountRepository repository,
+            PasswordHasher passwordHasher,
+            UserProfileInitializer profileInitializer
+    ) {
+        this.repository = repository;
+        this.passwordHasher = passwordHasher;
+        this.profileInitializer = profileInitializer;
     }
 
-    String passwordHash = passwordHasher.hash(input.rawPassword());
+    @Override
+    public CreateUserAccountOutput execute(CreateUserAccountInput input) {
+        var lowerCaseUserEmail = input.email().toLowerCase();
 
-    log.debug("Password hashed successfully for user. email={}", lowerCaseUserEmail);
+        log.info(
+                "Creating user account. email={}, role={}",
+                lowerCaseUserEmail,
+                input.role()
+        );
 
-    UserAccount userAccount =
-        new UserAccount(
-            lowerCaseUserEmail,
-            passwordHash,
-            input.role(),
-            UserAccountStatus.ACTIVE); // new user should always be active
+        var optionalExistingUser = repository.findByEmailIgnoreCase(lowerCaseUserEmail);
 
-    UserAccount savedUserAccount = repository.save(userAccount);
-    profileInitializer.initialize(
-        savedUserAccount.getId(),
-        savedUserAccount.getRole(),
-        input.fullName() == null ? null : input.fullName().trim());
+        if (optionalExistingUser.isPresent()) {
+            log.error("User with email={} already exists", lowerCaseUserEmail);
 
-    log.info(
-        "User account created successfully. userId={}, email={}, role={}, status={}",
-        savedUserAccount.getId(),
-        savedUserAccount.getEmail(),
-        savedUserAccount.getRole(),
-        savedUserAccount.getStatus());
+            throw new UserAccountAlreadyExistsException();
+        }
 
-    return new CreateUserAccountOutput(
-        savedUserAccount.getId(),
-        savedUserAccount.getEmail(),
-        savedUserAccount.getRole(),
-        savedUserAccount.getStatus());
-  }
+        String passwordHash = passwordHasher.hash(input.rawPassword());
+
+        log.debug(
+                "Password hashed successfully for user. email={}",
+                lowerCaseUserEmail
+        );
+
+        UserAccount userAccount = new UserAccount(
+                lowerCaseUserEmail,
+                passwordHash,
+                input.role(),
+                UserAccountStatus.ACTIVE
+        ); // new user should always be active
+
+        UserAccount savedUserAccount = repository.save(userAccount);
+        profileInitializer.initialize(
+                savedUserAccount.getId(),
+                savedUserAccount.getRole(),
+                input.fullName() == null ? null : input.fullName().trim()
+        );
+
+        log.info(
+                "User account created successfully. userId={}, email={}, role={}, status={}",
+                savedUserAccount.getId(),
+                savedUserAccount.getEmail(),
+                savedUserAccount.getRole(),
+                savedUserAccount.getStatus()
+        );
+
+        return new CreateUserAccountOutput(
+                savedUserAccount.getId(),
+                savedUserAccount.getEmail(),
+                savedUserAccount.getRole(),
+                savedUserAccount.getStatus()
+        );
+    }
 }

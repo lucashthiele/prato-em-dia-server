@@ -6,4 +6,5 @@ import com.ulvratech.pratoemdia.server.shared.application.usecase.UseCase;
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageResult;
 
 public interface ListNutritionistPatients
-    extends UseCase<ListRelationshipsInput, PageResult<RelationshipOutput>> {}
+        extends UseCase<ListRelationshipsInput, PageResult<RelationshipOutput>> {
+}

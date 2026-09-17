@@ -3,7 +3,7 @@ CREATE TYPE food_origin AS ENUM (
     'IMPORTED',
     'NUTRITIONIST',
     'PATIENT'
-    );
+);
 
 ALTER TABLE food
     ADD COLUMN origin food_origin NOT NULL DEFAULT 'IMPORTED';

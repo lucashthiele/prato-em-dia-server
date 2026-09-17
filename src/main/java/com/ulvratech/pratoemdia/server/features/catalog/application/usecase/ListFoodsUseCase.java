@@ -10,20 +10,18 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class ListFoodsUseCase implements ListFoods {
-  private final FoodRepository repository;
+    private final FoodRepository repository;
 
-  public ListFoodsUseCase(FoodRepository repository) {
-    this.repository = repository;
-  }
+    public ListFoodsUseCase(FoodRepository repository) {
+        this.repository = repository;
+    }
 
-  @Override
-  public PageResult<FoodOutput> execute(ListFoodsInput input) {
-    var page = repository.findActive(new PageRequest(input.page(), input.size()));
-    return new PageResult<>(
-        page.content().stream().map(FoodOutput::from).toList(),
-        page.page(),
-        page.size(),
-        page.totalElements(),
-        page.totalPages());
-  }
+    @Override
+    public PageResult<FoodOutput> execute(ListFoodsInput input) {
+        var page = repository.findActive(new PageRequest(input.page(), input.size()));
+        return new PageResult<>(
+                page.content().stream().map(FoodOutput::from).toList(),
+                page.page(), page.size(), page.totalElements(), page.totalPages()
+        );
+    }
 }

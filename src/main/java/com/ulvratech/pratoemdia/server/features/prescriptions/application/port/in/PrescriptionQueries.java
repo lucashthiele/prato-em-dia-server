@@ -8,13 +8,13 @@ import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.Pr
 import java.util.List;
 
 public interface PrescriptionQueries {
-  List<PrescriptionOutput> list(PatientQuery input);
+    List<PrescriptionOutput> list(PatientQuery input);
 
-  PrescriptionOutput get(PrescriptionQuery input);
+    PrescriptionOutput get(PrescriptionQuery input);
 
-  List<PrescriptionOutput.VersionOutput> listVersions(PrescriptionQuery input);
+    List<PrescriptionOutput.VersionOutput> listVersions(PrescriptionQuery input);
 
-  PrescriptionOutput.VersionOutput getVersion(VersionQuery input);
+    PrescriptionOutput.VersionOutput getVersion(VersionQuery input);
 
-  PrescriptionOutput.VersionOutput current(Actor actor);
+    PrescriptionOutput.VersionOutput current(Actor actor);
 }

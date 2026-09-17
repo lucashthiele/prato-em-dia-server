@@ -7,9 +7,9 @@ import com.ulvratech.pratoemdia.server.features.planning.application.dto.WeeklyP
 import java.util.List;
 
 public interface PlanningQueries {
-  WeeklyPlanningPreferenceOutput preference(Actor actor);
+    WeeklyPlanningPreferenceOutput preference(Actor actor);
 
-  List<WeeklyPlanOutput> list(Actor actor);
+    List<WeeklyPlanOutput> list(Actor actor);
 
-  WeeklyPlanOutput get(PlanQuery input);
+    WeeklyPlanOutput get(PlanQuery input);
 }

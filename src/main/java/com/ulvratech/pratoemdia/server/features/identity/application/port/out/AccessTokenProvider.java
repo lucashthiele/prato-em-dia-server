@@ -4,5 +4,5 @@ import com.ulvratech.pratoemdia.server.features.identity.application.dto.Generat
 import com.ulvratech.pratoemdia.server.features.identity.domain.entity.UserAccount;
 
 public interface AccessTokenProvider {
-  GeneratedAccessToken generate(UserAccount userAccount);
+    GeneratedAccessToken generate(UserAccount userAccount);
 }

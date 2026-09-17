@@ -4,4 +4,5 @@ import com.ulvratech.pratoemdia.server.features.profiles.application.dto.GetProf
 import com.ulvratech.pratoemdia.server.features.profiles.application.dto.ProfileOutput;
 import com.ulvratech.pratoemdia.server.shared.application.usecase.UseCase;
 
-public interface GetCurrentProfile extends UseCase<GetProfileInput, ProfileOutput> {}
+public interface GetCurrentProfile extends UseCase<GetProfileInput, ProfileOutput> {
+}

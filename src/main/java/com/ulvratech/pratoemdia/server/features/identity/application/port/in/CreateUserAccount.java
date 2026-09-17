@@ -4,5 +4,5 @@ import com.ulvratech.pratoemdia.server.features.identity.application.dto.CreateU
 import com.ulvratech.pratoemdia.server.features.identity.application.dto.CreateUserAccountOutput;
 import com.ulvratech.pratoemdia.server.shared.application.usecase.UseCase;
 
-public interface CreateUserAccount
-    extends UseCase<CreateUserAccountInput, CreateUserAccountOutput> {}
+public interface CreateUserAccount extends UseCase<CreateUserAccountInput, CreateUserAccountOutput> {
+}

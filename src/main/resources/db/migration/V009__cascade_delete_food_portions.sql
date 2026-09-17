@@ -4,5 +4,5 @@ ALTER TABLE food_portion
 ALTER TABLE food_portion
     ADD CONSTRAINT fk_food_portion_food
         FOREIGN KEY (food_id)
-            REFERENCES food (id)
-            ON DELETE CASCADE;
+        REFERENCES food (id)
+        ON DELETE CASCADE;

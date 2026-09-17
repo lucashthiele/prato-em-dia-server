@@ -6,24 +6,25 @@ import com.ulvratech.pratoemdia.server.features.catalog.application.exception.Fo
 import com.ulvratech.pratoemdia.server.features.catalog.application.port.in.ListFoodPortions;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.port.out.FoodPortionRepository;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.port.out.FoodRepository;
-import java.util.List;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class ListFoodPortionsUseCase implements ListFoodPortions {
-  private final FoodRepository foods;
-  private final FoodPortionRepository portions;
+    private final FoodRepository foods;
+    private final FoodPortionRepository portions;
 
-  public ListFoodPortionsUseCase(FoodRepository foods, FoodPortionRepository portions) {
-    this.foods = foods;
-    this.portions = portions;
-  }
+    public ListFoodPortionsUseCase(FoodRepository foods, FoodPortionRepository portions) {
+        this.foods = foods;
+        this.portions = portions;
+    }
 
-  @Override
-  public List<FoodPortionOutput> execute(FoodQueryInput input) {
-    foods.findActiveById(input.foodId()).orElseThrow(FoodNotFoundException::new);
-    return portions.findActiveByFoodId(input.foodId()).stream()
-        .map(FoodPortionOutput::from)
-        .toList();
-  }
+    @Override
+    public List<FoodPortionOutput> execute(FoodQueryInput input) {
+        foods.findActiveById(input.foodId()).orElseThrow(FoodNotFoundException::new);
+        return portions.findActiveByFoodId(input.foodId()).stream()
+                .map(FoodPortionOutput::from)
+                .toList();
+    }
 }

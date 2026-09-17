@@ -5,13 +5,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface PlanningReferences {
-  Optional<UUID> patientProfileId(UUID userAccountId);
+    Optional<UUID> patientProfileId(UUID userAccountId);
 
-  Optional<PrescriptionPlanningSource> currentPublishedPrescription(UUID patientId);
+    Optional<PrescriptionPlanningSource> currentPublishedPrescription(UUID patientId);
 
-  Optional<PrescriptionPlanningSource> prescriptionVersion(UUID versionId);
+    Optional<PrescriptionPlanningSource> prescriptionVersion(UUID versionId);
 
-  boolean isActiveFood(UUID foodId);
+    boolean isActiveFood(UUID foodId);
 
-  boolean portionBelongsToFood(UUID portionId, UUID foodId);
+    boolean portionBelongsToFood(UUID portionId, UUID foodId);
 }

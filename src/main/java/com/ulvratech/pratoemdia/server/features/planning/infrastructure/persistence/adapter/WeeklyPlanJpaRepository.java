@@ -9,11 +9,13 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 interface WeeklyPlanJpaRepository extends JpaRepository<WeeklyPlanModel, UUID> {
-  List<WeeklyPlanModel> findAllByPatientIdOrderByPeriodStartDesc(UUID patientId);
+    List<WeeklyPlanModel> findAllByPatientIdOrderByPeriodStartDesc(UUID patientId);
 
-  boolean existsByPatientIdAndPeriodStartAndPeriodEnd(
-      UUID patientId, LocalDate start, LocalDate end);
+    boolean existsByPatientIdAndPeriodStartAndPeriodEnd(
+            UUID patientId, LocalDate start, LocalDate end
+    );
 
-  List<WeeklyPlanModel> findAllByStatusAndConfirmationDeadlineLessThanEqual(
-      WeeklyPlanStatus status, Instant now);
+    List<WeeklyPlanModel> findAllByStatusAndConfirmationDeadlineLessThanEqual(
+            WeeklyPlanStatus status, Instant now
+    );
 }

@@ -1,14 +1,25 @@
 package com.ulvratech.pratoemdia.server.features.catalog.infrastructure.persistence.model;
 
 import com.ulvratech.pratoemdia.server.features.catalog.domain.enums.FoodOrigin;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.time.Instant;
 import java.util.UUID;
-import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "food")
@@ -18,59 +29,61 @@ import org.hibernate.type.SqlTypes;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FoodModel {
-  @Id private UUID id;
+    @Id
+    private UUID id;
 
-  @Column(nullable = false, length = 180)
-  private String name;
+    @Column(nullable = false, length = 180)
+    private String name;
 
-  @Column(length = 180)
-  private String brand;
+    @Column(length = 180)
+    private String brand;
 
-  @Column(length = 100)
-  private String category;
+    @Column(length = 100)
+    private String category;
 
-  @Column(name = "default_unit", nullable = false, length = 32)
-  private String defaultUnit;
+    @Column(name = "default_unit", nullable = false, length = 32)
+    private String defaultUnit;
 
-  @Column(columnDefinition = "text")
-  private String notes;
+    @Column(columnDefinition = "text")
+    private String notes;
 
-  @Column(name = "preparation_method", columnDefinition = "text")
-  private String preparationMethod;
+    @Column(name = "preparation_method", columnDefinition = "text")
+    private String preparationMethod;
 
-  @Column(nullable = false)
-  private boolean active;
+    @Column(nullable = false)
+    private boolean active;
 
-  @Column(name = "created_by_user_id")
-  private UUID createdByUserId;
+    @Column(name = "created_by_user_id")
+    private UUID createdByUserId;
 
-  @Enumerated(EnumType.STRING)
-  @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-  @Column(nullable = false)
-  private FoodOrigin origin;
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(nullable = false)
+    private FoodOrigin origin;
 
-  @Column(length = 32)
-  private String source;
+    @Column(length = 32)
+    private String source;
 
-  @Column(name = "source_external_id", length = 64)
-  private String sourceExternalId;
+    @Column(name = "source_external_id", length = 64)
+    private String sourceExternalId;
 
-  @Column(name = "source_description", length = 255)
-  private String sourceDescription;
+    @Column(name = "source_description", length = 255)
+    private String sourceDescription;
 
-  @Column(name = "source_version", length = 100)
-  private String sourceVersion;
+    @Column(name = "source_version", length = 100)
+    private String sourceVersion;
 
-  @Column(name = "normalized_name", length = 180)
-  private String normalizedName;
+    @Column(name = "normalized_name", length = 180)
+    private String normalizedName;
 
-  @CreationTimestamp
-  @Column(name = "created_at", nullable = false, updatable = false)
-  private Instant createdAt;
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 
-  @UpdateTimestamp
-  @Column(name = "updated_at", nullable = false)
-  private Instant updatedAt;
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 
-  @Version private long version;
+    @Version
+    private long version;
 }

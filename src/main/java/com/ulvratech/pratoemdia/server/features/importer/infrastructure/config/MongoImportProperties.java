@@ -4,40 +4,40 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "catalog.import.mongodb")
 public class MongoImportProperties {
-  private String uri;
-  private String database = "tbca";
-  private String collection = "foods";
-  private boolean dryRun = true;
+    private String uri;
+    private String database = "tbca";
+    private String collection = "foods";
+    private boolean dryRun = true;
 
-  public String getUri() {
-    return uri;
-  }
+    public String getUri() {
+        return uri;
+    }
 
-  public void setUri(String uri) {
-    this.uri = uri;
-  }
+    public void setUri(String uri) {
+        this.uri = uri;
+    }
 
-  public String getDatabase() {
-    return database;
-  }
+    public String getDatabase() {
+        return database;
+    }
 
-  public void setDatabase(String database) {
-    this.database = database;
-  }
+    public void setDatabase(String database) {
+        this.database = database;
+    }
 
-  public String getCollection() {
-    return collection;
-  }
+    public String getCollection() {
+        return collection;
+    }
 
-  public void setCollection(String collection) {
-    this.collection = collection;
-  }
+    public void setCollection(String collection) {
+        this.collection = collection;
+    }
 
-  public boolean isDryRun() {
-    return dryRun;
-  }
+    public boolean isDryRun() {
+        return dryRun;
+    }
 
-  public void setDryRun(boolean dryRun) {
-    this.dryRun = dryRun;
-  }
+    public void setDryRun(boolean dryRun) {
+        this.dryRun = dryRun;
+    }
 }

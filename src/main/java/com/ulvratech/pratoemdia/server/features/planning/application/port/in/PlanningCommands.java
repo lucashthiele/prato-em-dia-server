@@ -8,11 +8,11 @@ import com.ulvratech.pratoemdia.server.features.planning.application.dto.WeeklyP
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.WeeklyPlanningPreferenceOutput;
 
 public interface PlanningCommands {
-  WeeklyPlanningPreferenceOutput updatePreference(PreferenceUpdate input);
+    WeeklyPlanningPreferenceOutput updatePreference(PreferenceUpdate input);
 
-  WeeklyPlanOutput generate(Actor actor);
+    WeeklyPlanOutput generate(Actor actor);
 
-  WeeklyPlanOutput update(PlanUpdate input);
+    WeeklyPlanOutput update(PlanUpdate input);
 
-  WeeklyPlanOutput confirm(PlanQuery input);
+    WeeklyPlanOutput confirm(PlanQuery input);
 }

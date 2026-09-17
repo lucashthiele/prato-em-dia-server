@@ -16,22 +16,23 @@ import org.springframework.context.annotation.Profile;
 @Profile("mongodb-catalog-import")
 @EnableConfigurationProperties(MongoImportProperties.class)
 public class MongoImporterConfiguration {
-  @Bean
-  MongoCatalogReader mongoCatalogReader(MongoImportProperties properties) {
-    return new MongoCatalogReader(properties);
-  }
+    @Bean
+    MongoCatalogReader mongoCatalogReader(MongoImportProperties properties) {
+        return new MongoCatalogReader(properties);
+    }
 
-  @Bean
-  ImportMongoCatalog importMongoCatalog(SyncImportedFoods catalog) {
-    return new ImportMongoCatalogUseCase(catalog);
-  }
+    @Bean
+    ImportMongoCatalog importMongoCatalog(SyncImportedFoods catalog) {
+        return new ImportMongoCatalogUseCase(catalog);
+    }
 
-  @Bean
-  ApplicationRunner mongoCatalogImportRunner(
-      MongoImportProperties properties,
-      MongoCatalogReader reader,
-      ImportMongoCatalog importCatalog,
-      ImportRunJpaRepository runs) {
-    return new MongoCatalogImportRunner(properties, reader, importCatalog, runs);
-  }
+    @Bean
+    ApplicationRunner mongoCatalogImportRunner(
+            MongoImportProperties properties,
+            MongoCatalogReader reader,
+            ImportMongoCatalog importCatalog,
+            ImportRunJpaRepository runs
+    ) {
+        return new MongoCatalogImportRunner(properties, reader, importCatalog, runs);
+    }
 }
