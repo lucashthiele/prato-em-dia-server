@@ -6,13 +6,12 @@ import java.util.List;
 import java.util.UUID;
 
 public record CreateFoodInput(
-    UUID actorUserId,
-    FoodOrigin origin,
-    String name,
-    String category,
-    String defaultUnit,
-    String notes,
-    String preparationMethod,
-    List<CreateFoodPortionInput> portions
-) {
+        UUID actorUserId,
+        FoodOrigin origin,
+        String name,
+        String category,
+        String defaultUnit,
+        String notes,
+        String preparationMethod,
+        List<CreateFoodPortionInput> portions) {
 }

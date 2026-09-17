@@ -10,9 +10,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Target({
-    ElementType.FIELD,
-    ElementType.PARAMETER,
-    ElementType.RECORD_COMPONENT
+        ElementType.FIELD,
+        ElementType.PARAMETER,
+        ElementType.RECORD_COMPONENT
 })
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = EnumValueValidator.class)

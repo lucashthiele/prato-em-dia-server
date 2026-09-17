@@ -28,10 +28,10 @@ public class TacoCatalogImportRunner implements ApplicationRunner {
     private final ImportRunJpaRepository runs;
 
     public TacoCatalogImportRunner(
-        TacoImportProperties properties,
-        TacoSpreadsheetReader reader,
-        ImportTacoCatalog importCatalog,
-        ImportRunJpaRepository runs
+            TacoImportProperties properties,
+            TacoSpreadsheetReader reader,
+            ImportTacoCatalog importCatalog,
+            ImportRunJpaRepository runs
     ) {
         this.properties = properties;
         this.reader = reader;
@@ -51,30 +51,34 @@ public class TacoCatalogImportRunner implements ApplicationRunner {
         var report = importCatalog.execute(new ImportTacoCatalogInput(data, properties.isDryRun()));
 
         if (!properties.isDryRun()) {
-            runs.save(ImportRunModel.builder()
-                .id(UUID.randomUUID())
-                .source(ImportTacoCatalogUseCase.SOURCE)
-                .sourceVersion(ImportTacoCatalogUseCase.SOURCE_VERSION)
-                .sourceLocation(path.getFileName().toString())
-                .sourceChecksum(checksum)
-                .dryRun(false)
-                .startedAt(startedAt)
-                .finishedAt(Instant.now())
-                .status(report.aborted() ? "FAILED" : "COMPLETED")
-                .rowsRead(report.rowsRead())
-                .rowsInserted(report.aborted() ? 0 : report.inserted())
-                .rowsUpdated(report.aborted() ? 0 : report.updated())
-                .rowsSkipped(report.aborted() ? 0 : report.skipped())
-                .rowsFailed(report.failed())
-                .build());
+            runs.save(
+                    ImportRunModel.builder()
+                            .id(UUID.randomUUID())
+                            .source(ImportTacoCatalogUseCase.SOURCE)
+                            .sourceVersion(ImportTacoCatalogUseCase.SOURCE_VERSION)
+                            .sourceLocation(path.getFileName().toString())
+                            .sourceChecksum(checksum)
+                            .dryRun(false)
+                            .startedAt(startedAt)
+                            .finishedAt(Instant.now())
+                            .status(report.aborted() ? "FAILED" : "COMPLETED")
+                            .rowsRead(report.rowsRead())
+                            .rowsInserted(report.aborted() ? 0 : report.inserted())
+                            .rowsUpdated(report.aborted() ? 0 : report.updated())
+                            .rowsSkipped(report.aborted() ? 0 : report.skipped())
+                            .rowsFailed(report.failed())
+                            .build()
+            );
         }
         LOGGER.info("{}", report.formatted());
     }
 
     private String sha256(java.nio.file.Path path) throws IOException {
         try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                .digest(Files.readAllBytes(path)));
+            return HexFormat.of().formatHex(
+                    MessageDigest.getInstance("SHA-256")
+                            .digest(Files.readAllBytes(path))
+            );
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("SHA-256 is unavailable", exception);
         }

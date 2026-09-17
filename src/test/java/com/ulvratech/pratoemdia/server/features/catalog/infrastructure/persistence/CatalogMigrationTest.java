@@ -32,13 +32,18 @@ import java.util.List;
 import java.util.Map;
 import java.math.BigDecimal;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest(properties = {
-    "security.jwt.secret=01234567890123456789012345678901",
-    "spring.docker.compose.enabled=false",
-    "spring.jpa.hibernate.ddl-auto=validate"
+        "security.jwt.secret=01234567890123456789012345678901",
+        "spring.docker.compose.enabled=false",
+        "spring.jpa.hibernate.ddl-auto=validate"
 })
 class CatalogMigrationTest {
     @Container
@@ -59,22 +64,22 @@ class CatalogMigrationTest {
         UUID accountId = UUID.randomUUID();
         UUID foodId = UUID.randomUUID();
         try (var connection = DriverManager.getConnection(
-            POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()
         )) {
             execute(
-                connection,
-                "insert into user_account(id,email,password_hash,role) values (?,?,?,?::user_role)",
-                accountId, "patient@example.com", "hash", "PATIENT"
+                    connection,
+                    "insert into user_account(id,email,password_hash,role) values (?,?,?,?::user_role)",
+                    accountId, "patient@example.com", "hash", "PATIENT"
             );
             execute(
-                connection,
-                "insert into food(id,name,default_unit,notes,preparation_method,created_by_user_id)"
-                    + " values (?,?,?,?,?,?)",
-                foodId, "Arroz", "g", "Sem sal", "Cozinhar em água", accountId
+                    connection,
+                    "insert into food(id,name,default_unit,notes,preparation_method,created_by_user_id)"
+                            + " values (?,?,?,?,?,?)",
+                    foodId, "Arroz", "g", "Sem sal", "Cozinhar em água", accountId
             );
 
             try (var statement = connection.prepareStatement(
-                "select notes,preparation_method,created_by_user_id,origin from food where id=?"
+                    "select notes,preparation_method,created_by_user_id,origin from food where id=?"
             )) {
                 statement.setObject(1, foodId);
                 try (var result = statement.executeQuery()) {
@@ -86,64 +91,74 @@ class CatalogMigrationTest {
                 }
             }
 
-            assertThrows(SQLException.class, () -> execute(
-                connection,
-                "insert into food_portion(id,food_id,label,quantity,unit) values (?,?,?,?,?)",
-                UUID.randomUUID(), foodId, "Porção inválida", 0, "g"
-            ));
+            assertThrows(
+                    SQLException.class, () -> execute(
+                            connection,
+                            "insert into food_portion(id,food_id,label,quantity,unit) values (?,?,?,?,?)",
+                            UUID.randomUUID(), foodId, "Porção inválida", 0, "g"
+                    )
+            );
         }
     }
 
     @Test
     void enforcesUniqueSourceExternalId() throws Exception {
         try (var connection = DriverManager.getConnection(
-            POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()
         )) {
             execute(
-                connection,
-                "insert into food(id,name,default_unit,origin,source,source_external_id,"
-                    + "source_description,normalized_name) values (?,?,?,?::food_origin,?,?,?,?)",
-                UUID.randomUUID(), "Arroz", "100 g", "IMPORTED", "TACO", "1",
-                "Arroz, integral, cozido", "arroz integral cozido"
+                    connection,
+                    "insert into food(id,name,default_unit,origin,source,source_external_id,"
+                            + "source_description,normalized_name) values (?,?,?,?::food_origin,?,?,?,?)",
+                    UUID.randomUUID(), "Arroz", "100 g", "IMPORTED", "TACO", "1",
+                    "Arroz, integral, cozido", "arroz integral cozido"
             );
 
-            assertThrows(SQLException.class, () -> execute(
-                connection,
-                "insert into food(id,name,default_unit,origin,source,source_external_id,"
-                    + "source_description) values (?,?,?,?::food_origin,?,?,?)",
-                UUID.randomUUID(), "Outro arroz", "100 g", "IMPORTED", "TACO", "1",
-                "Outro arroz"
-            ));
+            assertThrows(
+                    SQLException.class, () -> execute(
+                            connection,
+                            "insert into food(id,name,default_unit,origin,source,source_external_id,"
+                                    + "source_description) values (?,?,?,?::food_origin,?,?,?)",
+                            UUID.randomUUID(), "Outro arroz", "100 g", "IMPORTED", "TACO", "1",
+                            "Outro arroz"
+                    )
+            );
         }
     }
 
     @Test
     void persistsNutrientsAndKeepsRepeatedImportIdempotent() {
         var useCase = new ImportTacoCatalogUseCase(new SyncImportedFoodsUseCase(foods, portions));
-        var nutrients = Map.of("sodium", new NutrientValue(
-            new BigDecimal("1.25"), "mg", NutrientValueStatus.VALUE, "1.25"
-        ));
+        var nutrients = Map.of(
+                "sodium", new NutrientValue(
+                        new BigDecimal("1.25"), "mg", NutrientValueStatus.VALUE, "1.25"
+                )
+        );
         var spreadsheet = new TacoSpreadsheetData(
-            1,
-            List.of(new TacoFoodRecord("9999", "Alimento teste", "Testes", nutrients)),
-            List.of()
+                1,
+                List.of(new TacoFoodRecord("9999", "Alimento teste", "Testes", nutrients)),
+                List.of()
         );
 
         var first = useCase.execute(new ImportTacoCatalogInput(spreadsheet, false));
         var second = useCase.execute(new ImportTacoCatalogInput(spreadsheet, false));
         var changedSpreadsheet = new TacoSpreadsheetData(
-            1,
-            List.of(new TacoFoodRecord(
-                "9999", "Alimento teste", "Testes",
-                Map.of("sodium", new NutrientValue(
-                    new BigDecimal("2.50"), "mg", NutrientValueStatus.VALUE, "2.50"
-                ))
-            )),
-            List.of()
+                1,
+                List.of(
+                        new TacoFoodRecord(
+                                "9999", "Alimento teste", "Testes",
+                                Map.of(
+                                        "sodium", new NutrientValue(
+                                                new BigDecimal("2.50"), "mg", NutrientValueStatus.VALUE, "2.50"
+                                        )
+                                )
+                        )
+                ),
+                List.of()
         );
         var third = useCase.execute(new ImportTacoCatalogInput(changedSpreadsheet, false));
         var persistedPortion = portions.findImportedByFoodIds(
-            List.of(CatalogIds.tacoFood("9999"))
+                List.of(CatalogIds.tacoFood("9999"))
         ).getFirst();
         var persisted = foods.findById(CatalogIds.tacoFood("9999")).orElseThrow();
 
@@ -151,18 +166,19 @@ class CatalogMigrationTest {
         assertEquals(1, second.skipped());
         assertEquals(1, third.updated());
         assertEquals(
-            0,
-            new BigDecimal("2.50").compareTo(persistedPortion.getNutrients().get("sodium").amount())
+                0,
+                new BigDecimal("2.50").compareTo(persistedPortion.getNutrients().get("sodium").amount())
         );
         assertNull(persisted.getCreatedByUserId());
 
         try (var connection = DriverManager.getConnection(
-            POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()
-        ); var statement = connection.prepareStatement(
-            "select count(*) from food_portion_nutrient nutrient "
-                + "join food_portion portion on portion.id=nutrient.food_portion_id "
-                + "where portion.food_id=?"
-        )) {
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()
+        );
+                var statement = connection.prepareStatement(
+                        "select count(*) from food_portion_nutrient nutrient "
+                                + "join food_portion portion on portion.id=nutrient.food_portion_id "
+                                + "where portion.food_id=?"
+                )) {
             statement.setObject(1, CatalogIds.tacoFood("9999"));
             try (var result = statement.executeQuery()) {
                 assertTrue(result.next());
@@ -170,9 +186,9 @@ class CatalogMigrationTest {
             }
 
             execute(
-                connection,
-                "delete from food where id=?",
-                CatalogIds.tacoFood("9999")
+                    connection,
+                    "delete from food where id=?",
+                    CatalogIds.tacoFood("9999")
             );
 
             statement.setObject(1, CatalogIds.tacoFood("9999"));
@@ -182,7 +198,7 @@ class CatalogMigrationTest {
             }
 
             try (var portionStatement = connection.prepareStatement(
-                "select count(*) from food_portion where food_id=?"
+                    "select count(*) from food_portion where food_id=?"
             )) {
                 portionStatement.setObject(1, CatalogIds.tacoFood("9999"));
                 try (var result = portionStatement.executeQuery()) {
@@ -211,14 +227,20 @@ class CatalogMigrationTest {
         assertFalse(first.aborted());
         assertEquals(data.records().size(), first.inserted());
         assertEquals(data.records().size(), second.skipped());
-        assertTrue(portions.findImportedByFoodIds(data.records().stream()
-            .map(record -> CatalogIds.importedFood("TBCA", record.externalId()))
-            .toList()).stream().anyMatch(portion -> portion.getNutrients().values().stream()
-                .anyMatch(value -> value.status() == NutrientValueStatus.NOT_ANALYZED)));
+        assertTrue(
+                portions.findImportedByFoodIds(
+                        data.records().stream()
+                                .map(record -> CatalogIds.importedFood("TBCA", record.externalId()))
+                                .toList()
+                ).stream().anyMatch(
+                        portion -> portion.getNutrients().values().stream()
+                                .anyMatch(value -> value.status() == NutrientValueStatus.NOT_ANALYZED)
+                )
+        );
     }
 
     private static void execute(
-        java.sql.Connection connection, String sql, Object... values
+            java.sql.Connection connection, String sql, Object... values
     ) throws SQLException {
         connection.setAutoCommit(true);
         try (PreparedStatement statement = connection.prepareStatement(sql)) {

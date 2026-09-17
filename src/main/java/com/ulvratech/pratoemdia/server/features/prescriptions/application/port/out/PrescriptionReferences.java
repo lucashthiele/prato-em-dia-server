@@ -5,8 +5,12 @@ import java.util.UUID;
 
 public interface PrescriptionReferences {
     Optional<UUID> nutritionistProfileId(UUID accountId);
+
     Optional<UUID> patientProfileId(UUID accountId);
+
     boolean hasActiveRelationship(UUID nutritionistId, UUID patientId);
+
     boolean isActiveFood(UUID foodId);
+
     boolean portionBelongsToFood(UUID portionId, UUID foodId);
 }

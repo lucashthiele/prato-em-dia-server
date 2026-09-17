@@ -31,11 +31,12 @@ public class CreateRelationshipUseCase implements CreateRelationship {
     private final Clock clock;
 
     public CreateRelationshipUseCase(
-        RelationshipRepository relationships,
-        ProvisionPatientAccount accounts,
-        PatientRelationshipEmailSender emails,
-        TransactionTemplate transactions,
-        Clock clock) {
+            RelationshipRepository relationships,
+            ProvisionPatientAccount accounts,
+            PatientRelationshipEmailSender emails,
+            TransactionTemplate transactions,
+            Clock clock
+    ) {
         this.relationships = relationships;
         this.accounts = accounts;
         this.emails = emails;
@@ -46,36 +47,38 @@ public class CreateRelationshipUseCase implements CreateRelationship {
     public RelationshipOutput execute(CreateRelationshipInput input) {
         ProvisionedRelationship provisioned;
         try {
-            provisioned =
-                transactions.execute(
+            provisioned = transactions.execute(
                     status -> {
-                        var nutritionistId =
-                            relationships
+                        var nutritionistId = relationships
                                 .findNutritionistProfileIdByAccount(
-                                    input.nutritionistAccountId())
+                                        input.nutritionistAccountId()
+                                )
                                 .orElseThrow(RelationshipNotFoundException::new);
-                        var account =
-                            accounts.execute(
+                        var account = accounts.execute(
                                 new ProvisionPatientAccountInput(
-                                    input.email(), input.fullName()));
-                        var patientId =
-                            relationships
+                                        input.email(), input.fullName()
+                                )
+                        );
+                        var patientId = relationships
                                 .findPatientProfileIdByAccount(
-                                    account.userAccountId())
+                                        account.userAccountId()
+                                )
                                 .orElseThrow(RelationshipNotFoundException::new);
                         if (relationships.findActiveByPatient(patientId).isPresent())
                             throw new RelationshipConflictException();
-                        var saved =
-                            relationships.save(
+                        var saved = relationships.save(
                                 ProfessionalPatientRelationship.create(
-                                    nutritionistId, patientId));
-                        var view =
-                            relationships
+                                        nutritionistId, patientId
+                                )
+                        );
+                        var view = relationships
                                 .findViewById(saved.getId())
                                 .orElseThrow(RelationshipNotFoundException::new);
                         return new ProvisionedRelationship(
-                            view, account.created(), account.initialPassword());
-                    });
+                                view, account.created(), account.initialPassword()
+                        );
+                    }
+            );
         } catch (DataIntegrityViolationException e) {
             throw new RelationshipConflictException();
         }
@@ -83,35 +86,39 @@ public class CreateRelationshipUseCase implements CreateRelationship {
         try {
             if (provisioned.created())
                 emails.sendInitialAccess(
-                    provisioned.view().patientFullName(),
-                    provisioned.view().patientEmail(),
-                    provisioned.view().nutritionistFullName(),
-                    provisioned.initialPassword());
+                        provisioned.view().patientFullName(),
+                        provisioned.view().patientEmail(),
+                        provisioned.view().nutritionistFullName(),
+                        provisioned.initialPassword()
+                );
             else
                 emails.sendRelationshipNotice(
-                    provisioned.view().patientFullName(),
-                    provisioned.view().patientEmail(),
-                    provisioned.view().nutritionistFullName());
+                        provisioned.view().patientFullName(),
+                        provisioned.view().patientEmail(),
+                        provisioned.view().nutritionistFullName()
+                );
         } catch (RuntimeException e) {
             delivery = RelationshipEmailStatus.FAILED;
             log.error(
-                "Failed to send patient relationship email. operation=create, relationshipId={}",
-                provisioned.view().relationshipId(),
-                e);
+                    "Failed to send patient relationship email. operation=create, relationshipId={}",
+                    provisioned.view().relationshipId(),
+                    e
+            );
         }
         var result = delivery;
         return transactions.execute(
-            status -> {
-                var relationship =
-                    relationships
-                        .findById(provisioned.view().relationshipId())
-                        .orElseThrow(RelationshipNotFoundException::new);
-                relationship.recordEmail(result, clock.instant());
-                relationships.save(relationship);
-                return RelationshipOutput.from(
-                    relationships
-                        .findViewById(relationship.getId())
-                        .orElseThrow(RelationshipNotFoundException::new));
-            });
+                status -> {
+                    var relationship = relationships
+                            .findById(provisioned.view().relationshipId())
+                            .orElseThrow(RelationshipNotFoundException::new);
+                    relationship.recordEmail(result, clock.instant());
+                    relationships.save(relationship);
+                    return RelationshipOutput.from(
+                            relationships
+                                    .findViewById(relationship.getId())
+                                    .orElseThrow(RelationshipNotFoundException::new)
+                    );
+                }
+        );
     }
 }

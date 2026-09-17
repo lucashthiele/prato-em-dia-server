@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class EnumValueValidator
-    implements ConstraintValidator<EnumValue, String> {
+        implements ConstraintValidator<EnumValue, String> {
 
     private Set<String> acceptedValues;
 
@@ -17,15 +17,15 @@ public class EnumValueValidator
     public void initialize(EnumValue annotation) {
         acceptedValues = Arrays.stream(
                 annotation.enumClass().getEnumConstants()
-            )
-            .map(Enum::name)
-            .collect(Collectors.toSet());
+        )
+                .map(Enum::name)
+                .collect(Collectors.toSet());
     }
 
     @Override
     public boolean isValid(
-        String value,
-        ConstraintValidatorContext context
+            String value,
+            ConstraintValidatorContext context
     ) {
         if (value == null || value.isBlank()) {
             return true;

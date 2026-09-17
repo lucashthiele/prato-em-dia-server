@@ -14,7 +14,10 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TokenSecurityTest {
     private static final Instant NOW = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
@@ -27,17 +30,17 @@ class TokenSecurityTest {
         var encoder = configuration.jwtEncoder(key);
         var decoder = configuration.jwtDecoder(key, properties);
         var provider = new JwtAccessTokenProvider(
-            encoder,
-            properties,
-            Clock.fixed(NOW, ZoneOffset.UTC)
+                encoder,
+                properties,
+                Clock.fixed(NOW, ZoneOffset.UTC)
         );
         var userId = UUID.randomUUID();
         var user = new UserAccount(
-            userId,
-            "nutritionist@example.com",
-            "password-hash",
-            UserAccountRole.NUTRITIONIST,
-            UserAccountStatus.ACTIVE
+                userId,
+                "nutritionist@example.com",
+                "password-hash",
+                UserAccountRole.NUTRITIONIST,
+                UserAccountStatus.ACTIVE
         );
 
         var generated = provider.generate(user);
@@ -48,17 +51,19 @@ class TokenSecurityTest {
         assertEquals("prato-em-dia", decoded.getClaimAsString("iss"));
         assertEquals(NOW.plusSeconds(900), generated.expiresAt());
         var authentication = new JwtAuthenticationConverter().convert(decoded);
-        assertTrue(authentication.getAuthorities().stream().anyMatch(
-            authority -> authority.getAuthority().equals("ROLE_NUTRITIONIST")
-        ));
+        assertTrue(
+                authentication.getAuthorities().stream().anyMatch(
+                        authority -> authority.getAuthority().equals("ROLE_NUTRITIONIST")
+                )
+        );
     }
 
     @Test
     void refreshTokensAreRandomAndOnlyTheirStableHashesNeedPersistence() {
         var generator = new SecureRefreshTokenGenerator(
-            new SecureRandom(),
-            Clock.fixed(NOW, ZoneOffset.UTC),
-            properties()
+                new SecureRandom(),
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                properties()
         );
         var hasher = new Sha256RefreshTokenHasher();
 
@@ -74,22 +79,22 @@ class TokenSecurityTest {
     @Test
     void rejectsSecretsThatAreTooShortForHs256() {
         assertThrows(
-            IllegalArgumentException.class,
-            () -> new JwtConfigurationProperties(
-                "prato-em-dia",
-                Duration.ofMinutes(15),
-                Duration.ofDays(30),
-                "too-short"
-            )
+                IllegalArgumentException.class,
+                () -> new JwtConfigurationProperties(
+                        "prato-em-dia",
+                        Duration.ofMinutes(15),
+                        Duration.ofDays(30),
+                        "too-short"
+                )
         );
     }
 
     private JwtConfigurationProperties properties() {
         return new JwtConfigurationProperties(
-            "prato-em-dia",
-            Duration.ofMinutes(15),
-            Duration.ofDays(30),
-            "0123456789abcdef0123456789abcdef"
+                "prato-em-dia",
+                Duration.ofMinutes(15),
+                Duration.ofDays(30),
+                "0123456789abcdef0123456789abcdef"
         );
     }
 }

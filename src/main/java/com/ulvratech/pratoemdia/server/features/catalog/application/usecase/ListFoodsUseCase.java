@@ -20,8 +20,8 @@ public class ListFoodsUseCase implements ListFoods {
     public PageResult<FoodOutput> execute(ListFoodsInput input) {
         var page = repository.findActive(new PageRequest(input.page(), input.size()));
         return new PageResult<>(
-            page.content().stream().map(FoodOutput::from).toList(),
-            page.page(), page.size(), page.totalElements(), page.totalPages()
+                page.content().stream().map(FoodOutput::from).toList(),
+                page.page(), page.size(), page.totalElements(), page.totalPages()
         );
     }
 }

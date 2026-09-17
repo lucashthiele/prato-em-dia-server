@@ -13,8 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class ProfessionalPatientRelationshipTest {
     @Test
     void keepsEndAndEmailAudit() {
-        var relationship =
-            ProfessionalPatientRelationship.create(UUID.randomUUID(), UUID.randomUUID());
+        var relationship = ProfessionalPatientRelationship.create(UUID.randomUUID(), UUID.randomUUID());
         var actor = UUID.randomUUID();
         var now = Instant.parse("2026-09-01T12:00:00Z");
         relationship.recordEmail(RelationshipEmailStatus.FAILED, now);

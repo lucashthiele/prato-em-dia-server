@@ -24,7 +24,7 @@ public class ListFoodPortionsUseCase implements ListFoodPortions {
     public List<FoodPortionOutput> execute(FoodQueryInput input) {
         foods.findActiveById(input.foodId()).orElseThrow(FoodNotFoundException::new);
         return portions.findActiveByFoodId(input.foodId()).stream()
-            .map(FoodPortionOutput::from)
-            .toList();
+                .map(FoodPortionOutput::from)
+                .toList();
     }
 }

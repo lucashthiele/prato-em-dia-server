@@ -23,7 +23,7 @@ public class UpdateCurrentProfileUseCase implements UpdateCurrentProfile {
     public ProfileOutput execute(UpdateProfileInput input) {
         validateFieldsForType(input);
         var profile = repository.findByUserAccountId(input.userAccountId(), input.type())
-            .orElseThrow(ProfileNotFoundException::new);
+                .orElseThrow(ProfileNotFoundException::new);
 
         profile.replaceCommon(input.fullName(), input.phone());
         if (input.type() == ProfileType.NUTRITIONIST) {
@@ -37,8 +37,8 @@ public class UpdateCurrentProfileUseCase implements UpdateCurrentProfile {
 
     private void validateFieldsForType(UpdateProfileInput input) {
         boolean invalid = input.type() == ProfileType.PATIENT
-            ? input.registrationNumber() != null || input.bio() != null
-            : input.birthDate() != null;
+                ? input.registrationNumber() != null || input.bio() != null
+                : input.birthDate() != null;
         if (invalid) {
             throw new InvalidProfileFieldsException();
         }

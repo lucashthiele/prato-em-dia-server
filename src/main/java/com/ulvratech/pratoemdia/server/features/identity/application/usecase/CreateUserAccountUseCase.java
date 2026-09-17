@@ -22,9 +22,9 @@ public class CreateUserAccountUseCase implements CreateUserAccount {
     private final UserProfileInitializer profileInitializer;
 
     public CreateUserAccountUseCase(
-        UserAccountRepository repository,
-        PasswordHasher passwordHasher,
-        UserProfileInitializer profileInitializer
+            UserAccountRepository repository,
+            PasswordHasher passwordHasher,
+            UserProfileInitializer profileInitializer
     ) {
         this.repository = repository;
         this.passwordHasher = passwordHasher;
@@ -36,9 +36,9 @@ public class CreateUserAccountUseCase implements CreateUserAccount {
         var lowerCaseUserEmail = input.email().toLowerCase();
 
         log.info(
-            "Creating user account. email={}, role={}",
-            lowerCaseUserEmail,
-            input.role()
+                "Creating user account. email={}, role={}",
+                lowerCaseUserEmail,
+                input.role()
         );
 
         var optionalExistingUser = repository.findByEmailIgnoreCase(lowerCaseUserEmail);
@@ -52,35 +52,37 @@ public class CreateUserAccountUseCase implements CreateUserAccount {
         String passwordHash = passwordHasher.hash(input.rawPassword());
 
         log.debug(
-            "Password hashed successfully for user. email={}",
-            lowerCaseUserEmail
+                "Password hashed successfully for user. email={}",
+                lowerCaseUserEmail
         );
 
         UserAccount userAccount = new UserAccount(
-            lowerCaseUserEmail,
-            passwordHash,
-            input.role(),
-            UserAccountStatus.ACTIVE); // new user should always be active
+                lowerCaseUserEmail,
+                passwordHash,
+                input.role(),
+                UserAccountStatus.ACTIVE
+        ); // new user should always be active
 
         UserAccount savedUserAccount = repository.save(userAccount);
         profileInitializer.initialize(
-            savedUserAccount.getId(),
-            savedUserAccount.getRole(),
-            input.fullName() == null ? null : input.fullName().trim()
+                savedUserAccount.getId(),
+                savedUserAccount.getRole(),
+                input.fullName() == null ? null : input.fullName().trim()
         );
 
         log.info(
-            "User account created successfully. userId={}, email={}, role={}, status={}",
-            savedUserAccount.getId(),
-            savedUserAccount.getEmail(),
-            savedUserAccount.getRole(),
-            savedUserAccount.getStatus()
+                "User account created successfully. userId={}, email={}, role={}, status={}",
+                savedUserAccount.getId(),
+                savedUserAccount.getEmail(),
+                savedUserAccount.getRole(),
+                savedUserAccount.getStatus()
         );
 
         return new CreateUserAccountOutput(
-            savedUserAccount.getId(),
-            savedUserAccount.getEmail(),
-            savedUserAccount.getRole(),
-            savedUserAccount.getStatus());
+                savedUserAccount.getId(),
+                savedUserAccount.getEmail(),
+                savedUserAccount.getRole(),
+                savedUserAccount.getStatus()
+        );
     }
 }

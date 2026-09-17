@@ -5,8 +5,7 @@ import com.ulvratech.pratoemdia.server.features.identity.application.port.out.In
 import java.security.SecureRandom;
 
 public class SecureInitialPasswordGenerator implements InitialPasswordGenerator {
-    private static final char[] ALPHABET =
-        "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789".toCharArray();
+    private static final char[] ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789".toCharArray();
     private final SecureRandom random;
 
     public SecureInitialPasswordGenerator(SecureRandom random) {

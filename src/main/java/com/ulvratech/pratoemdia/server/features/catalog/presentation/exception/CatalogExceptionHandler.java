@@ -21,23 +21,23 @@ public class CatalogExceptionHandler {
     @ExceptionHandler(FoodAccessDeniedException.class)
     ResponseEntity<ApiErrorResponse> forbidden(FoodAccessDeniedException exception) {
         return response(
-            HttpStatus.FORBIDDEN,
-            exception.getCode(),
-            "Somente o autor ou um administrador pode alterar este alimento."
+                HttpStatus.FORBIDDEN,
+                exception.getCode(),
+                "Somente o autor ou um administrador pode alterar este alimento."
         );
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<ApiErrorResponse> invalid() {
         return response(
-            HttpStatus.BAD_REQUEST, "CATALOG_INVALID_VALUE", "Um ou mais valores são inválidos."
+                HttpStatus.BAD_REQUEST, "CATALOG_INVALID_VALUE", "Um ou mais valores são inválidos."
         );
     }
 
     private ResponseEntity<ApiErrorResponse> response(
-        HttpStatus status, String code, String message
+            HttpStatus status, String code, String message
     ) {
         return ResponseEntity.status(status)
-            .body(new ApiErrorResponse(status.value(), code, message));
+                .body(new ApiErrorResponse(status.value(), code, message));
     }
 }

@@ -1,7 +1,8 @@
 package com.ulvratech.pratoemdia.server.features.prescriptions.infrastructure.persistence.adapter;
 
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.Prescription;
-import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.*;
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PrescriptionStatus;
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PrescriptionVersionStatus;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.port.out.PrescriptionRepository;
 import com.ulvratech.pratoemdia.server.features.prescriptions.infrastructure.persistence.mapper.PrescriptionMapper;
 import org.springframework.data.domain.PageRequest;
@@ -43,14 +44,17 @@ public class PrescriptionRepositoryAdapter implements PrescriptionRepository {
     @Transactional(readOnly = true)
     public List<Prescription> findByNutritionistAndPatient(UUID nutritionistId, UUID patientId) {
         return repository.findAllByNutritionistIdAndPatientIdAndStatusOrderByCreatedAtDesc(
-            nutritionistId, patientId, PrescriptionStatus.ACTIVE).stream().map(mapper::toDomain).toList();
+                nutritionistId, patientId, PrescriptionStatus.ACTIVE
+        ).stream().map(mapper::toDomain).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<Prescription> findCurrentByPatient(UUID patientId) {
-        return repository.findCurrentByPatient(patientId, PrescriptionStatus.ACTIVE,
-                PrescriptionVersionStatus.PUBLISHED, PageRequest.of(0, 1)).stream()
-            .findFirst().map(mapper::toDomain);
+        return repository.findCurrentByPatient(
+                patientId, PrescriptionStatus.ACTIVE,
+                PrescriptionVersionStatus.PUBLISHED, PageRequest.of(0, 1)
+        ).stream()
+                .findFirst().map(mapper::toDomain);
     }
 }

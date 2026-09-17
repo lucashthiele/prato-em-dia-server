@@ -18,15 +18,17 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers(disabledWithoutDocker = true)
-@SpringBootTest(
-    properties = {
+@SpringBootTest(properties = {
         "security.jwt.secret=01234567890123456789012345678901",
         "spring.docker.compose.enabled=false",
         "spring.jpa.hibernate.ddl-auto=validate"
-    })
+})
 class RelationshipMigrationTest {
     @Container
     @ServiceConnection
@@ -35,21 +37,23 @@ class RelationshipMigrationTest {
     UserAccountRepository accounts;
 
     private static void insertAccount(Connection connection, UUID id, String email, String role)
-        throws SQLException {
+            throws SQLException {
         execute(
-            connection,
-            "insert into user_account(id,email,password_hash,role) values (?,?,?,?::user_role)",
-            id,
-            email,
-            "hash",
-            role);
+                connection,
+                "insert into user_account(id,email,password_hash,role) values (?,?,?,?::user_role)",
+                id,
+                email,
+                "hash",
+                role
+        );
     }
 
     private static void execute(Connection connection, String sql, Object... values)
-        throws SQLException {
+            throws SQLException {
         connection.setAutoCommit(true);
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            for (int i = 0; i < values.length; i++) statement.setObject(i + 1, values[i]);
+            for (int i = 0; i < values.length; i++)
+                statement.setObject(i + 1, values[i]);
             statement.executeUpdate();
         }
     }
@@ -63,78 +67,86 @@ class RelationshipMigrationTest {
         UUID nutritionist2 = UUID.randomUUID();
         UUID patient = UUID.randomUUID();
         UUID first = UUID.randomUUID();
-        try (Connection connection =
-                 DriverManager.getConnection(
-                     POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())) {
+        try (Connection connection = DriverManager.getConnection(
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()
+        )) {
             insertAccount(connection, nutritionistAccount1, "n1@example.com", "NUTRITIONIST");
             insertAccount(connection, nutritionistAccount2, "n2@example.com", "NUTRITIONIST");
             insertAccount(connection, patientAccount, "p@example.com", "PATIENT");
             execute(
-                connection,
-                "insert into nutritionist_profile(id,user_account_id,full_name) values (?,?,?)",
-                nutritionist1,
-                nutritionistAccount1,
-                "N1");
+                    connection,
+                    "insert into nutritionist_profile(id,user_account_id,full_name) values (?,?,?)",
+                    nutritionist1,
+                    nutritionistAccount1,
+                    "N1"
+            );
             execute(
-                connection,
-                "insert into nutritionist_profile(id,user_account_id,full_name) values (?,?,?)",
-                nutritionist2,
-                nutritionistAccount2,
-                "N2");
+                    connection,
+                    "insert into nutritionist_profile(id,user_account_id,full_name) values (?,?,?)",
+                    nutritionist2,
+                    nutritionistAccount2,
+                    "N2"
+            );
             execute(
-                connection,
-                "insert into patient_profile(id,user_account_id,full_name) values (?,?,?)",
-                patient,
-                patientAccount,
-                "Patient");
+                    connection,
+                    "insert into patient_profile(id,user_account_id,full_name) values (?,?,?)",
+                    patient,
+                    patientAccount,
+                    "Patient"
+            );
             execute(
-                connection,
-                "insert into nutritionist_patient_relationship(id,nutritionist_id,patient_id)"
-                    + " values (?,?,?)",
-                first,
-                nutritionist1,
-                patient);
+                    connection,
+                    "insert into nutritionist_patient_relationship(id,nutritionist_id,patient_id)"
+                            + " values (?,?,?)",
+                    first,
+                    nutritionist1,
+                    patient
+            );
             assertThrows(
-                SQLException.class,
-                () ->
-                    execute(
-                        connection,
-                        "insert into"
-                            + " nutritionist_patient_relationship(id,nutritionist_id,patient_id)"
-                            + " values (?,?,?)",
-                        UUID.randomUUID(),
-                        nutritionist2,
-                        patient));
+                    SQLException.class,
+                    () -> execute(
+                            connection,
+                            "insert into"
+                                    + " nutritionist_patient_relationship(id,nutritionist_id,patient_id)"
+                                    + " values (?,?,?)",
+                            UUID.randomUUID(),
+                            nutritionist2,
+                            patient
+                    )
+            );
             execute(
-                connection,
-                "update nutritionist_patient_relationship set"
-                    + " status='ENDED',ended_at=current_timestamp,ended_by_user_account_id=?"
-                    + " where id=?",
-                patientAccount,
-                first);
+                    connection,
+                    "update nutritionist_patient_relationship set"
+                            + " status='ENDED',ended_at=current_timestamp,ended_by_user_account_id=?"
+                            + " where id=?",
+                    patientAccount,
+                    first
+            );
             assertDoesNotThrow(
-                () ->
-                    execute(
-                        connection,
-                        "insert into"
-                            + " nutritionist_patient_relationship(id,nutritionist_id,patient_id)"
-                            + " values (?,?,?)",
-                        UUID.randomUUID(),
-                        nutritionist2,
-                        patient));
+                    () -> execute(
+                            connection,
+                            "insert into"
+                                    + " nutritionist_patient_relationship(id,nutritionist_id,patient_id)"
+                                    + " values (?,?,?)",
+                            UUID.randomUUID(),
+                            nutritionist2,
+                            patient
+                    )
+            );
         }
     }
 
     @Test
     void persistsPasswordChangeFlagAcrossRepeatedCredentialUpdates() {
-        var saved =
-            accounts.save(
+        var saved = accounts.save(
                 new UserAccount(
-                    "flag-" + UUID.randomUUID() + "@example.com",
-                    "hash-1",
-                    UserAccountRole.PATIENT,
-                    UserAccountStatus.ACTIVE,
-                    true));
+                        "flag-" + UUID.randomUUID() + "@example.com",
+                        "hash-1",
+                        UserAccountRole.PATIENT,
+                        UserAccountStatus.ACTIVE,
+                        true
+                )
+        );
         saved.replacePassword("hash-2", true);
         accounts.save(saved);
         var first = accounts.findById(saved.getId()).orElseThrow();

@@ -14,21 +14,23 @@ public class UserAccount {
     private boolean passwordChangeRequired;
 
     public UserAccount(
-        UUID id,
-        String email,
-        String passwordHash,
-        UserAccountRole role,
-        UserAccountStatus status) {
+            UUID id,
+            String email,
+            String passwordHash,
+            UserAccountRole role,
+            UserAccountStatus status
+    ) {
         this(id, email, passwordHash, role, status, false);
     }
 
     public UserAccount(
-        UUID id,
-        String email,
-        String passwordHash,
-        UserAccountRole role,
-        UserAccountStatus status,
-        boolean passwordChangeRequired) {
+            UUID id,
+            String email,
+            String passwordHash,
+            UserAccountRole role,
+            UserAccountStatus status,
+            boolean passwordChangeRequired
+    ) {
         this.id = id;
         this.email = email;
         this.passwordHash = passwordHash;
@@ -38,16 +40,18 @@ public class UserAccount {
     }
 
     public UserAccount(
-        String email, String passwordHash, UserAccountRole role, UserAccountStatus status) {
+            String email, String passwordHash, UserAccountRole role, UserAccountStatus status
+    ) {
         this(null, email, passwordHash, role, status, false);
     }
 
     public UserAccount(
-        String email,
-        String passwordHash,
-        UserAccountRole role,
-        UserAccountStatus status,
-        boolean passwordChangeRequired) {
+            String email,
+            String passwordHash,
+            UserAccountRole role,
+            UserAccountStatus status,
+            boolean passwordChangeRequired
+    ) {
         this(null, email, passwordHash, role, status, passwordChangeRequired);
     }
 

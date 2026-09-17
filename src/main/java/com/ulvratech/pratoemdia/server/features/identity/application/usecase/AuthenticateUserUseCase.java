@@ -35,13 +35,14 @@ public class AuthenticateUserUseCase implements AuthenticateUser {
     private final Clock clock;
 
     public AuthenticateUserUseCase(
-        UserAccountRepository userAccountRepository,
-        RefreshTokenRepository refreshTokenRepository,
-        PasswordHasher passwordHasher,
-        AccessTokenProvider accessTokenProvider,
-        RefreshTokenGenerator refreshTokenGenerator,
-        RefreshTokenHasher refreshTokenHasher,
-        Clock clock) {
+            UserAccountRepository userAccountRepository,
+            RefreshTokenRepository refreshTokenRepository,
+            PasswordHasher passwordHasher,
+            AccessTokenProvider accessTokenProvider,
+            RefreshTokenGenerator refreshTokenGenerator,
+            RefreshTokenHasher refreshTokenHasher,
+            Clock clock
+    ) {
         this.userAccountRepository = userAccountRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordHasher = passwordHasher;
@@ -54,8 +55,7 @@ public class AuthenticateUserUseCase implements AuthenticateUser {
     @Override
     public AuthenticateUserOutput execute(AuthenticateUserInput input) {
         var normalizedEmail = input.email().strip().toLowerCase(Locale.ROOT);
-        var userAccount =
-            userAccountRepository
+        var userAccount = userAccountRepository
                 .findByEmailIgnoreCase(normalizedEmail)
                 .orElseThrow(InvalidCredentialsException::new);
 
@@ -69,20 +69,21 @@ public class AuthenticateUserUseCase implements AuthenticateUser {
         var now = clock.instant();
         var accessToken = accessTokenProvider.generate(userAccount);
         var generatedRefreshToken = refreshTokenGenerator.generate();
-        var refreshToken =
-            RefreshToken.issue(
+        var refreshToken = RefreshToken.issue(
                 UUID.randomUUID(),
                 userAccount.getId(),
                 refreshTokenHasher.hash(generatedRefreshToken.value()),
                 generatedRefreshToken.expiresAt(),
-                now);
+                now
+        );
         refreshTokenRepository.save(refreshToken);
 
         return new AuthenticateUserOutput(
-            accessToken.value(),
-            generatedRefreshToken.value(),
-            "Bearer",
-            Duration.between(now, accessToken.expiresAt()).toSeconds(),
-            userAccount.isPasswordChangeRequired());
+                accessToken.value(),
+                generatedRefreshToken.value(),
+                "Bearer",
+                Duration.between(now, accessToken.expiresAt()).toSeconds(),
+                userAccount.isPasswordChangeRequired()
+        );
     }
 }

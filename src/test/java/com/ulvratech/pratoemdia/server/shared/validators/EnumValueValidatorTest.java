@@ -4,8 +4,10 @@ import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccoun
 import com.ulvratech.pratoemdia.server.shared.annotations.EnumValue;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class EnumValueValidatorTest {
     @Test

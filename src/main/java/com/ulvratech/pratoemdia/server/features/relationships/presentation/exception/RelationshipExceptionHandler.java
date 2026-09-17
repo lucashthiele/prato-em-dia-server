@@ -15,29 +15,31 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.List;
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@RestControllerAdvice(
-    basePackages = "com.ulvratech.pratoemdia.server.features.relationships.presentation")
+@RestControllerAdvice(basePackages = "com.ulvratech.pratoemdia.server.features.relationships.presentation")
 public class RelationshipExceptionHandler {
     @ExceptionHandler(RelationshipNotFoundException.class)
     ResponseEntity<ApiErrorResponse> notFound(RelationshipNotFoundException e) {
         return response(
-            HttpStatus.NOT_FOUND, e.getCode(), "O vínculo solicitado não foi encontrado.");
+                HttpStatus.NOT_FOUND, e.getCode(), "O vínculo solicitado não foi encontrado."
+        );
     }
 
     @ExceptionHandler(RelationshipConflictException.class)
     ResponseEntity<ApiErrorResponse> conflict(RelationshipConflictException e) {
         return response(
-            HttpStatus.CONFLICT,
-            e.getCode(),
-            "O paciente já possui vínculo ativo ou o vínculo não pode ser alterado.");
+                HttpStatus.CONFLICT,
+                e.getCode(),
+                "O paciente já possui vínculo ativo ou o vínculo não pode ser alterado."
+        );
     }
 
     @ExceptionHandler(RelationshipEmailException.class)
     ResponseEntity<ApiErrorResponse> email(RelationshipEmailException e) {
         return response(
-            HttpStatus.SERVICE_UNAVAILABLE,
-            e.getCode(),
-            "Não foi possível enviar o e-mail de acesso.");
+                HttpStatus.SERVICE_UNAVAILABLE,
+                e.getCode(),
+                "Não foi possível enviar o e-mail de acesso."
+        );
     }
 
     private ResponseEntity<ApiErrorResponse> response(HttpStatus s, String c, String m) {

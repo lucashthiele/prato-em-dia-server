@@ -2,7 +2,12 @@ package com.ulvratech.pratoemdia.server.features.importer.infrastructure;
 
 import com.ulvratech.pratoemdia.server.features.catalog.application.dto.SyncImportedFoodsOutput;
 import com.ulvratech.pratoemdia.server.features.catalog.application.port.in.SyncImportedFoods;
-import com.ulvratech.pratoemdia.server.features.importer.application.dto.*;
+import com.ulvratech.pratoemdia.server.features.importer.application.dto.CatalogImportIssue;
+import com.ulvratech.pratoemdia.server.features.importer.application.dto.CatalogImportReport;
+import com.ulvratech.pratoemdia.server.features.importer.application.dto.ImportMongoCatalogInput;
+import com.ulvratech.pratoemdia.server.features.importer.application.dto.MongoCatalogData;
+import com.ulvratech.pratoemdia.server.features.importer.application.dto.MongoFoodRecord;
+import com.ulvratech.pratoemdia.server.features.importer.application.dto.TacoSpreadsheetData;
 import com.ulvratech.pratoemdia.server.features.importer.application.port.in.ImportMongoCatalog;
 import com.ulvratech.pratoemdia.server.features.importer.application.port.in.ImportTacoCatalog;
 import com.ulvratech.pratoemdia.server.features.importer.application.usecase.ImportMongoCatalogUseCase;
@@ -21,18 +26,29 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class ImportRunnersTest {
-    @TempDir Path tempDir;
+    @TempDir
+    Path tempDir;
 
     @Test
     void tacoRunnerRequiresAFile() {
-        var runner = new TacoCatalogImportRunner(new TacoImportProperties(),
-            mock(TacoSpreadsheetReader.class), mock(ImportTacoCatalog.class),
-            mock(ImportRunJpaRepository.class));
+        var runner = new TacoCatalogImportRunner(
+                new TacoImportProperties(),
+                mock(TacoSpreadsheetReader.class), mock(ImportTacoCatalog.class),
+                mock(ImportRunJpaRepository.class)
+        );
 
         assertThrows(IllegalArgumentException.class, () -> runner.run(null));
     }
@@ -134,13 +150,17 @@ class ImportRunnersTest {
         var record = new MongoFoodRecord("id", "name", "brand", "category", List.of());
         var issue = new CatalogImportIssue(1, "invalid");
 
-        var output = useCase.execute(new ImportMongoCatalogInput(
-            new MongoCatalogData(2, "sum", List.of(record), List.of(issue)), false));
+        var output = useCase.execute(
+                new ImportMongoCatalogInput(
+                        new MongoCatalogData(2, "sum", List.of(record), List.of(issue)), false
+                )
+        );
 
         assertTrue(output.aborted());
         assertEquals(1, output.valid());
         var input = org.mockito.ArgumentCaptor.forClass(
-            com.ulvratech.pratoemdia.server.features.catalog.application.dto.SyncImportedFoodsInput.class);
+                com.ulvratech.pratoemdia.server.features.catalog.application.dto.SyncImportedFoodsInput.class
+        );
         verify(catalog).execute(input.capture());
         assertTrue(input.getValue().dryRun());
         assertEquals("TBCA", input.getValue().source());
@@ -164,18 +184,23 @@ class ImportRunnersTest {
     @Test
     void importPropertiesExposeConfiguredValues() {
         var mongo = new MongoImportProperties();
-        mongo.setUri("mongodb://test"); mongo.setDatabase("db"); mongo.setCollection("foods2");
+        mongo.setUri("mongodb://test");
+        mongo.setDatabase("db");
+        mongo.setCollection("foods2");
         assertEquals("mongodb://test", mongo.getUri());
         assertEquals("db", mongo.getDatabase());
         assertEquals("foods2", mongo.getCollection());
         var taco = new TacoImportProperties();
-        taco.setFile(tempDir); taco.setDryRun(false);
+        taco.setFile(tempDir);
+        taco.setDryRun(false);
         assertEquals(tempDir, taco.getFile());
         assertFalse(taco.isDryRun());
     }
 
     private static CatalogImportReport report(boolean aborted) {
-        return new CatalogImportReport(3, 3, 0, 1, 1, 1, aborted ? 1 : 0,
-            false, aborted, List.of());
+        return new CatalogImportReport(
+                3, 3, 0, 1, 1, 1, aborted ? 1 : 0,
+                false, aborted, List.of()
+        );
     }
 }

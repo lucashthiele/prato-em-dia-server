@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.UUID;
 
 public record CreateFoodPortionsInput(
-    UUID foodId,
-    List<CreateFoodPortionInput> portions
-) {
+        UUID foodId,
+        List<CreateFoodPortionInput> portions) {
 }

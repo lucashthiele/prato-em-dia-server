@@ -10,41 +10,48 @@ import java.util.UUID;
 public class PrescriptionReferencesAdapter implements PrescriptionReferences {
     private final JdbcClient jdbc;
 
-    public PrescriptionReferencesAdapter(JdbcClient jdbc) { this.jdbc = jdbc; }
+    public PrescriptionReferencesAdapter(JdbcClient jdbc) {
+        this.jdbc = jdbc;
+    }
 
     @Override
     public Optional<UUID> nutritionistProfileId(UUID accountId) {
         return jdbc.sql("select id from nutritionist_profile where user_account_id=:accountId")
-            .param("accountId", accountId).query(UUID.class).optional();
+                .param("accountId", accountId).query(UUID.class).optional();
     }
 
     @Override
     public Optional<UUID> patientProfileId(UUID accountId) {
         return jdbc.sql("select id from patient_profile where user_account_id=:accountId")
-            .param("accountId", accountId).query(UUID.class).optional();
+                .param("accountId", accountId).query(UUID.class).optional();
     }
 
     @Override
     public boolean hasActiveRelationship(UUID nutritionistId, UUID patientId) {
-        return count("select count(*) from nutritionist_patient_relationship "
-            + "where nutritionist_id=:first and patient_id=:second and status='ACTIVE'",
-            nutritionistId, patientId) > 0;
+        return count(
+                "select count(*) from nutritionist_patient_relationship "
+                        + "where nutritionist_id=:first and patient_id=:second and status='ACTIVE'",
+                nutritionistId, patientId
+        ) > 0;
     }
 
     @Override
     public boolean isActiveFood(UUID foodId) {
         return jdbc.sql("select count(*) from food where id=:id and active=true")
-            .param("id", foodId).query(Integer.class).single() > 0;
+                .param("id", foodId).query(Integer.class).single() > 0;
     }
 
     @Override
     public boolean portionBelongsToFood(UUID portionId, UUID foodId) {
-        return count("select count(*) from food_portion "
-            + "where id=:first and food_id=:second and active=true", portionId, foodId) > 0;
+        return count(
+                "select count(*) from food_portion "
+                        + "where id=:first and food_id=:second and active=true",
+                portionId, foodId
+        ) > 0;
     }
 
     private int count(String sql, UUID first, UUID second) {
         return jdbc.sql(sql).param("first", first).param("second", second)
-            .query(Integer.class).single();
+                .query(Integer.class).single();
     }
 }

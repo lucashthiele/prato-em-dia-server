@@ -11,8 +11,14 @@ import org.junit.jupiter.api.Test;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class UpdateFoodUseCaseTest {
     private FoodRepository repository;
@@ -40,34 +46,34 @@ class UpdateFoodUseCaseTest {
     @Test
     void allowsAdministratorToUpdateAnotherUsersFood() {
         var food = Food.create(
-            "Arroz", null, "g", null, null, UUID.randomUUID(), FoodOrigin.PATIENT
+                "Arroz", null, "g", null, null, UUID.randomUUID(), FoodOrigin.PATIENT
         );
         when(repository.findById(food.getId())).thenReturn(Optional.of(food));
         when(repository.save(food)).thenReturn(food);
 
         assertDoesNotThrow(
-            () -> useCase.execute(input(food, UUID.randomUUID(), true, "Arroz integral"))
+                () -> useCase.execute(input(food, UUID.randomUUID(), true, "Arroz integral"))
         );
     }
 
     @Test
     void rejectsUpdateFromAnotherNonAdminUser() {
         var food = Food.create(
-            "Arroz", null, "g", null, null, UUID.randomUUID(), FoodOrigin.PATIENT
+                "Arroz", null, "g", null, null, UUID.randomUUID(), FoodOrigin.PATIENT
         );
         when(repository.findById(food.getId())).thenReturn(Optional.of(food));
 
         assertThrows(
-            FoodAccessDeniedException.class,
-            () -> useCase.execute(input(food, UUID.randomUUID(), false, "Outro nome"))
+                FoodAccessDeniedException.class,
+                () -> useCase.execute(input(food, UUID.randomUUID(), false, "Outro nome"))
         );
         verify(repository, never()).save(any());
     }
 
     private UpdateFoodInput input(Food food, UUID actor, boolean admin, String name) {
         return new UpdateFoodInput(
-            food.getId(), actor, admin, name, food.getCategory(), food.getDefaultUnit(),
-            food.getNotes(), food.getPreparationMethod(), food.isActive()
+                food.getId(), actor, admin, name, food.getCategory(), food.getDefaultUnit(),
+                food.getNotes(), food.getPreparationMethod(), food.isActive()
         );
     }
 }

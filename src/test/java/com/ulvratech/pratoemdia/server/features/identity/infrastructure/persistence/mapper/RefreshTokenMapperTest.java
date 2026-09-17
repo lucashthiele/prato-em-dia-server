@@ -6,17 +6,20 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class RefreshTokenMapperTest {
     @Test
     void mapsRefreshTokenInBothDirections() {
-        var id = UUID.randomUUID(); var account = UUID.randomUUID(); var replacement = UUID.randomUUID();
+        var id = UUID.randomUUID();
+        var account = UUID.randomUUID();
+        var replacement = UUID.randomUUID();
         var created = Instant.parse("2026-09-11T10:00:00Z");
-        var expires = created.plusSeconds(3600); var revoked = created.plusSeconds(60);
+        var expires = created.plusSeconds(3600);
+        var revoked = created.plusSeconds(60);
         var model = RefreshTokenModel.builder().id(id).userAccountId(account).tokenHash("hash")
-            .createdAt(created).expiresAt(expires).revokedAt(revoked)
-            .replacedByTokenId(replacement).build();
+                .createdAt(created).expiresAt(expires).revokedAt(revoked)
+                .replacedByTokenId(replacement).build();
         var mapper = new RefreshTokenMapper();
 
         var entity = mapper.toEntity(model);

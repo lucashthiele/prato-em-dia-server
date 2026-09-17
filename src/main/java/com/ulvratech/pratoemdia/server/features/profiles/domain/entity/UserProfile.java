@@ -20,17 +20,17 @@ public class UserProfile {
     private LocalDate birthDate;
 
     public UserProfile(
-        UUID id,
-        UUID userAccountId,
-        ProfileType type,
-        String fullName,
-        String phone,
-        String registrationNumber,
-        String bio,
-        LocalDate birthDate,
-        Instant createdAt,
-        Instant updatedAt,
-        long version
+            UUID id,
+            UUID userAccountId,
+            ProfileType type,
+            String fullName,
+            String phone,
+            String registrationNumber,
+            String bio,
+            LocalDate birthDate,
+            Instant createdAt,
+            Instant updatedAt,
+            long version
     ) {
         this.id = id;
         this.userAccountId = userAccountId;
@@ -48,8 +48,8 @@ public class UserProfile {
 
     public static UserProfile create(UUID userAccountId, ProfileType type, String fullName) {
         return new UserProfile(
-            UUID.randomUUID(), userAccountId, type, fullName, null, null, null,
-            null, null, null, 0
+                UUID.randomUUID(), userAccountId, type, fullName, null, null, null,
+                null, null, null, 0
         );
     }
 
@@ -71,7 +71,7 @@ public class UserProfile {
 
     private void validateRoleSpecificFields() {
         if (type == ProfileType.PATIENT
-            && (registrationNumber != null || bio != null)) {
+                && (registrationNumber != null || bio != null)) {
             throw new IllegalArgumentException("Patient profile cannot have professional fields");
         }
         if (type == ProfileType.NUTRITIONIST && birthDate != null) {

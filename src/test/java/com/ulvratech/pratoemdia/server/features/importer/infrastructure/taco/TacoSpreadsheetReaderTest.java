@@ -52,8 +52,8 @@ class TacoSpreadsheetReaderTest {
         assertEquals(NutrientValueStatus.TRACE, data.records().getFirst().nutrients().get("protein").status());
         assertEquals("0", data.records().getFirst().nutrients().get("carbohydrate").amount().toPlainString());
         assertEquals(
-            "-0.0266666666666662",
-            data.records().getFirst().nutrients().get("carbohydrate").rawValue()
+                "-0.0266666666666662",
+                data.records().getFirst().nutrients().get("carbohydrate").rawValue()
         );
         assertEquals(NutrientValueStatus.NOT_APPLICABLE, data.records().getFirst().nutrients().get("sodium").status());
         assertEquals(NutrientValueStatus.NOT_AVAILABLE, data.records().getFirst().nutrients().get("lipids").status());

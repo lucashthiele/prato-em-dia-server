@@ -24,7 +24,10 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class ChangePasswordUseCaseTest {
     @Test
@@ -37,34 +40,36 @@ class ChangePasswordUseCaseTest {
         var tokenHasher = mock(RefreshTokenHasher.class);
         var now = Instant.parse("2026-09-01T12:00:00Z");
         var id = UUID.randomUUID();
-        var account =
-            new UserAccount(
+        var account = new UserAccount(
                 id,
                 "patient@example.com",
                 "old-hash",
                 UserAccountRole.PATIENT,
                 UserAccountStatus.ACTIVE,
-                true);
+                true
+        );
         when(accounts.findById(id)).thenReturn(Optional.of(account));
         when(hasher.matches("TemporaryPassword123", "old-hash")).thenReturn(true);
         when(hasher.hash("PermanentPassword123")).thenReturn("new-hash");
         when(generator.generate())
-            .thenReturn(new GeneratedRefreshToken("refresh", now.plus(Duration.ofDays(30))));
+                .thenReturn(new GeneratedRefreshToken("refresh", now.plus(Duration.ofDays(30))));
         when(tokenHasher.hash("refresh")).thenReturn("refresh-hash");
         when(accessTokens.generate(any()))
-            .thenReturn(new GeneratedAccessToken("access", now.plusSeconds(900)));
-        var output =
-            new ChangePasswordUseCase(
+                .thenReturn(new GeneratedAccessToken("access", now.plusSeconds(900)));
+        var output = new ChangePasswordUseCase(
                 accounts,
                 refreshTokens,
                 hasher,
                 accessTokens,
                 generator,
                 tokenHasher,
-                Clock.fixed(now, ZoneOffset.UTC))
+                Clock.fixed(now, ZoneOffset.UTC)
+        )
                 .execute(
-                    new ChangePasswordInput(
-                        id, "TemporaryPassword123", "PermanentPassword123"));
+                        new ChangePasswordInput(
+                                id, "TemporaryPassword123", "PermanentPassword123"
+                        )
+                );
         assertFalse(output.passwordChangeRequired());
         assertFalse(account.isPasswordChangeRequired());
         assertEquals("new-hash", account.getPasswordHash());

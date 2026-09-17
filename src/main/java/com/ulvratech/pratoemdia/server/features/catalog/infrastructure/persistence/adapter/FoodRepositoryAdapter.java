@@ -43,28 +43,28 @@ public class FoodRepositoryAdapter implements FoodRepository {
     @Override
     public PageResult<Food> findActive(PageRequest request) {
         var pageable = org.springframework.data.domain.PageRequest.of(
-            request.page(), request.size(), Sort.by(Sort.Direction.ASC, "name")
+                request.page(), request.size(), Sort.by(Sort.Direction.ASC, "name")
         );
         var page = repository.findAllByActiveTrue(pageable);
         return new PageResult<>(
-            page.getContent().stream().map(mapper::toDomain).toList(),
-            page.getNumber(), page.getSize(), page.getTotalElements(), page.getTotalPages()
+                page.getContent().stream().map(mapper::toDomain).toList(),
+                page.getNumber(), page.getSize(), page.getTotalElements(), page.getTotalPages()
         );
     }
 
     @Override
     public List<Food> findBySourceAndExternalIds(
-        String source, Collection<String> externalIds
+            String source, Collection<String> externalIds
     ) {
         return repository.findAllBySourceAndSourceExternalIdIn(source, externalIds).stream()
-            .map(mapper::toDomain)
-            .toList();
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override
     public List<Food> saveAll(Collection<Food> foods) {
         return repository.saveAll(foods.stream().map(mapper::toModel).toList()).stream()
-            .map(mapper::toDomain)
-            .toList();
+                .map(mapper::toDomain)
+                .toList();
     }
 }

@@ -18,8 +18,8 @@ public class GetNutritionistPatientUseCase implements GetNutritionistPatient {
 
     public RelationshipOutput execute(RelationshipQueryInput i) {
         return repository
-            .findActiveViewByNutritionistAccountAndPatient(i.accountId(), i.patientId())
-            .map(RelationshipOutput::from)
-            .orElseThrow(RelationshipNotFoundException::new);
+                .findActiveViewByNutritionistAccountAndPatient(i.accountId(), i.patientId())
+                .map(RelationshipOutput::from)
+                .orElseThrow(RelationshipNotFoundException::new);
     }
 }

@@ -19,8 +19,8 @@ public class GetPatientRelationshipUseCase implements GetPatientRelationship {
 
     public RelationshipOutput execute(UUID id) {
         return repository
-            .findActiveViewByPatientAccount(id)
-            .map(RelationshipOutput::from)
-            .orElseThrow(RelationshipNotFoundException::new);
+                .findActiveViewByPatientAccount(id)
+                .map(RelationshipOutput::from)
+                .orElseThrow(RelationshipNotFoundException::new);
     }
 }

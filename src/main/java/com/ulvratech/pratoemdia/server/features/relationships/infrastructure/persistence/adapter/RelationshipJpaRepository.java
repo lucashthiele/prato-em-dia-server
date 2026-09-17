@@ -14,8 +14,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface RelationshipJpaRepository extends JpaRepository<RelationshipModel, UUID> {
-    String VIEW =
-        "select new com.ulvratech.pratoemdia.server.features.relationships.domain.entity."
+    String VIEW = "select new com.ulvratech.pratoemdia.server.features.relationships.domain.entity."
             + "RelationshipView(r.id,p.id,p.userAccountId,p.fullName,pa.email,"
             + "n.id,n.userAccountId,n.fullName,r.status,r.emailDeliveryStatus,r.createdAt) from"
             + " RelationshipModel r, PatientProfileModel p, NutritionistProfileModel n,"
@@ -23,13 +22,15 @@ public interface RelationshipJpaRepository extends JpaRepository<RelationshipMod
             + " p.userAccountId=pa.id ";
 
     Optional<RelationshipModel> findByNutritionistIdAndPatientIdAndStatus(
-        UUID nutritionistId, UUID patientId, RelationshipStatus status);
+            UUID nutritionistId, UUID patientId, RelationshipStatus status
+    );
 
     Optional<RelationshipModel> findByPatientIdAndStatus(UUID patientId, RelationshipStatus status);
 
     @Query(VIEW + "and n.userAccountId=:accountId and p.id=:patientId and r.status='ACTIVE'")
     Optional<RelationshipView> findActiveViewByNutritionist(
-        @Param("accountId") UUID accountId, @Param("patientId") UUID patientId);
+            @Param("accountId") UUID accountId, @Param("patientId") UUID patientId
+    );
 
     @Query(VIEW + "and p.userAccountId=:accountId and r.status='ACTIVE'")
     Optional<RelationshipView> findActiveViewByPatientAccount(@Param("accountId") UUID accountId);
@@ -37,14 +38,13 @@ public interface RelationshipJpaRepository extends JpaRepository<RelationshipMod
     @Query(VIEW + "and r.id=:relationshipId")
     Optional<RelationshipView> findViewById(@Param("relationshipId") UUID relationshipId);
 
-    @Query(
-        value = VIEW + "and n.userAccountId=:accountId and r.status='ACTIVE'",
-        countQuery =
-            "select count(r) from RelationshipModel r, NutritionistProfileModel n where"
-                + " r.nutritionistId=n.id and n.userAccountId=:accountId and"
-                + " r.status='ACTIVE'")
+    @Query(value = VIEW
+            + "and n.userAccountId=:accountId and r.status='ACTIVE'", countQuery = "select count(r) from RelationshipModel r, NutritionistProfileModel n where"
+                    + " r.nutritionistId=n.id and n.userAccountId=:accountId and"
+                    + " r.status='ACTIVE'")
     Page<RelationshipView> findActiveByNutritionistAccount(
-        @Param("accountId") UUID accountId, Pageable pageable);
+            @Param("accountId") UUID accountId, Pageable pageable
+    );
 
     @Query("select n.id from NutritionistProfileModel n where n.userAccountId=:accountId")
     Optional<UUID> findNutritionistProfileIdByAccount(@Param("accountId") UUID accountId);

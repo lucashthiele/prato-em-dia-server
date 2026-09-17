@@ -24,11 +24,12 @@ public class RotateInitialPasswordUseCase implements RotateInitialPassword {
     private final Clock clock;
 
     public RotateInitialPasswordUseCase(
-        UserAccountRepository accounts,
-        RefreshTokenRepository tokens,
-        PasswordHasher hasher,
-        InitialPasswordGenerator generator,
-        Clock clock) {
+            UserAccountRepository accounts,
+            RefreshTokenRepository tokens,
+            PasswordHasher hasher,
+            InitialPasswordGenerator generator,
+            Clock clock
+    ) {
         this.accounts = accounts;
         this.tokens = tokens;
         this.hasher = hasher;
@@ -38,7 +39,8 @@ public class RotateInitialPasswordUseCase implements RotateInitialPassword {
 
     public String execute(UUID id) {
         var account = accounts.findById(id).orElseThrow(InitialPasswordNotAvailableException::new);
-        if (!account.isPasswordChangeRequired()) throw new InitialPasswordNotAvailableException();
+        if (!account.isPasswordChangeRequired())
+            throw new InitialPasswordNotAvailableException();
         var raw = generator.generate();
         account.replacePassword(hasher.hash(raw), true);
         accounts.save(account);

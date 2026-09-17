@@ -30,23 +30,23 @@ public class PasswordController {
     }
 
     @PatchMapping
-    @Operation(
-        summary = "Alterar senha",
-        description = "Substitui a senha atual e emite um novo par de tokens de autenticação."
-    )
+    @Operation(summary = "Alterar senha", description = "Substitui a senha atual e emite um novo par de tokens de autenticação.")
     AuthenticationResponse change(
-        @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ChangePasswordRequest request) {
-        var output =
-            changePassword.execute(
+            @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ChangePasswordRequest request
+    ) {
+        var output = changePassword.execute(
                 new ChangePasswordInput(
-                    UUID.fromString(jwt.getSubject()),
-                    request.currentPassword(),
-                    request.newPassword()));
+                        UUID.fromString(jwt.getSubject()),
+                        request.currentPassword(),
+                        request.newPassword()
+                )
+        );
         return new AuthenticationResponse(
-            output.accessToken(),
-            output.refreshToken(),
-            output.tokenType(),
-            output.expiresIn(),
-            output.passwordChangeRequired());
+                output.accessToken(),
+                output.refreshToken(),
+                output.tokenType(),
+                output.expiresIn(),
+                output.passwordChangeRequired()
+        );
     }
 }

@@ -15,7 +15,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
@@ -28,43 +32,41 @@ public class CurrentProfileController {
     private final UpdateCurrentProfile updateCurrentProfile;
 
     public CurrentProfileController(
-        GetCurrentProfile getCurrentProfile,
-        UpdateCurrentProfile updateCurrentProfile
+            GetCurrentProfile getCurrentProfile,
+            UpdateCurrentProfile updateCurrentProfile
     ) {
         this.getCurrentProfile = getCurrentProfile;
         this.updateCurrentProfile = updateCurrentProfile;
     }
 
     @GetMapping
-    @Operation(
-        summary = "Consultar perfil atual",
-        description = "Retorna os dados do perfil associado ao usuário autenticado."
-    )
+    @Operation(summary = "Consultar perfil atual", description = "Retorna os dados do perfil associado ao usuário autenticado.")
     CurrentProfileResponse get(@AuthenticationPrincipal Jwt jwt) {
-        var output = getCurrentProfile.execute(new GetProfileInput(
-            UUID.fromString(jwt.getSubject()), profileType(jwt)
-        ));
+        var output = getCurrentProfile.execute(
+                new GetProfileInput(
+                        UUID.fromString(jwt.getSubject()), profileType(jwt)
+                )
+        );
         return CurrentProfileResponse.from(output);
     }
 
     @PutMapping
-    @Operation(
-        summary = "Atualizar perfil atual",
-        description = "Atualiza os dados pessoais e profissionais do usuário autenticado."
-    )
+    @Operation(summary = "Atualizar perfil atual", description = "Atualiza os dados pessoais e profissionais do usuário autenticado.")
     CurrentProfileResponse update(
-        @AuthenticationPrincipal Jwt jwt,
-        @Valid @RequestBody UpdateCurrentProfileRequest request
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody UpdateCurrentProfileRequest request
     ) {
-        var output = updateCurrentProfile.execute(new UpdateProfileInput(
-            UUID.fromString(jwt.getSubject()),
-            profileType(jwt),
-            request.fullName(),
-            request.phone(),
-            request.registrationNumber(),
-            request.bio(),
-            request.birthDate()
-        ));
+        var output = updateCurrentProfile.execute(
+                new UpdateProfileInput(
+                        UUID.fromString(jwt.getSubject()),
+                        profileType(jwt),
+                        request.fullName(),
+                        request.phone(),
+                        request.registrationNumber(),
+                        request.bio(),
+                        request.birthDate()
+                )
+        );
         return CurrentProfileResponse.from(output);
     }
 

@@ -17,27 +17,29 @@ import java.util.Set;
 
 @Component
 public class PasswordChangeRequiredFilter extends OncePerRequestFilter {
-    private static final Set<String> ALLOWED =
-        Set.of(
+    private static final Set<String> ALLOWED = Set.of(
             "PATCH /api/v1/me/password",
             "POST /api/v1/auth/logout",
-            "POST /api/v1/auth/refresh");
+            "POST /api/v1/auth/refresh"
+    );
 
     @Override
     protected void doFilterInternal(
-        HttpServletRequest request, HttpServletResponse response, FilterChain chain)
-        throws ServletException, IOException {
+            HttpServletRequest request, HttpServletResponse response, FilterChain chain
+    )
+            throws ServletException, IOException {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication instanceof JwtAuthenticationToken jwt
-            && Boolean.TRUE.equals(jwt.getToken().getClaim("password_change_required"))
-            && !ALLOWED.contains(request.getMethod() + " " + request.getRequestURI())) {
+                && Boolean.TRUE.equals(jwt.getToken().getClaim("password_change_required"))
+                && !ALLOWED.contains(request.getMethod() + " " + request.getRequestURI())) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.setCharacterEncoding(StandardCharsets.UTF_8.name());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.getWriter()
-                .write(
-                    "{\"status\":403,\"code\":\"PASSWORD_CHANGE_REQUIRED\",\"message\":\"Altere"
-                        + " a senha inicial antes de continuar.\",\"errors\":[]}");
+                    .write(
+                            "{\"status\":403,\"code\":\"PASSWORD_CHANGE_REQUIRED\",\"message\":\"Altere"
+                                    + " a senha inicial antes de continuar.\",\"errors\":[]}"
+                    );
             return;
         }
         chain.doFilter(request, response);

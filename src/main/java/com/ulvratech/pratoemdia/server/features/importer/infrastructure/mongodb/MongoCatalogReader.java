@@ -4,7 +4,9 @@ import com.mongodb.client.MongoClients;
 import com.ulvratech.pratoemdia.server.features.catalog.application.dto.ImportedFoodPortionInput;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.NutrientValue;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.enums.NutrientValueStatus;
-import com.ulvratech.pratoemdia.server.features.importer.application.dto.*;
+import com.ulvratech.pratoemdia.server.features.importer.application.dto.CatalogImportIssue;
+import com.ulvratech.pratoemdia.server.features.importer.application.dto.MongoCatalogData;
+import com.ulvratech.pratoemdia.server.features.importer.application.dto.MongoFoodRecord;
 import com.ulvratech.pratoemdia.server.features.importer.infrastructure.config.MongoImportProperties;
 import org.bson.Document;
 import org.bson.types.Decimal128;
@@ -13,7 +15,14 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.HexFormat;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 public class MongoCatalogReader {
     private final MongoImportProperties properties;
@@ -34,7 +43,7 @@ public class MongoCatalogReader {
 
         try (var client = MongoClients.create(properties.getUri())) {
             var collection = client.getDatabase(properties.getDatabase())
-                .getCollection(properties.getCollection());
+                    .getCollection(properties.getCollection());
             for (var document : collection.find().sort(new Document("externalId", 1))) {
                 read++;
                 digest.update(document.toJson().getBytes(StandardCharsets.UTF_8));
@@ -42,7 +51,7 @@ public class MongoCatalogReader {
                     var record = toRecord(document);
                     if (!externalIds.add(record.externalId())) {
                         throw new IllegalArgumentException(
-                            "duplicate externalId " + record.externalId()
+                                "duplicate externalId " + record.externalId()
                         );
                     }
                     records.add(record);
@@ -64,13 +73,15 @@ public class MongoCatalogReader {
             throw new IllegalArgumentException(externalId + ": portions are required");
         }
         var portions = rawPortions.stream()
-            .map(value -> asDocument(value, externalId + ": invalid portion"))
-            .map(portion -> toPortion(externalId, portion))
-            .toList();
-        long distinctPortions = portions.stream().map(portion -> List.of(
-            portion.type(), portion.label(), portion.quantity(),
-            Objects.toString(portion.unit(), "")
-        )).distinct().count();
+                .map(value -> asDocument(value, externalId + ": invalid portion"))
+                .map(portion -> toPortion(externalId, portion))
+                .toList();
+        long distinctPortions = portions.stream().map(
+                portion -> List.of(
+                        portion.type(), portion.label(), portion.quantity(),
+                        Objects.toString(portion.unit(), "")
+                )
+        ).distinct().count();
         if (distinctPortions != portions.size()) {
             throw new IllegalArgumentException(externalId + ": duplicate portion identity");
         }
@@ -79,8 +90,10 @@ public class MongoCatalogReader {
             throw new IllegalArgumentException(externalId + ": exactly one STANDARD portion is required");
         }
         boolean validStandard = portions.stream().filter(portion -> "STANDARD".equals(portion.type()))
-            .allMatch(portion -> portion.quantity().compareTo(new BigDecimal("100")) == 0
-                && "g".equals(portion.unit()));
+                .allMatch(
+                        portion -> portion.quantity().compareTo(new BigDecimal("100")) == 0
+                                && "g".equals(portion.unit())
+                );
         if (!validStandard) {
             throw new IllegalArgumentException(externalId + ": STANDARD portion must be 100 g");
         }
@@ -100,22 +113,24 @@ public class MongoCatalogReader {
         }
         String unit = optionalString(portion, "unit");
         var nutrientDocument = asDocument(
-            portion.get("nutrients"), externalId + "/" + label + ": nutrients are required"
+                portion.get("nutrients"), externalId + "/" + label + ": nutrients are required"
         );
         if (nutrientDocument.isEmpty()) {
             throw new IllegalArgumentException(externalId + "/" + label + ": nutrients are required");
         }
         var nutrients = new LinkedHashMap<String, NutrientValue>();
-        nutrientDocument.forEach((code, value) -> nutrients.put(
-            code, toNutrient(externalId, label, code, asDocument(value, "invalid nutrient " + code))
-        ));
+        nutrientDocument.forEach(
+                (code, value) -> nutrients.put(
+                        code, toNutrient(externalId, label, code, asDocument(value, "invalid nutrient " + code))
+                )
+        );
         return new ImportedFoodPortionInput(
-            type, label, rawLabel, quantity.stripTrailingZeros(), unit, nutrients
+                type, label, rawLabel, quantity.stripTrailingZeros(), unit, nutrients
         );
     }
 
     private NutrientValue toNutrient(
-        String externalId, String label, String code, Document nutrient
+            String externalId, String label, String code, Document nutrient
     ) {
         try {
             var status = NutrientValueStatus.valueOf(requiredString(nutrient, "status"));
@@ -123,20 +138,22 @@ public class MongoCatalogReader {
             if (amount != null && amount.signum() < 0) {
                 throw new IllegalArgumentException("amount must not be negative");
             }
-            if (amount != null) amount = amount.stripTrailingZeros();
+            if (amount != null)
+                amount = amount.stripTrailingZeros();
             return new NutrientValue(
-                amount, requiredString(nutrient, "unit"), status,
-                optionalString(nutrient, "rawValue")
+                    amount, requiredString(nutrient, "unit"), status,
+                    optionalString(nutrient, "rawValue")
             );
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException(
-                externalId + "/" + label + "/" + code + ": " + exception.getMessage(), exception
+                    externalId + "/" + label + "/" + code + ": " + exception.getMessage(), exception
             );
         }
     }
 
     private Document asDocument(Object value, String message) {
-        if (value instanceof Document document) return document;
+        if (value instanceof Document document)
+            return document;
         if (value instanceof Map<?, ?> map) {
             var document = new Document();
             map.forEach((key, item) -> document.put(String.valueOf(key), item));
@@ -147,21 +164,27 @@ public class MongoCatalogReader {
 
     private String requiredString(Document document, String key) {
         String value = optionalString(document, key);
-        if (value == null) throw new IllegalArgumentException(key + " is required");
+        if (value == null)
+            throw new IllegalArgumentException(key + " is required");
         return value;
     }
 
     private String optionalString(Document document, String key) {
         Object value = document.get(key);
-        if (value == null || value.toString().isBlank()) return null;
+        if (value == null || value.toString().isBlank())
+            return null;
         return value.toString().trim();
     }
 
     private BigDecimal decimal(Object value) {
-        if (value == null) return null;
-        if (value instanceof Decimal128 decimal) return decimal.bigDecimalValue();
-        if (value instanceof BigDecimal decimal) return decimal;
-        if (value instanceof Number number) return new BigDecimal(number.toString());
+        if (value == null)
+            return null;
+        if (value instanceof Decimal128 decimal)
+            return decimal.bigDecimalValue();
+        if (value instanceof BigDecimal decimal)
+            return decimal;
+        if (value instanceof Number number)
+            return new BigDecimal(number.toString());
         try {
             return new BigDecimal(value.toString().replace(',', '.'));
         } catch (NumberFormatException exception) {

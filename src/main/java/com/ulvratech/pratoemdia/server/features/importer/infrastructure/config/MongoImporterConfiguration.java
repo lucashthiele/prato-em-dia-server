@@ -28,10 +28,10 @@ public class MongoImporterConfiguration {
 
     @Bean
     ApplicationRunner mongoCatalogImportRunner(
-        MongoImportProperties properties,
-        MongoCatalogReader reader,
-        ImportMongoCatalog importCatalog,
-        ImportRunJpaRepository runs
+            MongoImportProperties properties,
+            MongoCatalogReader reader,
+            ImportMongoCatalog importCatalog,
+            ImportRunJpaRepository runs
     ) {
         return new MongoCatalogImportRunner(properties, reader, importCatalog, runs);
     }

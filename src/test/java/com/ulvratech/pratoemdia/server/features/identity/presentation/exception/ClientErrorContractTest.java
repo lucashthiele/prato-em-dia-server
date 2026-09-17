@@ -1,6 +1,11 @@
 package com.ulvratech.pratoemdia.server.features.identity.presentation.exception;
 
-import com.ulvratech.pratoemdia.server.features.identity.application.exception.*;
+import com.ulvratech.pratoemdia.server.features.identity.application.exception.ExpiredRefreshTokenException;
+import com.ulvratech.pratoemdia.server.features.identity.application.exception.InactiveUserAccountException;
+import com.ulvratech.pratoemdia.server.features.identity.application.exception.InvalidCredentialsException;
+import com.ulvratech.pratoemdia.server.features.identity.application.exception.InvalidRefreshTokenException;
+import com.ulvratech.pratoemdia.server.features.identity.application.exception.PatientAccountConflictException;
+import com.ulvratech.pratoemdia.server.features.identity.application.exception.UserAccountAlreadyExistsException;
 import com.ulvratech.pratoemdia.server.shared.application.exception.CodedApplicationException;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -14,8 +19,11 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class ClientErrorContractTest {
     @Test
@@ -23,7 +31,7 @@ class ClientErrorContractTest {
         var handler = new IdentityExceptionHandler();
 
         var response = handler.handleAuthenticationFailure(
-            new InvalidCredentialsException()
+                new InvalidCredentialsException()
         );
 
         assertEquals(401, response.getStatusCode().value());
@@ -42,8 +50,8 @@ class ClientErrorContractTest {
         assertEquals(500, response.getStatusCode().value());
         assertEquals("INTERNAL_ERROR", response.getBody().code());
         assertEquals(
-            "Não foi possível concluir a operação. Tente novamente mais tarde.",
-            response.getBody().message()
+                "Não foi possível concluir a operação. Tente novamente mais tarde.",
+                response.getBody().message()
         );
         assertTrue(response.getBody().errors().isEmpty());
     }
@@ -53,7 +61,7 @@ class ClientErrorContractTest {
         var handler = new IdentityExceptionHandler();
 
         var response = handler.handleUnexpectedFailure(
-            new IllegalStateException("database password leaked")
+                new IllegalStateException("database password leaked")
         );
 
         assertEquals(500, response.getStatusCode().value());
@@ -65,16 +73,30 @@ class ClientErrorContractTest {
     void mapsIdentityConflictsAndEveryAuthenticationFailure() {
         var handler = new IdentityExceptionHandler();
 
-        assertEquals(409, handler.handleUserAccountAlreadyExists(
-            new UserAccountAlreadyExistsException()).getStatusCode().value());
-        assertEquals(409, handler.handlePatientAccountConflict(
-            new PatientAccountConflictException()).getStatusCode().value());
-        assertEquals("Esta conta está inativa.", handler.handleAuthenticationFailure(
-            new InactiveUserAccountException()).getBody().message());
-        assertEquals("O token de renovação é inválido ou foi revogado.",
-            handler.handleAuthenticationFailure(new InvalidRefreshTokenException()).getBody().message());
-        assertEquals("O token de renovação expirou.", handler.handleAuthenticationFailure(
-            new ExpiredRefreshTokenException()).getBody().message());
+        assertEquals(
+                409, handler.handleUserAccountAlreadyExists(
+                        new UserAccountAlreadyExistsException()
+                ).getStatusCode().value()
+        );
+        assertEquals(
+                409, handler.handlePatientAccountConflict(
+                        new PatientAccountConflictException()
+                ).getStatusCode().value()
+        );
+        assertEquals(
+                "Esta conta está inativa.", handler.handleAuthenticationFailure(
+                        new InactiveUserAccountException()
+                ).getBody().message()
+        );
+        assertEquals(
+                "O token de renovação é inválido ou foi revogado.",
+                handler.handleAuthenticationFailure(new InvalidRefreshTokenException()).getBody().message()
+        );
+        assertEquals(
+                "O token de renovação expirou.", handler.handleAuthenticationFailure(
+                        new ExpiredRefreshTokenException()
+                ).getBody().message()
+        );
     }
 
     @Test
@@ -92,13 +114,16 @@ class ClientErrorContractTest {
     void mapsBeanValidationCodesAndFallbacks() {
         BindingResult result = mock(BindingResult.class);
         var exception = new MethodArgumentNotValidException(mock(MethodParameter.class), result);
-        when(result.getFieldErrors()).thenReturn(List.of(
-            new FieldError("request", "email", null, false, new String[]{"Email"}, null, null),
-            new FieldError("request", "name", null, false, new String[]{"NotBlank"}, null, null),
-            new FieldError("request", "size", null, false, new String[]{"Size"}, null, null),
-            new FieldError("request", "format", null, false, new String[]{"Pattern"}, null, null),
-            new FieldError("request", "other", null, false, new String[]{"Other"}, null, null),
-            new FieldError("request", "unknown", null, false, null, null, null)));
+        when(result.getFieldErrors()).thenReturn(
+                List.of(
+                        new FieldError("request", "email", null, false, new String[] { "Email" }, null, null),
+                        new FieldError("request", "name", null, false, new String[] { "NotBlank" }, null, null),
+                        new FieldError("request", "size", null, false, new String[] { "Size" }, null, null),
+                        new FieldError("request", "format", null, false, new String[] { "Pattern" }, null, null),
+                        new FieldError("request", "other", null, false, new String[] { "Other" }, null, null),
+                        new FieldError("request", "unknown", null, false, null, null, null)
+                )
+        );
 
         var response = new IdentityExceptionHandler().handleValidationFailure(exception);
 
@@ -117,16 +142,18 @@ class ClientErrorContractTest {
         var response = new MockHttpServletResponse();
 
         handler.commence(
-            new MockHttpServletRequest(),
-            response,
-            new BadCredentialsException("ignored")
+                new MockHttpServletRequest(),
+                response,
+                new BadCredentialsException("ignored")
         );
 
         assertEquals(401, response.getStatus());
         assertTrue(response.getContentType().startsWith("application/json"));
-        assertTrue(response.getContentAsString().contains(
-            "\"code\":\"AUTHENTICATION_REQUIRED\""
-        ));
+        assertTrue(
+                response.getContentAsString().contains(
+                        "\"code\":\"AUTHENTICATION_REQUIRED\""
+                )
+        );
         assertTrue(response.getContentAsString().contains("Autenticação necessária"));
     }
 
@@ -136,20 +163,22 @@ class ClientErrorContractTest {
         var response = new MockHttpServletResponse();
 
         handler.handle(
-            new MockHttpServletRequest(),
-            response,
-            new AccessDeniedException("ignored")
+                new MockHttpServletRequest(),
+                response,
+                new AccessDeniedException("ignored")
         );
 
         assertEquals(403, response.getStatus());
-        assertTrue(response.getContentAsString().contains(
-            "\"code\":\"ACCESS_DENIED\""
-        ));
+        assertTrue(
+                response.getContentAsString().contains(
+                        "\"code\":\"ACCESS_DENIED\""
+                )
+        );
         assertTrue(response.getContentAsString().contains("Você não tem permissão"));
     }
 
     private static final class TestApplicationException
-        extends CodedApplicationException {
+            extends CodedApplicationException {
 
         private TestApplicationException() {
             super("TEST_INTERNAL_FAILURE");

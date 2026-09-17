@@ -17,7 +17,7 @@ public class FoodPortionRepositoryAdapter implements FoodPortionRepository {
     private final FoodPortionMapper mapper;
 
     public FoodPortionRepositoryAdapter(
-        FoodPortionJpaRepository repository, FoodPortionMapper mapper
+            FoodPortionJpaRepository repository, FoodPortionMapper mapper
     ) {
         this.repository = repository;
         this.mapper = mapper;
@@ -32,27 +32,29 @@ public class FoodPortionRepositoryAdapter implements FoodPortionRepository {
     @Override
     public List<FoodPortion> findActiveByFoodId(UUID foodId) {
         return repository.findAllByFoodIdAndActiveTrueOrderByLabelAsc(foodId).stream()
-            .map(mapper::toDomain)
-            .toList();
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override
     public List<FoodPortion> findImportedByFoodIds(Collection<UUID> foodIds) {
-        if (foodIds.isEmpty()) return List.of();
+        if (foodIds.isEmpty())
+            return List.of();
         return repository.findAllByFoodIdInAndSourceTypeIsNotNull(List.copyOf(foodIds)).stream()
-            .map(mapper::toDomain)
-            .toList();
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override
     public List<FoodPortion> replaceImportedForFoods(
-        Collection<UUID> foodIds, Collection<FoodPortion> portions
+            Collection<UUID> foodIds, Collection<FoodPortion> portions
     ) {
-        if (foodIds.isEmpty()) return List.of();
+        if (foodIds.isEmpty())
+            return List.of();
         repository.deleteAllByFoodIdInAndSourceTypeIsNotNull(List.copyOf(foodIds));
         repository.flush();
         return repository.saveAll(portions.stream().map(mapper::toModel).toList()).stream()
-            .map(mapper::toDomain)
-            .toList();
+                .map(mapper::toDomain)
+                .toList();
     }
 }

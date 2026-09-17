@@ -27,11 +27,13 @@ public class CreateFoodPortionUseCase implements CreateFoodPortion {
     public List<FoodPortionOutput> execute(CreateFoodPortionsInput input) {
         foods.findActiveById(input.foodId()).orElseThrow(FoodNotFoundException::new);
         var newPortions = input.portions().stream()
-            .map(portion -> FoodPortion.create(
-                input.foodId(), portion.label(), portion.quantity(), portion.unit(),
-                portion.gramsEquivalent()
-            ))
-            .toList();
+                .map(
+                        portion -> FoodPortion.create(
+                                input.foodId(), portion.label(), portion.quantity(), portion.unit(),
+                                portion.gramsEquivalent()
+                        )
+                )
+                .toList();
         return portions.saveAll(newPortions).stream().map(FoodPortionOutput::from).toList();
     }
 }

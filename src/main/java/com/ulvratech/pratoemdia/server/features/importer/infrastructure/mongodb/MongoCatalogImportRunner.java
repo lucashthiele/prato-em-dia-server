@@ -23,10 +23,10 @@ public class MongoCatalogImportRunner implements ApplicationRunner {
     private final ImportRunJpaRepository runs;
 
     public MongoCatalogImportRunner(
-        MongoImportProperties properties,
-        MongoCatalogReader reader,
-        ImportMongoCatalog importCatalog,
-        ImportRunJpaRepository runs
+            MongoImportProperties properties,
+            MongoCatalogReader reader,
+            ImportMongoCatalog importCatalog,
+            ImportRunJpaRepository runs
     ) {
         this.properties = properties;
         this.reader = reader;
@@ -39,26 +39,28 @@ public class MongoCatalogImportRunner implements ApplicationRunner {
         var startedAt = Instant.now();
         var data = reader.read();
         var report = importCatalog.execute(
-            new ImportMongoCatalogInput(data, properties.isDryRun())
+                new ImportMongoCatalogInput(data, properties.isDryRun())
         );
 
         if (!properties.isDryRun()) {
-            runs.save(ImportRunModel.builder()
-                .id(UUID.randomUUID())
-                .source(ImportMongoCatalogUseCase.SOURCE)
-                .sourceVersion(ImportMongoCatalogUseCase.SOURCE_VERSION)
-                .sourceLocation(properties.getDatabase() + "." + properties.getCollection())
-                .sourceChecksum(data.checksum())
-                .dryRun(false)
-                .startedAt(startedAt)
-                .finishedAt(Instant.now())
-                .status(report.aborted() ? "FAILED" : "COMPLETED")
-                .rowsRead(report.rowsRead())
-                .rowsInserted(report.aborted() ? 0 : report.inserted())
-                .rowsUpdated(report.aborted() ? 0 : report.updated())
-                .rowsSkipped(report.aborted() ? 0 : report.skipped())
-                .rowsFailed(report.failed())
-                .build());
+            runs.save(
+                    ImportRunModel.builder()
+                            .id(UUID.randomUUID())
+                            .source(ImportMongoCatalogUseCase.SOURCE)
+                            .sourceVersion(ImportMongoCatalogUseCase.SOURCE_VERSION)
+                            .sourceLocation(properties.getDatabase() + "." + properties.getCollection())
+                            .sourceChecksum(data.checksum())
+                            .dryRun(false)
+                            .startedAt(startedAt)
+                            .finishedAt(Instant.now())
+                            .status(report.aborted() ? "FAILED" : "COMPLETED")
+                            .rowsRead(report.rowsRead())
+                            .rowsInserted(report.aborted() ? 0 : report.inserted())
+                            .rowsUpdated(report.aborted() ? 0 : report.updated())
+                            .rowsSkipped(report.aborted() ? 0 : report.skipped())
+                            .rowsFailed(report.failed())
+                            .build()
+            );
         }
         LOGGER.info("{}", report.formatted());
     }

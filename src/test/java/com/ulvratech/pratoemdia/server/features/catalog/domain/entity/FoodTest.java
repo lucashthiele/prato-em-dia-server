@@ -5,7 +5,11 @@ import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FoodTest {
     @Test
@@ -13,8 +17,8 @@ class FoodTest {
         UUID author = UUID.randomUUID();
 
         var food = Food.create(
-            " Arroz integral ", " Cereais ", " g ", " Sem sal ",
-            " Cozinhar em água ", author, FoodOrigin.NUTRITIONIST
+                " Arroz integral ", " Cereais ", " g ", " Sem sal ",
+                " Cozinhar em água ", author, FoodOrigin.NUTRITIONIST
         );
 
         assertEquals("Arroz integral", food.getName());
@@ -32,20 +36,20 @@ class FoodTest {
         UUID author = UUID.randomUUID();
 
         assertThrows(
-            IllegalArgumentException.class,
-            () -> Food.create(" ", null, "g", null, null, author, FoodOrigin.PATIENT)
+                IllegalArgumentException.class,
+                () -> Food.create(" ", null, "g", null, null, author, FoodOrigin.PATIENT)
         );
         assertThrows(
-            IllegalArgumentException.class,
-            () -> Food.create("Arroz", null, " ", null, null, author, FoodOrigin.PATIENT)
+                IllegalArgumentException.class,
+                () -> Food.create("Arroz", null, " ", null, null, author, FoodOrigin.PATIENT)
         );
     }
 
     @Test
     void fullyReplacesFoodFieldsOnUpdate() {
         var food = Food.create(
-            "Arroz", "Cereais", "g", "Sem sal", "Cozinhar", UUID.randomUUID(),
-            FoodOrigin.ADMIN
+                "Arroz", "Cereais", "g", "Sem sal", "Cozinhar", UUID.randomUUID(),
+                FoodOrigin.ADMIN
         );
 
         food.update("Arroz integral", null, "kg", null, null, false);

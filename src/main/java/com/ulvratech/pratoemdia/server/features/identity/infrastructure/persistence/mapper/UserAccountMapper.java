@@ -14,22 +14,23 @@ public class UserAccountMapper {
 
     public UserAccount toEntity(UserAccountModel userAccountModel) {
         return new UserAccount(
-            userAccountModel.getId(),
-            userAccountModel.getEmail(),
-            userAccountModel.getPasswordHash(),
-            UserAccountRole.valueOf(userAccountModel.getRole().name()),
-            UserAccountStatus.valueOf(userAccountModel.getStatus().name()),
-            userAccountModel.isPasswordChangeRequired());
+                userAccountModel.getId(),
+                userAccountModel.getEmail(),
+                userAccountModel.getPasswordHash(),
+                UserAccountRole.valueOf(userAccountModel.getRole().name()),
+                UserAccountStatus.valueOf(userAccountModel.getStatus().name()),
+                userAccountModel.isPasswordChangeRequired()
+        );
     }
 
     public UserAccountModel toModel(UserAccount userAccount) {
         return UserAccountModel.builder()
-            .id(userAccount.getId())
-            .email(userAccount.getEmail())
-            .passwordHash(userAccount.getPasswordHash())
-            .passwordChangeRequired(userAccount.isPasswordChangeRequired())
-            .role(UserAccountModelRole.valueOf(userAccount.getRole().name()))
-            .status(UserAccountModelStatus.valueOf(userAccount.getStatus().name()))
-            .build();
+                .id(userAccount.getId())
+                .email(userAccount.getEmail())
+                .passwordHash(userAccount.getPasswordHash())
+                .passwordChangeRequired(userAccount.isPasswordChangeRequired())
+                .role(UserAccountModelRole.valueOf(userAccount.getRole().name()))
+                .status(UserAccountModelStatus.valueOf(userAccount.getStatus().name()))
+                .build();
     }
 }

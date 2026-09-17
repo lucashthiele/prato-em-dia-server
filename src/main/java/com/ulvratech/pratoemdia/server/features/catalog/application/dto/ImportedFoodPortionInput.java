@@ -6,13 +6,12 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 public record ImportedFoodPortionInput(
-    String type,
-    String label,
-    String rawLabel,
-    BigDecimal quantity,
-    String unit,
-    Map<String, NutrientValue> nutrients
-) {
+        String type,
+        String label,
+        String rawLabel,
+        BigDecimal quantity,
+        String unit,
+        Map<String, NutrientValue> nutrients) {
     public ImportedFoodPortionInput {
         nutrients = nutrients == null ? Map.of() : Map.copyOf(nutrients);
     }

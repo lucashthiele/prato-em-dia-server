@@ -31,27 +31,24 @@ public class UserAccountController {
     }
 
     @PostMapping
-    @Operation(
-        summary = "Criar conta de usuário",
-        description = "Cadastra uma nova conta com e-mail, senha, papel e dados básicos."
-    )
+    @Operation(summary = "Criar conta de usuário", description = "Cadastra uma nova conta com e-mail, senha, papel e dados básicos.")
     ResponseEntity<CreateUserAccountResponse> create(
-        @Valid @RequestBody CreateUserAccountRequest request
+            @Valid @RequestBody CreateUserAccountRequest request
     ) {
         var commandInput = new CreateUserAccountInput(
-            request.email(),
-            request.password(),
-            UserAccountRole.valueOf(request.role()),
-            request.fullName()
+                request.email(),
+                request.password(),
+                UserAccountRole.valueOf(request.role()),
+                request.fullName()
         );
 
         var output = createUserAccountCommand.execute(commandInput);
 
         var response = new CreateUserAccountResponse(
-            output.id(),
-            output.email(),
-            output.role().name(),
-            output.status().name()
+                output.id(),
+                output.email(),
+                output.role().name(),
+                output.status().name()
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

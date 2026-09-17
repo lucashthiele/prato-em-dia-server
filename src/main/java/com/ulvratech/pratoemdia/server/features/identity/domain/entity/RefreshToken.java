@@ -13,13 +13,13 @@ public class RefreshToken {
     private UUID replacedByTokenId;
 
     public RefreshToken(
-        UUID id,
-        UUID userAccountId,
-        String tokenHash,
-        Instant expiresAt,
-        Instant createdAt,
-        Instant revokedAt,
-        UUID replacedByTokenId
+            UUID id,
+            UUID userAccountId,
+            String tokenHash,
+            Instant expiresAt,
+            Instant createdAt,
+            Instant revokedAt,
+            UUID replacedByTokenId
     ) {
         this.id = id;
         this.userAccountId = userAccountId;
@@ -31,20 +31,20 @@ public class RefreshToken {
     }
 
     public static RefreshToken issue(
-        UUID id,
-        UUID userAccountId,
-        String tokenHash,
-        Instant expiresAt,
-        Instant createdAt
+            UUID id,
+            UUID userAccountId,
+            String tokenHash,
+            Instant expiresAt,
+            Instant createdAt
     ) {
         return new RefreshToken(
-            id,
-            userAccountId,
-            tokenHash,
-            expiresAt,
-            createdAt,
-            null,
-            null
+                id,
+                userAccountId,
+                tokenHash,
+                expiresAt,
+                createdAt,
+                null,
+                null
         );
     }
 

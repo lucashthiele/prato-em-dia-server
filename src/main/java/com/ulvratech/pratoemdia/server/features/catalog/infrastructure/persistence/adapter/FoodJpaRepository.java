@@ -15,9 +15,10 @@ public interface FoodJpaRepository extends JpaRepository<FoodModel, UUID> {
     Optional<FoodModel> findById(UUID id);
 
     Optional<FoodModel> findByIdAndActiveTrue(UUID id);
+
     Page<FoodModel> findAllByActiveTrue(Pageable pageable);
 
     List<FoodModel> findAllBySourceAndSourceExternalIdIn(
-        String source, Collection<String> externalIds
+            String source, Collection<String> externalIds
     );
 }
