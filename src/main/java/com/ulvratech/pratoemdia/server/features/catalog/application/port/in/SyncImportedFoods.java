@@ -4,5 +4,5 @@ import com.ulvratech.pratoemdia.server.features.catalog.application.dto.SyncImpo
 import com.ulvratech.pratoemdia.server.features.catalog.application.dto.SyncImportedFoodsOutput;
 
 public interface SyncImportedFoods {
-    SyncImportedFoodsOutput execute(SyncImportedFoodsInput input);
+  SyncImportedFoodsOutput execute(SyncImportedFoodsInput input);
 }

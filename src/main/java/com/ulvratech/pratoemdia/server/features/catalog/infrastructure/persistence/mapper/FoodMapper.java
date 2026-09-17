@@ -6,8 +6,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class FoodMapper {
-    public FoodModel toModel(Food food) {
-        var model = FoodModel.builder()
+  public FoodModel toModel(Food food) {
+    var model =
+        FoodModel.builder()
             .id(food.getId())
             .name(food.getName())
             .brand(food.getBrand())
@@ -27,17 +28,28 @@ public class FoodMapper {
             .updatedAt(food.getUpdatedAt())
             .version(food.getVersion())
             .build();
-        return model;
-    }
+    return model;
+  }
 
-    public Food toDomain(FoodModel food) {
-        return new Food(
-            food.getId(), food.getName(), food.getCategory(), food.getDefaultUnit(),
-            food.getNotes(), food.getPreparationMethod(), food.isActive(),
-            food.getCreatedByUserId(), food.getOrigin(), food.getCreatedAt(), food.getUpdatedAt(),
-            food.getVersion(), food.getSource(), food.getSourceExternalId(),
-            food.getSourceDescription(), food.getSourceVersion(), food.getNormalizedName(),
-            food.getBrand()
-        );
-    }
+  public Food toDomain(FoodModel food) {
+    return new Food(
+        food.getId(),
+        food.getName(),
+        food.getCategory(),
+        food.getDefaultUnit(),
+        food.getNotes(),
+        food.getPreparationMethod(),
+        food.isActive(),
+        food.getCreatedByUserId(),
+        food.getOrigin(),
+        food.getCreatedAt(),
+        food.getUpdatedAt(),
+        food.getVersion(),
+        food.getSource(),
+        food.getSourceExternalId(),
+        food.getSourceDescription(),
+        food.getSourceVersion(),
+        food.getNormalizedName(),
+        food.getBrand());
+  }
 }

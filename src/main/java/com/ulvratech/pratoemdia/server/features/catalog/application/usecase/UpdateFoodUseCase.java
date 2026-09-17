@@ -7,28 +7,31 @@ import com.ulvratech.pratoemdia.server.features.catalog.application.exception.Fo
 import com.ulvratech.pratoemdia.server.features.catalog.application.port.in.UpdateFood;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.port.out.FoodRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.stereotype.Service;
 import java.util.Objects;
+import org.springframework.stereotype.Service;
 
 @Service
 @Transactional
 public class UpdateFoodUseCase implements UpdateFood {
-    private final FoodRepository repository;
+  private final FoodRepository repository;
 
-    public UpdateFoodUseCase(FoodRepository repository) {
-        this.repository = repository;
-    }
+  public UpdateFoodUseCase(FoodRepository repository) {
+    this.repository = repository;
+  }
 
-    @Override
-    public FoodOutput execute(UpdateFoodInput input) {
-        var food = repository.findById(input.foodId()).orElseThrow(FoodNotFoundException::new);
-        if (!input.admin() && !Objects.equals(food.getCreatedByUserId(), input.actorUserId())) {
-            throw new FoodAccessDeniedException();
-        }
-        food.update(
-            input.name(), input.category(), input.defaultUnit(), input.notes(),
-            input.preparationMethod(), input.active()
-        );
-        return FoodOutput.from(repository.save(food));
+  @Override
+  public FoodOutput execute(UpdateFoodInput input) {
+    var food = repository.findById(input.foodId()).orElseThrow(FoodNotFoundException::new);
+    if (!input.admin() && !Objects.equals(food.getCreatedByUserId(), input.actorUserId())) {
+      throw new FoodAccessDeniedException();
     }
+    food.update(
+        input.name(),
+        input.category(),
+        input.defaultUnit(),
+        input.notes(),
+        input.preparationMethod(),
+        input.active());
+    return FoodOutput.from(repository.save(food));
+  }
 }

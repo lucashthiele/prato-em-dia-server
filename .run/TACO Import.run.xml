@@ -1,17 +1,18 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="TACO Import" type="ShConfigurationType">
-    <option name="SCRIPT_TEXT" value="set -e&#10;set -a&#10;source &quot;$PWD/local.env&quot;&#10;set +a&#10;exec ./mvnw spring-boot:run -Dspring-boot.run.profiles=local,catalog-import '-Dspring-boot.run.arguments=--catalog.import.file=../Taco_4a_edicao_2011.xls --catalog.import.dry-run=false'" />
-    <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
-    <option name="SCRIPT_PATH" value="" />
-    <option name="SCRIPT_OPTIONS" value="" />
-    <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
-    <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-    <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
-    <option name="INTERPRETER_PATH" value="/bin/zsh" />
-    <option name="INTERPRETER_OPTIONS" value="" />
-    <option name="EXECUTE_IN_TERMINAL" value="false" />
-    <option name="EXECUTE_SCRIPT_FILE" value="false" />
-    <envs />
-    <method v="2" />
-  </configuration>
+    <configuration default="false" name="TACO Import" type="ShConfigurationType">
+        <option name="SCRIPT_TEXT"
+                value="set -e&#10;set -a&#10;source &quot;$PWD/local.env&quot;&#10;set +a&#10;exec ./mvnw spring-boot:run -Dspring-boot.run.profiles=local,catalog-import '-Dspring-boot.run.arguments=--catalog.import.file=../Taco_4a_edicao_2011.xls --catalog.import.dry-run=false'"/>
+        <option name="INDEPENDENT_SCRIPT_PATH" value="true"/>
+        <option name="SCRIPT_PATH" value=""/>
+        <option name="SCRIPT_OPTIONS" value=""/>
+        <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true"/>
+        <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$"/>
+        <option name="INDEPENDENT_INTERPRETER_PATH" value="true"/>
+        <option name="INTERPRETER_PATH" value="/bin/zsh"/>
+        <option name="INTERPRETER_OPTIONS" value=""/>
+        <option name="EXECUTE_IN_TERMINAL" value="false"/>
+        <option name="EXECUTE_SCRIPT_FILE" value="false"/>
+        <envs/>
+        <method v="2"/>
+    </configuration>
 </component>

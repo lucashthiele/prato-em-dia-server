@@ -24,36 +24,31 @@ import org.springframework.web.bind.annotation.RestController;
 @SecurityRequirement(name = OpenApiConfiguration.BEARER_AUTH)
 @Tag(name = "Contas de usuário", description = "Criação e gerenciamento de contas de acesso.")
 public class UserAccountController {
-    private final CreateUserAccount createUserAccountCommand;
+  private final CreateUserAccount createUserAccountCommand;
 
-    public UserAccountController(CreateUserAccount createUserAccountCommand) {
-        this.createUserAccountCommand = createUserAccountCommand;
-    }
+  public UserAccountController(CreateUserAccount createUserAccountCommand) {
+    this.createUserAccountCommand = createUserAccountCommand;
+  }
 
-    @PostMapping
-    @Operation(
-        summary = "Criar conta de usuário",
-        description = "Cadastra uma nova conta com e-mail, senha, papel e dados básicos."
-    )
-    ResponseEntity<CreateUserAccountResponse> create(
-        @Valid @RequestBody CreateUserAccountRequest request
-    ) {
-        var commandInput = new CreateUserAccountInput(
+  @PostMapping
+  @Operation(
+      summary = "Criar conta de usuário",
+      description = "Cadastra uma nova conta com e-mail, senha, papel e dados básicos.")
+  ResponseEntity<CreateUserAccountResponse> create(
+      @Valid @RequestBody CreateUserAccountRequest request) {
+    var commandInput =
+        new CreateUserAccountInput(
             request.email(),
             request.password(),
             UserAccountRole.valueOf(request.role()),
-            request.fullName()
-        );
+            request.fullName());
 
-        var output = createUserAccountCommand.execute(commandInput);
+    var output = createUserAccountCommand.execute(commandInput);
 
-        var response = new CreateUserAccountResponse(
-            output.id(),
-            output.email(),
-            output.role().name(),
-            output.status().name()
-        );
+    var response =
+        new CreateUserAccountResponse(
+            output.id(), output.email(), output.role().name(), output.status().name());
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
+    return ResponseEntity.status(HttpStatus.CREATED).body(response);
+  }
 }

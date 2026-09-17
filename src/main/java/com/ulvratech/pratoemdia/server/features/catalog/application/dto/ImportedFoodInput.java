@@ -7,9 +7,8 @@ public record ImportedFoodInput(
     String description,
     String category,
     String brand,
-    List<ImportedFoodPortionInput> portions
-) {
-    public ImportedFoodInput {
-        portions = portions == null ? List.of() : List.copyOf(portions);
-    }
+    List<ImportedFoodPortionInput> portions) {
+  public ImportedFoodInput {
+    portions = portions == null ? List.of() : List.copyOf(portions);
+  }
 }

@@ -6,10 +6,9 @@ public record MongoCatalogData(
     int documentsRead,
     String checksum,
     List<MongoFoodRecord> records,
-    List<CatalogImportIssue> issues
-) {
-    public MongoCatalogData {
-        records = List.copyOf(records);
-        issues = List.copyOf(issues);
-    }
+    List<CatalogImportIssue> issues) {
+  public MongoCatalogData {
+    records = List.copyOf(records);
+    issues = List.copyOf(issues);
+  }
 }

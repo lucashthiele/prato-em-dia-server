@@ -7,5 +7,4 @@ public record ProvisionPatientAccountOutput(
     String email,
     boolean created,
     boolean passwordChangeRequired,
-    String initialPassword) {
-}
+    String initialPassword) {}

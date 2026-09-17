@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -22,68 +23,63 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/v1/auth")
 @Tag(name = "Autenticação", description = "Login, renovação e encerramento de sessões.")
 public class AuthenticationController {
-    private final AuthenticateUser authenticateUser;
-    private final RefreshAccessToken refreshAccessToken;
-    private final LogoutUser logoutUser;
+  private final AuthenticateUser authenticateUser;
+  private final RefreshAccessToken refreshAccessToken;
+  private final LogoutUser logoutUser;
 
-    public AuthenticationController(
-        AuthenticateUser authenticateUser,
-        RefreshAccessToken refreshAccessToken,
-        LogoutUser logoutUser) {
-        this.authenticateUser = authenticateUser;
-        this.refreshAccessToken = refreshAccessToken;
-        this.logoutUser = logoutUser;
-    }
+  public AuthenticationController(
+      AuthenticateUser authenticateUser,
+      RefreshAccessToken refreshAccessToken,
+      LogoutUser logoutUser) {
+    this.authenticateUser = authenticateUser;
+    this.refreshAccessToken = refreshAccessToken;
+    this.logoutUser = logoutUser;
+  }
 
-    @PostMapping("/login")
-    @Operation(
-        summary = "Autenticar usuário",
-        description = "Valida e-mail e senha e retorna os tokens de acesso e renovação."
-    )
-    public ResponseEntity<AuthenticationResponse> login(@Valid @RequestBody LoginRequest request) {
-        var output =
-            authenticateUser.execute(new AuthenticateUserInput(request.email(), request.password()));
-        return ResponseEntity.ok(
-            new AuthenticationResponse(
-                output.accessToken(),
-                output.refreshToken(),
-                output.tokenType(),
-                output.expiresIn(),
-                output.passwordChangeRequired()));
-    }
+  @PostMapping("/login")
+  @Operation(
+      summary = "Autenticar usuário",
+      description = "Valida e-mail e senha e retorna os tokens de acesso e renovação.")
+  public ResponseEntity<AuthenticationResponse> login(@Valid @RequestBody LoginRequest request) {
+    var output =
+        authenticateUser.execute(new AuthenticateUserInput(request.email(), request.password()));
+    return ResponseEntity.ok(
+        new AuthenticationResponse(
+            output.accessToken(),
+            output.refreshToken(),
+            output.tokenType(),
+            output.expiresIn(),
+            output.passwordChangeRequired()));
+  }
 
-    @PostMapping("/refresh")
-    @Operation(
-        summary = "Renovar token de acesso",
-        description = "Emite um novo par de tokens a partir de um refresh token válido."
-    )
-    public ResponseEntity<AuthenticationResponse> refresh(
-        @Valid @RequestBody RefreshTokenRequest request) {
-        var output = refreshAccessToken.execute(new RefreshAccessTokenInput(request.refreshToken()));
-        return ResponseEntity.ok(
-            new AuthenticationResponse(
-                output.accessToken(),
-                output.refreshToken(),
-                output.tokenType(),
-                output.expiresIn(),
-                output.passwordChangeRequired()));
-    }
+  @PostMapping("/refresh")
+  @Operation(
+      summary = "Renovar token de acesso",
+      description = "Emite um novo par de tokens a partir de um refresh token válido.")
+  public ResponseEntity<AuthenticationResponse> refresh(
+      @Valid @RequestBody RefreshTokenRequest request) {
+    var output = refreshAccessToken.execute(new RefreshAccessTokenInput(request.refreshToken()));
+    return ResponseEntity.ok(
+        new AuthenticationResponse(
+            output.accessToken(),
+            output.refreshToken(),
+            output.tokenType(),
+            output.expiresIn(),
+            output.passwordChangeRequired()));
+  }
 
-    @PostMapping("/logout")
-    @Operation(
-        summary = "Encerrar sessão",
-        description = "Revoga o refresh token informado para encerrar a sessão atual."
-    )
-    @SecurityRequirement(name = OpenApiConfiguration.BEARER_AUTH)
-    public ResponseEntity<Void> logout(
-        @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody RefreshTokenRequest request) {
-        logoutUser.execute(new LogoutInput(UUID.fromString(jwt.getSubject()), request.refreshToken()));
-        return ResponseEntity.noContent().build();
-    }
+  @PostMapping("/logout")
+  @Operation(
+      summary = "Encerrar sessão",
+      description = "Revoga o refresh token informado para encerrar a sessão atual.")
+  @SecurityRequirement(name = OpenApiConfiguration.BEARER_AUTH)
+  public ResponseEntity<Void> logout(
+      @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody RefreshTokenRequest request) {
+    logoutUser.execute(new LogoutInput(UUID.fromString(jwt.getSubject()), request.refreshToken()));
+    return ResponseEntity.noContent().build();
+  }
 }

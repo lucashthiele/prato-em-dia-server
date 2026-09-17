@@ -4,5 +4,4 @@ import com.ulvratech.pratoemdia.server.features.identity.application.dto.Authent
 import com.ulvratech.pratoemdia.server.features.identity.application.dto.AuthenticateUserOutput;
 import com.ulvratech.pratoemdia.server.shared.application.usecase.UseCase;
 
-public interface AuthenticateUser extends UseCase<AuthenticateUserInput, AuthenticateUserOutput> {
-}
+public interface AuthenticateUser extends UseCase<AuthenticateUserInput, AuthenticateUserOutput> {}

@@ -5,5 +5,4 @@ public record AuthenticateUserOutput(
     String refreshToken,
     String tokenType,
     long expiresIn,
-    boolean passwordChangeRequired) {
-}
+    boolean passwordChangeRequired) {}

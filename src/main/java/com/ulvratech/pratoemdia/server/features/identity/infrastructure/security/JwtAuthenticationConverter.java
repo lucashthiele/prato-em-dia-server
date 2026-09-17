@@ -6,19 +6,23 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 
 public class JwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
-    private final org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter delegate;
+  private final org.springframework.security.oauth2.server.resource.authentication
+          .JwtAuthenticationConverter
+      delegate;
 
-    public JwtAuthenticationConverter() {
-        var authoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        authoritiesConverter.setAuthoritiesClaimName("role");
-        authoritiesConverter.setAuthorityPrefix("ROLE_");
+  public JwtAuthenticationConverter() {
+    var authoritiesConverter = new JwtGrantedAuthoritiesConverter();
+    authoritiesConverter.setAuthoritiesClaimName("role");
+    authoritiesConverter.setAuthorityPrefix("ROLE_");
 
-        delegate = new org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter();
-        delegate.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
-    }
+    delegate =
+        new org.springframework.security.oauth2.server.resource.authentication
+            .JwtAuthenticationConverter();
+    delegate.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
+  }
 
-    @Override
-    public AbstractAuthenticationToken convert(Jwt jwt) {
-        return delegate.convert(jwt);
-    }
+  @Override
+  public AbstractAuthenticationToken convert(Jwt jwt) {
+    return delegate.convert(jwt);
+  }
 }

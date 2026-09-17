@@ -4,5 +4,4 @@ import com.ulvratech.pratoemdia.server.features.catalog.application.dto.CreateFo
 import com.ulvratech.pratoemdia.server.features.catalog.application.dto.FoodOutput;
 import com.ulvratech.pratoemdia.server.shared.application.usecase.UseCase;
 
-public interface CreateFood extends UseCase<CreateFoodInput, FoodOutput> {
-}
+public interface CreateFood extends UseCase<CreateFoodInput, FoodOutput> {}

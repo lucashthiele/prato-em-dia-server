@@ -10,18 +10,17 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class GetFoodUseCase implements GetFood {
-    private final FoodRepository repository;
-    private final FoodPortionRepository portions;
+  private final FoodRepository repository;
+  private final FoodPortionRepository portions;
 
-    public GetFoodUseCase(FoodRepository repository, FoodPortionRepository portions) {
-        this.repository = repository;
-        this.portions = portions;
-    }
+  public GetFoodUseCase(FoodRepository repository, FoodPortionRepository portions) {
+    this.repository = repository;
+    this.portions = portions;
+  }
 
-    @Override
-    public FoodDetailsOutput execute(FoodQueryInput input) {
-        var food = repository.findActiveById(input.foodId())
-            .orElseThrow(FoodNotFoundException::new);
-        return FoodDetailsOutput.from(food, portions.findActiveByFoodId(food.getId()));
-    }
+  @Override
+  public FoodDetailsOutput execute(FoodQueryInput input) {
+    var food = repository.findActiveById(input.foodId()).orElseThrow(FoodNotFoundException::new);
+    return FoodDetailsOutput.from(food, portions.findActiveByFoodId(food.getId()));
+  }
 }

@@ -5,5 +5,4 @@ import com.ulvratech.pratoemdia.server.features.identity.application.dto.Provisi
 import com.ulvratech.pratoemdia.server.shared.application.usecase.UseCase;
 
 public interface ProvisionPatientAccount
-    extends UseCase<ProvisionPatientAccountInput, ProvisionPatientAccountOutput> {
-}
+    extends UseCase<ProvisionPatientAccountInput, ProvisionPatientAccountOutput> {}

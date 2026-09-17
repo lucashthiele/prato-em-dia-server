@@ -9,16 +9,17 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class GetCurrentProfileUseCase implements GetCurrentProfile {
-    private final UserProfileRepository repository;
+  private final UserProfileRepository repository;
 
-    public GetCurrentProfileUseCase(UserProfileRepository repository) {
-        this.repository = repository;
-    }
+  public GetCurrentProfileUseCase(UserProfileRepository repository) {
+    this.repository = repository;
+  }
 
-    @Override
-    public ProfileOutput execute(GetProfileInput input) {
-        return repository.findByUserAccountId(input.userAccountId(), input.type())
-            .map(ProfileOutput::from)
-            .orElseThrow(ProfileNotFoundException::new);
-    }
+  @Override
+  public ProfileOutput execute(GetProfileInput input) {
+    return repository
+        .findByUserAccountId(input.userAccountId(), input.type())
+        .map(ProfileOutput::from)
+        .orElseThrow(ProfileNotFoundException::new);
+  }
 }

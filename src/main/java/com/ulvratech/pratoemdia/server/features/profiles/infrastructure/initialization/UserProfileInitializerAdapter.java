@@ -5,27 +5,22 @@ import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccoun
 import com.ulvratech.pratoemdia.server.features.profiles.domain.entity.UserProfile;
 import com.ulvratech.pratoemdia.server.features.profiles.domain.enums.ProfileType;
 import com.ulvratech.pratoemdia.server.features.profiles.domain.port.out.UserProfileRepository;
-import org.springframework.stereotype.Component;
-
 import java.util.UUID;
+import org.springframework.stereotype.Component;
 
 @Component
 public class UserProfileInitializerAdapter implements UserProfileInitializer {
-    private final UserProfileRepository repository;
+  private final UserProfileRepository repository;
 
-    public UserProfileInitializerAdapter(UserProfileRepository repository) {
-        this.repository = repository;
-    }
+  public UserProfileInitializerAdapter(UserProfileRepository repository) {
+    this.repository = repository;
+  }
 
-    @Override
-    public void initialize(UUID userAccountId, UserAccountRole role, String fullName) {
-        if (role == UserAccountRole.ADMIN) {
-            return;
-        }
-        repository.save(UserProfile.create(
-            userAccountId,
-            ProfileType.valueOf(role.name()),
-            fullName
-        ));
+  @Override
+  public void initialize(UUID userAccountId, UserAccountRole role, String fullName) {
+    if (role == UserAccountRole.ADMIN) {
+      return;
     }
+    repository.save(UserProfile.create(userAccountId, ProfileType.valueOf(role.name()), fullName));
+  }
 }

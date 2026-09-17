@@ -3,7 +3,6 @@ package com.ulvratech.pratoemdia.server.features.catalog.application.dto;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.Food;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.FoodPortion;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.enums.FoodOrigin;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -27,16 +26,27 @@ public record FoodDetailsOutput(
     String sourceDescription,
     String sourceVersion,
     String normalizedName,
-    List<FoodPortionOutput> portions
-) {
-    public static FoodDetailsOutput from(Food food, List<FoodPortion> portions) {
-        return new FoodDetailsOutput(
-            food.getId(), food.getName(), food.getBrand(), food.getCategory(), food.getDefaultUnit(),
-            food.getNotes(), food.getPreparationMethod(), food.isActive(),
-            food.getCreatedByUserId(), food.getOrigin(), food.getCreatedAt(), food.getUpdatedAt(),
-            food.getVersion(), food.getSource(), food.getSourceExternalId(),
-            food.getSourceDescription(), food.getSourceVersion(), food.getNormalizedName(),
-            portions.stream().map(FoodPortionOutput::from).toList()
-        );
-    }
+    List<FoodPortionOutput> portions) {
+  public static FoodDetailsOutput from(Food food, List<FoodPortion> portions) {
+    return new FoodDetailsOutput(
+        food.getId(),
+        food.getName(),
+        food.getBrand(),
+        food.getCategory(),
+        food.getDefaultUnit(),
+        food.getNotes(),
+        food.getPreparationMethod(),
+        food.isActive(),
+        food.getCreatedByUserId(),
+        food.getOrigin(),
+        food.getCreatedAt(),
+        food.getUpdatedAt(),
+        food.getVersion(),
+        food.getSource(),
+        food.getSourceExternalId(),
+        food.getSourceDescription(),
+        food.getSourceVersion(),
+        food.getNormalizedName(),
+        portions.stream().map(FoodPortionOutput::from).toList());
+  }
 }

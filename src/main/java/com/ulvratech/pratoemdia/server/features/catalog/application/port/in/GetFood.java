@@ -4,5 +4,4 @@ import com.ulvratech.pratoemdia.server.features.catalog.application.dto.FoodDeta
 import com.ulvratech.pratoemdia.server.features.catalog.application.dto.FoodQueryInput;
 import com.ulvratech.pratoemdia.server.shared.application.usecase.UseCase;
 
-public interface GetFood extends UseCase<FoodQueryInput, FoodDetailsOutput> {
-}
+public interface GetFood extends UseCase<FoodQueryInput, FoodDetailsOutput> {}

@@ -1,0 +1,100 @@
+package com.ulvratech.pratoemdia.server.features.planning.presentation.web.controller;
+
+import com.ulvratech.pratoemdia.server.features.planning.application.dto.*;
+import com.ulvratech.pratoemdia.server.features.planning.application.dto.PlanningInputs.*;
+import com.ulvratech.pratoemdia.server.features.planning.application.port.in.*;
+import com.ulvratech.pratoemdia.server.features.planning.presentation.web.request.WeeklyPlanningRequests.*;
+import com.ulvratech.pratoemdia.server.shared.openapi.OpenApiConfiguration;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import java.util.*;
+import org.springframework.http.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/v1")
+@SecurityRequirement(name = OpenApiConfiguration.BEARER_AUTH)
+@Tag(name = "Planejamento semanal")
+public class WeeklyPlanningController {
+  private final PlanningCommands commands;
+  private final PlanningQueries queries;
+
+  public WeeklyPlanningController(PlanningCommands commands, PlanningQueries queries) {
+    this.commands = commands;
+    this.queries = queries;
+  }
+
+  @GetMapping("/patients/me/weekly-planning-preference")
+  @Operation(
+      summary = "Consultar preferência de geração",
+      description = "Retorna o dia escolhido pelo paciente para geração automática.")
+  WeeklyPlanningPreferenceOutput preference(@AuthenticationPrincipal Jwt jwt) {
+    return queries.preference(actor(jwt));
+  }
+
+  @PutMapping("/patients/me/weekly-planning-preference")
+  @Operation(
+      summary = "Atualizar preferência de geração",
+      description = "Define o dia semanal e ativa ou desativa a geração automática.")
+  WeeklyPlanningPreferenceOutput updatePreference(
+      @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody PreferenceRequest request) {
+    return commands.updatePreference(
+        new PreferenceUpdate(actor(jwt), request.dayOfWeek(), request.enabled()));
+  }
+
+  @PostMapping("/patients/me/weekly-plans")
+  @Operation(
+      summary = "Gerar plano semanal",
+      description = "Gera manualmente o plano para os sete dias seguintes.")
+  ResponseEntity<WeeklyPlanOutput> generate(@AuthenticationPrincipal Jwt jwt) {
+    return ResponseEntity.status(HttpStatus.CREATED).body(commands.generate(actor(jwt)));
+  }
+
+  @GetMapping("/patients/me/weekly-plans")
+  @Operation(
+      summary = "Listar planos semanais",
+      description = "Lista os planos semanais do paciente autenticado.")
+  List<WeeklyPlanOutput> list(@AuthenticationPrincipal Jwt jwt) {
+    return queries.list(actor(jwt));
+  }
+
+  @GetMapping("/weekly-plans/{planId}")
+  @Operation(
+      summary = "Consultar plano semanal",
+      description = "Retorna o plano semanal quando ele pertence ao paciente autenticado.")
+  WeeklyPlanOutput get(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID planId) {
+    return queries.get(new PlanQuery(actor(jwt), planId));
+  }
+
+  @PatchMapping("/weekly-plans/{planId}")
+  @Operation(
+      summary = "Alterar plano semanal",
+      description = "Substitui refeições e itens conforme a política copiada para o plano.")
+  WeeklyPlanOutput update(
+      @AuthenticationPrincipal Jwt jwt,
+      @PathVariable UUID planId,
+      @Valid @RequestBody UpdatePlanRequest request) {
+    return commands.update(
+        new PlanUpdate(
+            actor(jwt),
+            planId,
+            request.version(),
+            request.meals().stream().map(PlannedMealRequest::toInput).toList()));
+  }
+
+  @PostMapping("/weekly-plans/{planId}/confirm")
+  @Operation(
+      summary = "Confirmar plano semanal",
+      description = "Confirma o plano de forma idempotente e bloqueia sua agenda.")
+  WeeklyPlanOutput confirm(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID planId) {
+    return commands.confirm(new PlanQuery(actor(jwt), planId));
+  }
+
+  private Actor actor(Jwt jwt) {
+    return new Actor(UUID.fromString(jwt.getSubject()), jwt.getClaimAsString("role"));
+  }
+}

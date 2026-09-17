@@ -11,6 +11,4 @@ public record UpdateFoodInput(
     String defaultUnit,
     String notes,
     String preparationMethod,
-    boolean active
-) {
-}
+    boolean active) {}

@@ -6,14 +6,15 @@ import com.ulvratech.pratoemdia.server.features.relationships.application.dto.Re
 import com.ulvratech.pratoemdia.server.features.relationships.application.dto.RelationshipQueryInput;
 import com.ulvratech.pratoemdia.server.features.relationships.application.port.in.*;
 import com.ulvratech.pratoemdia.server.features.relationships.presentation.web.request.CreatePatientRelationshipRequest;
-import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageResult;
 import com.ulvratech.pratoemdia.server.shared.openapi.OpenApiConfiguration;
+import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,90 +22,84 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
-
 @RestController
 @Validated
 @RequestMapping("/api/v1/nutritionists/me/patients")
 @SecurityRequirement(name = OpenApiConfiguration.BEARER_AUTH)
 @Tag(
     name = "Pacientes do nutricionista",
-    description = "Gerenciamento dos vínculos entre o nutricionista autenticado e seus pacientes."
-)
+    description = "Gerenciamento dos vínculos entre o nutricionista autenticado e seus pacientes.")
 public class NutritionistPatientsController {
-    private final CreateRelationship create;
-    private final ListNutritionistPatients list;
-    private final GetNutritionistPatient get;
-    private final EndNutritionistRelationship end;
-    private final ResendPatientAccessEmail resend;
+  private final CreateRelationship create;
+  private final ListNutritionistPatients list;
+  private final GetNutritionistPatient get;
+  private final EndNutritionistRelationship end;
+  private final ResendPatientAccessEmail resend;
 
-    public NutritionistPatientsController(
-        CreateRelationship c,
-        ListNutritionistPatients l,
-        GetNutritionistPatient g,
-        EndNutritionistRelationship e,
-        ResendPatientAccessEmail r) {
-        create = c;
-        list = l;
-        get = g;
-        end = e;
-        resend = r;
-    }
+  public NutritionistPatientsController(
+      CreateRelationship c,
+      ListNutritionistPatients l,
+      GetNutritionistPatient g,
+      EndNutritionistRelationship e,
+      ResendPatientAccessEmail r) {
+    create = c;
+    list = l;
+    get = g;
+    end = e;
+    resend = r;
+  }
 
-    @PostMapping
-    @Operation(
-        summary = "Adicionar paciente",
-        description = "Cria um vínculo com um paciente e envia suas instruções de acesso."
-    )
-    ResponseEntity<RelationshipOutput> create(
-        @AuthenticationPrincipal Jwt jwt,
-        @Valid @RequestBody CreatePatientRelationshipRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-            .body(create.execute(new CreateRelationshipInput(id(jwt), request.email(), request.fullName())));
-    }
+  @PostMapping
+  @Operation(
+      summary = "Adicionar paciente",
+      description = "Cria um vínculo com um paciente e envia suas instruções de acesso.")
+  ResponseEntity<RelationshipOutput> create(
+      @AuthenticationPrincipal Jwt jwt,
+      @Valid @RequestBody CreatePatientRelationshipRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(
+            create.execute(
+                new CreateRelationshipInput(id(jwt), request.email(), request.fullName())));
+  }
 
-    @GetMapping
-    @Operation(
-        summary = "Listar pacientes",
-        description = "Retorna uma página dos pacientes vinculados ao nutricionista."
-    )
-    PageResult<RelationshipOutput> list(
-        @AuthenticationPrincipal Jwt jwt,
-        @RequestParam(defaultValue = "0") @Min(0) int page,
-        @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-        return list.execute(new ListRelationshipsInput(id(jwt), page, size));
-    }
+  @GetMapping
+  @Operation(
+      summary = "Listar pacientes",
+      description = "Retorna uma página dos pacientes vinculados ao nutricionista.")
+  PageResult<RelationshipOutput> list(
+      @AuthenticationPrincipal Jwt jwt,
+      @RequestParam(defaultValue = "0") @Min(0) int page,
+      @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+    return list.execute(new ListRelationshipsInput(id(jwt), page, size));
+  }
 
-    @GetMapping("/{patientId}")
-    @Operation(
-        summary = "Consultar paciente",
-        description = "Retorna os detalhes do vínculo com o paciente informado."
-    )
-    RelationshipOutput get(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID patientId) {
-        return get.execute(new RelationshipQueryInput(id(jwt), patientId));
-    }
+  @GetMapping("/{patientId}")
+  @Operation(
+      summary = "Consultar paciente",
+      description = "Retorna os detalhes do vínculo com o paciente informado.")
+  RelationshipOutput get(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID patientId) {
+    return get.execute(new RelationshipQueryInput(id(jwt), patientId));
+  }
 
-    @DeleteMapping("/{patientId}/relationship")
-    @Operation(
-        summary = "Encerrar vínculo com paciente",
-        description = "Encerra o vínculo ativo entre o nutricionista e o paciente."
-    )
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    void end(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID patientId) {
-        end.execute(new RelationshipQueryInput(id(jwt), patientId));
-    }
+  @DeleteMapping("/{patientId}/relationship")
+  @Operation(
+      summary = "Encerrar vínculo com paciente",
+      description = "Encerra o vínculo ativo entre o nutricionista e o paciente.")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  void end(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID patientId) {
+    end.execute(new RelationshipQueryInput(id(jwt), patientId));
+  }
 
-    @PostMapping("/{patientId}/access-email")
-    @Operation(
-        summary = "Reenviar acesso ao paciente",
-        description = "Reenvia ao paciente o e-mail com as instruções de acesso."
-    )
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    void resend(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID patientId) {
-        resend.execute(new RelationshipQueryInput(id(jwt), patientId));
-    }
+  @PostMapping("/{patientId}/access-email")
+  @Operation(
+      summary = "Reenviar acesso ao paciente",
+      description = "Reenvia ao paciente o e-mail com as instruções de acesso.")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  void resend(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID patientId) {
+    resend.execute(new RelationshipQueryInput(id(jwt), patientId));
+  }
 
-    private UUID id(Jwt jwt) {
-        return UUID.fromString(jwt.getSubject());
-    }
+  private UUID id(Jwt jwt) {
+    return UUID.fromString(jwt.getSubject());
+  }
 }

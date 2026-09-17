@@ -3,7 +3,7 @@ package com.ulvratech.pratoemdia.server.features.relationships.application.excep
 import com.ulvratech.pratoemdia.server.shared.application.exception.CodedApplicationException;
 
 public class RelationshipConflictException extends CodedApplicationException {
-    public RelationshipConflictException() {
-        super("RELATIONSHIP_CONFLICT");
-    }
+  public RelationshipConflictException() {
+    super("RELATIONSHIP_CONFLICT");
+  }
 }
