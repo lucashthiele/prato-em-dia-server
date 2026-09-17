@@ -18,9 +18,16 @@ public class PrescriptionVersion {
     private List<PrescribedMeal> meals;
 
     public PrescriptionVersion(
-            UUID id, int number, PrescriptionVersionStatus status, String title,
-            String notes, UUID createdByUserId, Instant createdAt,
-            Instant publishedAt, Instant archivedAt, List<PrescribedMeal> meals
+            UUID id,
+            int number,
+            PrescriptionVersionStatus status,
+            String title,
+            String notes,
+            UUID createdByUserId,
+            Instant createdAt,
+            Instant publishedAt,
+            Instant archivedAt,
+            List<PrescribedMeal> meals
     ) {
         if (id == null || createdByUserId == null || number < 1)
             throw new IllegalArgumentException("Invalid prescription version");
@@ -37,36 +44,77 @@ public class PrescriptionVersion {
     }
 
     public static PrescriptionVersion draft(
-            int number, UUID actor, String title, String notes,
-            List<PrescribedMeal> meals
+            int number, UUID actor, String title, String notes, List<PrescribedMeal> meals
     ) {
         return new PrescriptionVersion(
-                UUID.randomUUID(), number, PrescriptionVersionStatus.DRAFT,
-                title, notes, actor, null, null, null, meals
+                UUID.randomUUID(),
+                number,
+                PrescriptionVersionStatus.DRAFT,
+                title,
+                notes,
+                actor,
+                null,
+                null,
+                null,
+                meals
         );
+    }
+
+    private static String normalizedLimited(String value, int max) {
+        var normalized = AllowedSubstitution.normalized(value);
+        if (normalized != null && normalized.length() > max)
+            throw new IllegalArgumentException("Title is too long");
+        return normalized;
+    }
+
+    private static List<PrescribedMeal> validatedMeals(List<PrescribedMeal> meals) {
+        var copy = List.copyOf(meals);
+        if (copy.stream().map(PrescribedMeal::order).distinct().count() != copy.size())
+            throw new IllegalArgumentException("Duplicate meal order");
+        if (copy.stream().map(PrescribedMeal::mealType).distinct().count() != copy.size())
+            throw new IllegalArgumentException("Duplicate meal type");
+        return copy;
     }
 
     public PrescriptionVersion copyAsDraft(int nextNumber, UUID actor) {
         return draft(
-                nextNumber, actor, title, notes, meals.stream().map(
-                        meal -> PrescribedMeal.create(
-                                meal.name(),
-                                meal.order(), meal.suggestedTime(), meal.notes(),
-                                meal.items().stream().map(
-                                        item -> PrescribedMealItem.create(
-                                                item.foodId(), item.foodPortionId(), item.quantity(), item.unit(),
-                                                item.order(), item.notes(),
-                                                item.substitutions().stream().map(
-                                                        sub -> AllowedSubstitution.create(
-                                                                sub.foodId(), sub.foodPortionId(), sub.quantity(),
-                                                                sub.unit(), sub.notes()
+                nextNumber,
+                actor,
+                title,
+                notes,
+                meals.stream()
+                        .map(
+                                meal -> PrescribedMeal.create(
+                                        meal.name(),
+                                        meal.mealType(),
+                                        meal.order(),
+                                        meal.suggestedTime(),
+                                        meal.notes(),
+                                        meal.items().stream()
+                                                .map(
+                                                        item -> PrescribedMealItem.create(
+                                                                item.foodId(),
+                                                                item.foodPortionId(),
+                                                                item.quantity(),
+                                                                item.unit(),
+                                                                item.order(),
+                                                                item.notes(),
+                                                                item.substitutions().stream()
+                                                                        .map(
+                                                                                sub -> AllowedSubstitution.create(
+                                                                                        sub.foodId(),
+                                                                                        sub.foodPortionId(),
+                                                                                        sub.quantity(),
+                                                                                        sub.unit(),
+                                                                                        sub.notes()
+                                                                                )
+                                                                        )
+                                                                        .toList()
                                                         )
-                                                ).toList()
-                                        )
+                                                )
+                                                .toList()
                                 )
-                                        .toList()
                         )
-                )
                         .toList()
         );
     }
@@ -96,20 +144,6 @@ public class PrescriptionVersion {
     private void ensureDraft() {
         if (status != PrescriptionVersionStatus.DRAFT)
             throw new IllegalStateException("Only draft versions can be changed");
-    }
-
-    private static String normalizedLimited(String value, int max) {
-        var normalized = AllowedSubstitution.normalized(value);
-        if (normalized != null && normalized.length() > max)
-            throw new IllegalArgumentException("Title is too long");
-        return normalized;
-    }
-
-    private static List<PrescribedMeal> validatedMeals(List<PrescribedMeal> meals) {
-        var copy = List.copyOf(meals);
-        if (copy.stream().map(PrescribedMeal::order).distinct().count() != copy.size())
-            throw new IllegalArgumentException("Duplicate meal order");
-        return copy;
     }
 
     public UUID getId() {

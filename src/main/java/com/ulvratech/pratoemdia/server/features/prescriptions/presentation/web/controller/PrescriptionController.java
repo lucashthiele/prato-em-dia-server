@@ -4,17 +4,23 @@ import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.Pr
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionInputs.Create;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionInputs.PatientQuery;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionInputs.PrescriptionQuery;
+import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionInputs.UpdatePlanningMode;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionInputs.UpdateVersion;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionInputs.VersionQuery;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionOutput;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.port.in.PrescriptionCommands;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.port.in.PrescriptionQueries;
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PlanningMode;
+import com.ulvratech.pratoemdia.server.features.prescriptions.presentation.web.request.CreatePrescriptionRequest;
 import com.ulvratech.pratoemdia.server.features.prescriptions.presentation.web.request.PrescriptionContentRequest;
 import com.ulvratech.pratoemdia.server.shared.openapi.OpenApiConfiguration;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import java.util.List;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,8 +32,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -53,10 +57,37 @@ public class PrescriptionController {
     ResponseEntity<PrescriptionOutput> create(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID patientId,
-            @Valid @RequestBody PrescriptionContentRequest request
+            @Valid @RequestBody CreatePrescriptionRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(commands.create(new Create(actor(jwt), patientId, request.toInput())));
+                .body(
+                        commands.create(
+                                new Create(actor(jwt), patientId, request.planningMode(), request.toInput())
+                        )
+                );
+    }
+
+    ResponseEntity<PrescriptionOutput> create(
+            Jwt jwt, UUID patientId, PrescriptionContentRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(
+                        commands.create(
+                                new Create(actor(jwt), patientId, PlanningMode.RESTRICTED, request.toInput())
+                        )
+                );
+    }
+
+    @PutMapping("/prescriptions/{prescriptionId}/planning-mode")
+    @Operation(summary = "Alterar política de planejamento", description = "Atualiza a política usada apenas pelos planos semanais criados futuramente.")
+    PrescriptionOutput updatePlanningMode(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID prescriptionId,
+            @Valid @RequestBody PlanningModeRequest request
+    ) {
+        return commands.updatePlanningMode(
+                new UpdatePlanningMode(actor(jwt), prescriptionId, request.planningMode())
+        );
     }
 
     @GetMapping("/prescriptions/{prescriptionId}")
@@ -85,8 +116,7 @@ public class PrescriptionController {
     @GetMapping("/prescription-versions/{versionId}")
     @Operation(summary = "Consultar versão da prescrição", description = "Retorna o conteúdo de uma versão específica da prescrição.")
     PrescriptionOutput.VersionOutput version(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable UUID versionId
+            @AuthenticationPrincipal Jwt jwt, @PathVariable UUID versionId
     ) {
         return queries.getVersion(new VersionQuery(actor(jwt), versionId));
     }
@@ -104,8 +134,7 @@ public class PrescriptionController {
     @PostMapping("/prescription-versions/{versionId}/publish")
     @Operation(summary = "Publicar versão da prescrição", description = "Publica uma versão em rascunho e a torna vigente para o paciente.")
     PrescriptionOutput.VersionOutput publish(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable UUID versionId
+            @AuthenticationPrincipal Jwt jwt, @PathVariable UUID versionId
     ) {
         return commands.publish(new VersionQuery(actor(jwt), versionId));
     }
@@ -113,8 +142,7 @@ public class PrescriptionController {
     @PostMapping("/prescription-versions/{versionId}/archive")
     @Operation(summary = "Arquivar versão da prescrição", description = "Arquiva uma versão publicada da prescrição.")
     PrescriptionOutput.VersionOutput archive(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable UUID versionId
+            @AuthenticationPrincipal Jwt jwt, @PathVariable UUID versionId
     ) {
         return commands.archive(new VersionQuery(actor(jwt), versionId));
     }
@@ -127,5 +155,8 @@ public class PrescriptionController {
 
     private Actor actor(Jwt jwt) {
         return new Actor(UUID.fromString(jwt.getSubject()), jwt.getClaimAsString("role"));
+    }
+
+    public record PlanningModeRequest(@NotNull PlanningMode planningMode) {
     }
 }

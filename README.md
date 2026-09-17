@@ -137,6 +137,39 @@ Code Formatter*, selecione o formatter Eclipse nas configurações do plugin e
 importe `eclipse-formatter.xml`. Essas preferências são apenas uma facilidade
 local; Maven/Spotless continua sendo a autoridade.
 
+## Code formatting
+
+O Spotless é a fonte de verdade da formatação do projeto. O Eclipse JDT aplica
+o profile canônico [`eclipse-formatter.xml`](eclipse-formatter.xml), com 4
+espaços para indentação Java, continuação de 8 espaços e largura desejada de
+120 colunas. Não é necessário usar o IntelliJ IDEA para formatar corretamente.
+
+Para corrigir a formatação automaticamente:
+
+```shell
+./mvnw spotless:apply
+```
+
+Para validar sem modificar arquivos:
+
+```shell
+./mvnw spotless:check
+```
+
+A validação completa também verifica a formatação, antes da compilação e dos
+testes, e o CI rejeita arquivos fora do padrão:
+
+```shell
+./mvnw verify
+```
+
+No IntelliJ IDEA, a configuração recomendada em **Settings → Editor → Code
+Style → Java** é `Tab size: 4`, `Indent: 4` e `Continuation indent: 8`. Para
+usar exatamente o formatter canônico dentro da IDE, instale o plugin *Eclipse
+Code Formatter*, selecione o formatter Eclipse nas configurações do plugin e
+importe `eclipse-formatter.xml`. Essas preferências são apenas uma facilidade
+local; Maven/Spotless continua sendo a autoridade.
+
 Para gerar o artefato executável sem repetir os testes:
 
 ```shell

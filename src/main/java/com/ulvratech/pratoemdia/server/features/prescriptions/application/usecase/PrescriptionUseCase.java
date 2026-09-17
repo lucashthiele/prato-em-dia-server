@@ -1,7 +1,6 @@
 package com.ulvratech.pratoemdia.server.features.prescriptions.application.usecase;
 
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionContentInput;
-import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionOutput;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionContentInput.ItemInput;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionContentInput.MealInput;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionContentInput.SubstitutionInput;
@@ -9,8 +8,10 @@ import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.Pr
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionInputs.Create;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionInputs.PatientQuery;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionInputs.PrescriptionQuery;
+import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionInputs.UpdatePlanningMode;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionInputs.UpdateVersion;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionInputs.VersionQuery;
+import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionOutput;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.exception.InvalidPrescriptionReferenceException;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.exception.PrescriptionAccessDeniedException;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.exception.PrescriptionConflictException;
@@ -25,12 +26,11 @@ import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.Pres
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.PrescriptionVersion;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.port.out.PrescriptionRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.stereotype.Service;
-
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.stereotype.Service;
 
 @Service
 @Transactional
@@ -40,8 +40,7 @@ public class PrescriptionUseCase implements PrescriptionCommands, PrescriptionQu
     private final Clock clock;
 
     public PrescriptionUseCase(
-            PrescriptionRepository repository,
-            PrescriptionReferences references, Clock clock
+            PrescriptionRepository repository, PrescriptionReferences references, Clock clock
     ) {
         this.repository = repository;
         this.references = references;
@@ -53,13 +52,27 @@ public class PrescriptionUseCase implements PrescriptionCommands, PrescriptionQu
         UUID nutritionistId = requireNutritionist(input.actor());
         requireRelationship(nutritionistId, input.patientId());
         if (!repository.findByNutritionistAndPatient(nutritionistId, input.patientId()).isEmpty())
-            throw new PrescriptionConflictException("An active prescription already exists for this patient");
+            throw new PrescriptionConflictException(
+                    "An active prescription already exists for this patient"
+            );
         validateReferences(input.content());
         var prescription = Prescription.create(
-                input.patientId(), nutritionistId,
-                input.actor().userAccountId(), input.content().title(), input.content().notes(),
+                input.patientId(),
+                nutritionistId,
+                input.actor().userAccountId(),
+                input.planningMode(),
+                input.content().title(),
+                input.content().notes(),
                 meals(input.content())
         );
+        return PrescriptionOutput.from(repository.save(prescription));
+    }
+
+    @Override
+    public PrescriptionOutput updatePlanningMode(UpdatePlanningMode input) {
+        var prescription = requirePrescription(input.prescriptionId());
+        requireAuthor(prescription, input.actor());
+        prescription.changePlanningMode(input.planningMode());
         return PrescriptionOutput.from(repository.save(prescription));
     }
 
@@ -81,9 +94,9 @@ public class PrescriptionUseCase implements PrescriptionCommands, PrescriptionQu
         requireAuthor(prescription, input.actor());
         validateReferences(input.content());
         try {
-            prescription.requireVersion(input.versionId()).replaceContent(
-                    input.content().title(), input.content().notes(), meals(input.content())
-            );
+            prescription
+                    .requireVersion(input.versionId())
+                    .replaceContent(input.content().title(), input.content().notes(), meals(input.content()));
             return version(repository.save(prescription), input.versionId());
         } catch (IllegalStateException exception) {
             throw conflict(exception);
@@ -121,7 +134,8 @@ public class PrescriptionUseCase implements PrescriptionCommands, PrescriptionQu
         UUID nutritionistId = requireNutritionist(input.actor());
         requireRelationship(nutritionistId, input.patientId());
         return repository.findByNutritionistAndPatient(nutritionistId, input.patientId()).stream()
-                .map(PrescriptionOutput::from).toList();
+                .map(PrescriptionOutput::from)
+                .toList();
     }
 
     @Override
@@ -156,25 +170,31 @@ public class PrescriptionUseCase implements PrescriptionCommands, PrescriptionQu
     public PrescriptionOutput.VersionOutput current(Actor actor) {
         if (!"PATIENT".equals(actor.role()))
             throw new PrescriptionAccessDeniedException();
-        UUID patientId = references.patientProfileId(actor.userAccountId())
+        UUID patientId = references
+                .patientProfileId(actor.userAccountId())
                 .orElseThrow(PrescriptionAccessDeniedException::new);
-        var prescription = repository.findCurrentByPatient(patientId)
-                .orElseThrow(PrescriptionNotFoundException::new);
+        var prescription = repository.findCurrentByPatient(patientId).orElseThrow(PrescriptionNotFoundException::new);
         return PrescriptionOutput.from(prescription).versions().stream()
                 .filter(v -> v.status().name().equals("PUBLISHED"))
-                .findFirst().orElseThrow(PrescriptionNotFoundException::new);
+                .findFirst()
+                .orElseThrow(PrescriptionNotFoundException::new);
     }
 
     private void requireReader(Prescription prescription, Actor actor, boolean allowAdmin) {
         if (allowAdmin && "ADMIN".equals(actor.role()))
             return;
-        if ("NUTRITIONIST".equals(actor.role()) && references.nutritionistProfileId(actor.userAccountId())
-                .filter(prescription.getNutritionistId()::equals)
-                .filter(id -> references.hasActiveRelationship(id, prescription.getPatientId()))
-                .isPresent())
+        if ("NUTRITIONIST".equals(actor.role())
+                && references
+                        .nutritionistProfileId(actor.userAccountId())
+                        .filter(prescription.getNutritionistId()::equals)
+                        .filter(id -> references.hasActiveRelationship(id, prescription.getPatientId()))
+                        .isPresent())
             return;
-        if ("PATIENT".equals(actor.role()) && references.patientProfileId(actor.userAccountId())
-                .filter(prescription.getPatientId()::equals).isPresent())
+        if ("PATIENT".equals(actor.role())
+                && references
+                        .patientProfileId(actor.userAccountId())
+                        .filter(prescription.getPatientId()::equals)
+                        .isPresent())
             return;
         throw new PrescriptionAccessDeniedException();
     }
@@ -189,7 +209,8 @@ public class PrescriptionUseCase implements PrescriptionCommands, PrescriptionQu
     private UUID requireNutritionist(Actor actor) {
         if (!"NUTRITIONIST".equals(actor.role()))
             throw new PrescriptionAccessDeniedException();
-        return references.nutritionistProfileId(actor.userAccountId())
+        return references
+                .nutritionistProfileId(actor.userAccountId())
                 .orElseThrow(PrescriptionAccessDeniedException::new);
     }
 
@@ -207,17 +228,27 @@ public class PrescriptionUseCase implements PrescriptionCommands, PrescriptionQu
     }
 
     private void validateReferences(PrescriptionContentInput input) {
-        input.meals().forEach(meal -> meal.items().forEach(item -> {
-            validateFood(item.foodId(), item.foodPortionId());
-            item.substitutions().forEach(sub -> validateFood(sub.foodId(), sub.foodPortionId()));
-        }));
+        input
+                .meals()
+                .forEach(
+                        meal -> meal.items()
+                                .forEach(
+                                        item -> {
+                                            validateFood(item.foodId(), item.foodPortionId());
+                                            item.substitutions()
+                                                    .forEach(sub -> validateFood(sub.foodId(), sub.foodPortionId()));
+                                        }
+                                )
+                );
     }
 
     private void validateFood(UUID foodId, UUID portionId) {
         if (foodId == null || !references.isActiveFood(foodId))
             throw new InvalidPrescriptionReferenceException("Food is missing or inactive");
         if (portionId != null && !references.portionBelongsToFood(portionId, foodId))
-            throw new InvalidPrescriptionReferenceException("Food portion does not belong to the selected food");
+            throw new InvalidPrescriptionReferenceException(
+                    "Food portion does not belong to the selected food"
+            );
     }
 
     private List<PrescribedMeal> meals(PrescriptionContentInput input) {
@@ -226,53 +257,70 @@ public class PrescriptionUseCase implements PrescriptionCommands, PrescriptionQu
 
     private PrescribedMeal meal(MealInput meal) {
         return PrescribedMeal.create(
-                meal.name(), meal.order(), meal.suggestedTime(), meal.notes(),
+                meal.name(),
+                meal.mealType(),
+                meal.order(),
+                meal.suggestedTime(),
+                meal.notes(),
                 meal.items().stream().map(this::item).toList()
         );
     }
 
     private PrescribedMealItem item(ItemInput item) {
         return PrescribedMealItem.create(
-                item.foodId(), item.foodPortionId(), item.quantity(),
-                item.unit(), item.order(), item.notes(), item.substitutions().stream()
-                        .map(this::substitution).toList()
+                item.foodId(),
+                item.foodPortionId(),
+                item.quantity(),
+                item.unit(),
+                item.order(),
+                item.notes(),
+                item.substitutions().stream().map(this::substitution).toList()
         );
     }
 
     private AllowedSubstitution substitution(SubstitutionInput input) {
         return AllowedSubstitution.create(
-                input.foodId(), input.foodPortionId(), input.quantity(),
-                input.unit(), input.notes()
+                input.foodId(), input.foodPortionId(), input.quantity(), input.unit(), input.notes()
         );
     }
 
     private PrescriptionContentInput toInput(PrescriptionVersion version) {
         return new PrescriptionContentInput(
-                version.getTitle(), version.getNotes(),
-                version.getMeals().stream().map(
-                        meal -> new MealInput(
-                                meal.name(), meal.order(),
-                                meal.suggestedTime(), meal.notes(),
-                                meal.items().stream()
-                                        .map(
-                                                item -> new ItemInput(
-                                                        item.foodId(), item.foodPortionId(), item.quantity(),
-                                                        item.unit(),
-                                                        item.order(), item.notes(),
-                                                        item.substitutions().stream()
-                                                                .map(
-                                                                        sub -> new SubstitutionInput(
-                                                                                sub.foodId(), sub.foodPortionId(),
-                                                                                sub.quantity(),
-                                                                                sub.unit(), sub.notes()
+                version.getTitle(),
+                version.getNotes(),
+                version.getMeals().stream()
+                        .map(
+                                meal -> new MealInput(
+                                        meal.name(),
+                                        meal.mealType(),
+                                        meal.order(),
+                                        meal.suggestedTime(),
+                                        meal.notes(),
+                                        meal.items().stream()
+                                                .map(
+                                                        item -> new ItemInput(
+                                                                item.foodId(),
+                                                                item.foodPortionId(),
+                                                                item.quantity(),
+                                                                item.unit(),
+                                                                item.order(),
+                                                                item.notes(),
+                                                                item.substitutions().stream()
+                                                                        .map(
+                                                                                sub -> new SubstitutionInput(
+                                                                                        sub.foodId(),
+                                                                                        sub.foodPortionId(),
+                                                                                        sub.quantity(),
+                                                                                        sub.unit(),
+                                                                                        sub.notes()
+                                                                                )
                                                                         )
-                                                                )
-                                                                .toList()
+                                                                        .toList()
+                                                        )
                                                 )
-                                        )
-                                        .toList()
+                                                .toList()
+                                )
                         )
-                )
                         .toList()
         );
     }
@@ -289,9 +337,14 @@ public class PrescriptionUseCase implements PrescriptionCommands, PrescriptionQu
         if (!"PATIENT".equals(actor.role()))
             return output;
         return new PrescriptionOutput(
-                output.id(), output.patientId(), output.nutritionistId(),
-                output.status(), output.createdAt(), output.updatedAt(), output.versions().stream()
-                        .filter(version -> version.publishedAt() != null).toList()
+                output.id(),
+                output.patientId(),
+                output.nutritionistId(),
+                output.status(),
+                output.planningMode(),
+                output.createdAt(),
+                output.updatedAt(),
+                output.versions().stream().filter(version -> version.publishedAt() != null).toList()
         );
     }
 

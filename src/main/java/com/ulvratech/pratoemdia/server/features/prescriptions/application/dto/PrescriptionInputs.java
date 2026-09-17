@@ -1,5 +1,6 @@
 package com.ulvratech.pratoemdia.server.features.prescriptions.application.dto;
 
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PlanningMode;
 import java.util.UUID;
 
 public final class PrescriptionInputs {
@@ -18,7 +19,14 @@ public final class PrescriptionInputs {
     public record VersionQuery(Actor actor, UUID versionId) {
     }
 
-    public record Create(Actor actor, UUID patientId, PrescriptionContentInput content) {
+    public record Create(
+            Actor actor, UUID patientId, PlanningMode planningMode, PrescriptionContentInput content) {
+        public Create(Actor actor, UUID patientId, PrescriptionContentInput content) {
+            this(actor, patientId, PlanningMode.RESTRICTED, content);
+        }
+    }
+
+    public record UpdatePlanningMode(Actor actor, UUID prescriptionId, PlanningMode planningMode) {
     }
 
     public record UpdateVersion(Actor actor, UUID versionId, PrescriptionContentInput content) {

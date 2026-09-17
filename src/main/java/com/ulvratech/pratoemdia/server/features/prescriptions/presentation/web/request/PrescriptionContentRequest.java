@@ -1,6 +1,7 @@
 package com.ulvratech.pratoemdia.server.features.prescriptions.presentation.web.request;
 
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionContentInput;
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.MealType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -13,22 +14,33 @@ import java.util.List;
 import java.util.UUID;
 
 public record PrescriptionContentRequest(
-        @Size(max = 180) String title,
-        String notes,
-        @NotNull List<@Valid MealRequest> meals) {
+        @Size(max = 180) String title, String notes, @NotNull List<@Valid MealRequest> meals) {
     public PrescriptionContentInput toInput() {
-        return new PrescriptionContentInput(title, notes, meals.stream().map(MealRequest::toInput).toList());
+        return new PrescriptionContentInput(
+                title, notes, meals.stream().map(MealRequest::toInput).toList()
+        );
     }
 
     public record MealRequest(
             @NotBlank @Size(max = 120) String name,
+            @NotNull MealType mealType,
             @PositiveOrZero int order,
             LocalTime suggestedTime,
             String notes,
             @NotNull List<@Valid ItemRequest> items) {
+        public MealRequest(
+                String name, int order, LocalTime suggestedTime, String notes, List<ItemRequest> items
+        ) {
+            this(name, MealType.SNACK, order, suggestedTime, notes, items);
+        }
+
         PrescriptionContentInput.MealInput toInput() {
             return new PrescriptionContentInput.MealInput(
-                    name, order, suggestedTime, notes,
+                    name,
+                    mealType,
+                    order,
+                    suggestedTime,
+                    notes,
                     items.stream().map(ItemRequest::toInput).toList()
             );
         }
@@ -44,8 +56,13 @@ public record PrescriptionContentRequest(
             @NotNull List<@Valid SubstitutionRequest> substitutions) {
         PrescriptionContentInput.ItemInput toInput() {
             return new PrescriptionContentInput.ItemInput(
-                    foodId, foodPortionId, quantity, unit,
-                    order, notes, substitutions.stream().map(SubstitutionRequest::toInput).toList()
+                    foodId,
+                    foodPortionId,
+                    quantity,
+                    unit,
+                    order,
+                    notes,
+                    substitutions.stream().map(SubstitutionRequest::toInput).toList()
             );
         }
     }

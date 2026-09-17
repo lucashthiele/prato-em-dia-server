@@ -1,14 +1,16 @@
 package com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.MealType;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PrescriptionVersionStatus;
-import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.Test;
 
 class PrescriptionTest {
     @Test
@@ -21,8 +23,7 @@ class PrescriptionTest {
 
         assertEquals(PrescriptionVersionStatus.PUBLISHED, first.getStatus());
         assertThrows(
-                IllegalStateException.class,
-                () -> first.replaceContent("Changed", null, first.getMeals())
+                IllegalStateException.class, () -> first.replaceContent("Changed", null, first.getMeals())
         );
 
         var second = prescription.addDraft(UUID.randomUUID());
@@ -36,8 +37,7 @@ class PrescriptionTest {
     @Test
     void refusesToPublishAnEmptyDraft() {
         var prescription = Prescription.create(
-                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
-                "Plan", null, List.of()
+                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "Plan", null, List.of()
         );
         assertThrows(
                 IllegalStateException.class,
@@ -45,15 +45,28 @@ class PrescriptionTest {
         );
     }
 
-    private Prescription prescription() {
-        var item = PrescribedMealItem.create(
-                UUID.randomUUID(), null, BigDecimal.ONE, "g", 0,
-                null, List.of()
+    @Test
+    void refusesDuplicateMealCategories() {
+        var first = PrescribedMeal.create("First", MealType.LUNCH, 0, null, null, List.of());
+        var second = PrescribedMeal.create("Second", MealType.LUNCH, 1, null, null, List.of());
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> Prescription.create(
+                        UUID.randomUUID(),
+                        UUID.randomUUID(),
+                        UUID.randomUUID(),
+                        "Plan",
+                        null,
+                        List.of(first, second)
+                )
         );
+    }
+
+    private Prescription prescription() {
+        var item = PrescribedMealItem.create(UUID.randomUUID(), null, BigDecimal.ONE, "g", 0, null, List.of());
         var meal = PrescribedMeal.create("Breakfast", 0, null, null, List.of(item));
         return Prescription.create(
-                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
-                "Plan", null, List.of(meal)
+                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "Plan", null, List.of(meal)
         );
     }
 }

@@ -1,5 +1,6 @@
 package com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity;
 
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PlanningMode;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PrescriptionStatus;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PrescriptionVersionStatus;
 import java.time.Instant;
@@ -16,10 +17,40 @@ public class Prescription {
     private final long persistenceVersion;
     private final List<PrescriptionVersion> versions;
     private PrescriptionStatus status;
+    private PlanningMode planningMode;
 
     public Prescription(
-            UUID id, UUID patientId, UUID nutritionistId, PrescriptionStatus status,
-            Instant createdAt, Instant updatedAt, long persistenceVersion,
+            UUID id,
+            UUID patientId,
+            UUID nutritionistId,
+            PrescriptionStatus status,
+            Instant createdAt,
+            Instant updatedAt,
+            long persistenceVersion,
+            List<PrescriptionVersion> versions
+    ) {
+        this(
+                id,
+                patientId,
+                nutritionistId,
+                status,
+                PlanningMode.RESTRICTED,
+                createdAt,
+                updatedAt,
+                persistenceVersion,
+                versions
+        );
+    }
+
+    public Prescription(
+            UUID id,
+            UUID patientId,
+            UUID nutritionistId,
+            PrescriptionStatus status,
+            PlanningMode planningMode,
+            Instant createdAt,
+            Instant updatedAt,
+            long persistenceVersion,
             List<PrescriptionVersion> versions
     ) {
         if (id == null || patientId == null || nutritionistId == null)
@@ -32,16 +63,40 @@ public class Prescription {
         this.updatedAt = updatedAt;
         this.persistenceVersion = persistenceVersion;
         this.versions = new java.util.ArrayList<>(versions);
+        this.planningMode = java.util.Objects.requireNonNull(planningMode, "Planning mode is required");
         validateVersionNumbers();
     }
 
     public static Prescription create(
-            UUID patientId, UUID nutritionistId, UUID actor,
-            String title, String notes, List<PrescribedMeal> meals
+            UUID patientId,
+            UUID nutritionistId,
+            UUID actor,
+            String title,
+            String notes,
+            List<PrescribedMeal> meals
+    ) {
+        return create(patientId, nutritionistId, actor, PlanningMode.RESTRICTED, title, notes, meals);
+    }
+
+    public static Prescription create(
+            UUID patientId,
+            UUID nutritionistId,
+            UUID actor,
+            PlanningMode planningMode,
+            String title,
+            String notes,
+            List<PrescribedMeal> meals
     ) {
         return new Prescription(
-                UUID.randomUUID(), patientId, nutritionistId, PrescriptionStatus.ACTIVE,
-                null, null, 0, List.of(PrescriptionVersion.draft(1, actor, title, notes, meals))
+                UUID.randomUUID(),
+                patientId,
+                nutritionistId,
+                PrescriptionStatus.ACTIVE,
+                planningMode,
+                null,
+                null,
+                0,
+                List.of(PrescriptionVersion.draft(1, actor, title, notes, meals))
         );
     }
 
@@ -51,20 +106,25 @@ public class Prescription {
         if (versions.stream().anyMatch(v -> v.getStatus() == PrescriptionVersionStatus.DRAFT))
             throw new IllegalStateException("Prescription already has a draft");
         int next = versions.stream().mapToInt(PrescriptionVersion::getNumber).max().orElse(0) + 1;
-        var source = versions.stream().max(Comparator.comparingInt(PrescriptionVersion::getNumber)).orElseThrow();
+        var source = versions.stream()
+                .max(Comparator.comparingInt(PrescriptionVersion::getNumber))
+                .orElseThrow();
         var draft = source.copyAsDraft(next, actor);
         versions.add(draft);
         return draft;
     }
 
     public PrescriptionVersion requireVersion(UUID versionId) {
-        return versions.stream().filter(v -> v.getId().equals(versionId)).findFirst()
+        return versions.stream()
+                .filter(v -> v.getId().equals(versionId))
+                .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Version does not belong to prescription"));
     }
 
     public void publish(UUID versionId, Instant now) {
         var target = requireVersion(versionId);
-        versions.stream().filter(v -> v.getStatus() == PrescriptionVersionStatus.PUBLISHED)
+        versions.stream()
+                .filter(v -> v.getStatus() == PrescriptionVersionStatus.PUBLISHED)
                 .forEach(v -> v.archive(now));
         target.publish(now);
     }
@@ -104,5 +164,13 @@ public class Prescription {
 
     public List<PrescriptionVersion> getVersions() {
         return List.copyOf(versions);
+    }
+
+    public PlanningMode getPlanningMode() {
+        return planningMode;
+    }
+
+    public void changePlanningMode(PlanningMode planningMode) {
+        this.planningMode = java.util.Objects.requireNonNull(planningMode, "Planning mode is required");
     }
 }
