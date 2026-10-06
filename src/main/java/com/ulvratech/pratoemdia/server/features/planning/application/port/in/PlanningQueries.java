@@ -5,6 +5,7 @@ import com.ulvratech.pratoemdia.server.features.planning.application.dto.Plannin
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.WeeklyPlanOutput;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.WeeklyPlanningPreferenceOutput;
 import java.util.List;
+import java.util.UUID;
 
 public interface PlanningQueries {
     WeeklyPlanningPreferenceOutput preference(Actor actor);
@@ -12,4 +13,6 @@ public interface PlanningQueries {
     List<WeeklyPlanOutput> list(Actor actor);
 
     WeeklyPlanOutput get(PlanQuery input);
+
+    WeeklyPlanOutput getForNutritionist(Actor actor, UUID patientId, UUID planId);
 }

@@ -45,6 +45,49 @@ class OpenApiIntegrationTest {
     }
 
     @Test
+    void documentsTrackingPayloadsAndResponses() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath(
+                                "$.paths['/api/v1/planned-meals/{plannedMealId}/completion-events'].post.parameters[?(@.name == 'Idempotency-Key')].required"
+                        ).value(true)
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.paths['/api/v1/planned-meals/{plannedMealId}/completion-events'].post.requestBody.content['application/json'].schema['$ref']"
+                        ).exists()
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.paths['/api/v1/planned-meals/{plannedMealId}/completion-events'].post.responses['201']"
+                        ).exists()
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.paths['/api/v1/planned-meals/{plannedMealId}/completion-events'].post.responses['409']"
+                        ).exists()
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.paths['/api/v1/planned-meals/{plannedMealId}/completion-events'].get.responses['200']"
+                        ).exists()
+                )
+                .andExpect(jsonPath("$.paths['/api/v1/patients/me/completion-events'].get.responses['200']").exists())
+                .andExpect(
+                        jsonPath(
+                                "$.paths['/api/v1/nutritionists/me/patients/{patientId}/weekly-plans/{planId}/summary'].get.responses['200']"
+                        ).exists()
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.paths['/api/v1/nutritionists/me/patients/{patientId}/weekly-plans/{planId}'].get.responses['200']"
+                        ).exists()
+                )
+                .andExpect(jsonPath("$.components.schemas.CreateCompletionEventRequest.required").isArray());
+    }
+
+    @Test
     void describesBearerAuthenticationOnlyOnProtectedOperations() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
