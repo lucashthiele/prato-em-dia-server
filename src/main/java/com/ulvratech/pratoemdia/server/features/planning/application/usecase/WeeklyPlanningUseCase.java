@@ -95,6 +95,17 @@ public class WeeklyPlanningUseCase
     }
 
     @Override
+    public WeeklyPlanOutput getForNutritionist(Actor actor, UUID patientId, UUID planId) {
+        if (actor == null || !"NUTRITIONIST".equals(actor.role())
+                || !references.hasActiveRelationship(actor.userAccountId(), patientId))
+            throw new PlanningAccessDeniedException();
+        var plan = repository.findPlan(planId).orElseThrow(WeeklyPlanNotFoundException::new);
+        if (!plan.getPatientId().equals(patientId))
+            throw new PlanningAccessDeniedException();
+        return WeeklyPlanOutput.from(plan);
+    }
+
+    @Override
     public WeeklyPlanOutput confirm(PlanQuery input) {
         var plan = requireOwned(input.planId(), input.actor());
         plan.confirm(Instant.now(clock));

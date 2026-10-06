@@ -13,6 +13,10 @@ import com.ulvratech.pratoemdia.server.features.planning.presentation.web.reques
 import com.ulvratech.pratoemdia.server.features.planning.presentation.web.request.WeeklyPlanningRequests.UpdatePlanRequest;
 import com.ulvratech.pratoemdia.server.shared.openapi.OpenApiConfiguration;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -76,6 +80,21 @@ public class WeeklyPlanningController {
     @Operation(summary = "Consultar plano semanal", description = "Retorna o plano semanal quando ele pertence ao paciente autenticado.")
     WeeklyPlanOutput get(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID planId) {
         return queries.get(new PlanQuery(actor(jwt), planId));
+    }
+
+    @GetMapping("/nutritionists/me/patients/{patientId}/weekly-plans/{planId}")
+    @Operation(summary = "Consultar plano do paciente vinculado", description = "Exige vínculo ativo entre nutricionista e paciente.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Plano semanal do paciente", content = @Content(schema = @Schema(implementation = WeeklyPlanOutput.class))),
+            @ApiResponse(responseCode = "401", description = "Autenticação necessária"),
+            @ApiResponse(responseCode = "403", description = "Vínculo ativo necessário"),
+            @ApiResponse(responseCode = "404", description = "Plano não encontrado")
+    })
+    WeeklyPlanOutput getForNutritionist(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID patientId, @PathVariable UUID planId
+    ) {
+        return queries.getForNutritionist(actor(jwt), patientId, planId);
     }
 
     @PatchMapping("/weekly-plans/{planId}")

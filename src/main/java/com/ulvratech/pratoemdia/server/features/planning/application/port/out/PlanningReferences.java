@@ -7,6 +7,8 @@ import java.util.UUID;
 public interface PlanningReferences {
     Optional<UUID> patientProfileId(UUID userAccountId);
 
+    boolean hasActiveRelationship(UUID nutritionistAccountId, UUID patientId);
+
     Optional<PrescriptionPlanningSource> currentPublishedPrescription(UUID patientId);
 
     Optional<PrescriptionPlanningSource> prescriptionVersion(UUID versionId);

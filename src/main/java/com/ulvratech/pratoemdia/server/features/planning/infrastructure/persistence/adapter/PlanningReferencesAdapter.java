@@ -33,6 +33,17 @@ public class PlanningReferencesAdapter implements PlanningReferences {
     }
 
     @Override
+    public boolean hasActiveRelationship(UUID accountId, UUID patientId) {
+        return !entityManager.createNativeQuery("""
+                SELECT r.id FROM nutritionist_patient_relationship r
+                JOIN nutritionist_profile n ON n.id = r.nutritionist_id
+                WHERE n.user_account_id = :account AND r.patient_id = :patient
+                  AND r.status = 'ACTIVE'
+                """).setParameter("account", accountId).setParameter("patient", patientId)
+                .setMaxResults(1).getResultList().isEmpty();
+    }
+
+    @Override
     public Optional<PrescriptionPlanningSource> currentPublishedPrescription(UUID patientId) {
         var found = entityManager
                 .createQuery(
