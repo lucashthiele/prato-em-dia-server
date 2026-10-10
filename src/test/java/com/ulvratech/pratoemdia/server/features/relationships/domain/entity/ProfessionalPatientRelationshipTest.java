@@ -16,7 +16,8 @@ class ProfessionalPatientRelationshipTest {
         var relationship = ProfessionalPatientRelationship.create(UUID.randomUUID(), UUID.randomUUID());
         var actor = UUID.randomUUID();
         var now = Instant.parse("2026-09-01T12:00:00Z");
-        relationship.recordEmail(RelationshipEmailStatus.FAILED, now);
+        int attempt = relationship.startEmailAttempt(now);
+        relationship.completeEmailAttempt(attempt, RelationshipEmailStatus.FAILED);
         relationship.end(actor, now);
         assertEquals(RelationshipStatus.ENDED, relationship.getStatus());
         assertEquals(actor, relationship.getEndedByUserAccountId());

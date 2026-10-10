@@ -4,9 +4,8 @@ import com.ulvratech.pratoemdia.server.features.identity.application.port.in.Rot
 import com.ulvratech.pratoemdia.server.features.relationships.application.dto.ListRelationshipsInput;
 import com.ulvratech.pratoemdia.server.features.relationships.application.dto.RelationshipQueryInput;
 import com.ulvratech.pratoemdia.server.features.relationships.application.exception.RelationshipConflictException;
-import com.ulvratech.pratoemdia.server.features.relationships.application.exception.RelationshipEmailException;
 import com.ulvratech.pratoemdia.server.features.relationships.application.exception.RelationshipNotFoundException;
-import com.ulvratech.pratoemdia.server.features.relationships.application.port.out.PatientRelationshipEmailSender;
+import com.ulvratech.pratoemdia.server.features.relationships.application.service.RelationshipEmailDelivery;
 import com.ulvratech.pratoemdia.server.features.relationships.domain.entity.ProfessionalPatientRelationship;
 import com.ulvratech.pratoemdia.server.features.relationships.domain.entity.RelationshipView;
 import com.ulvratech.pratoemdia.server.features.relationships.domain.enums.RelationshipEmailStatus;
@@ -29,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -125,10 +123,10 @@ class RelationshipUseCasesTest {
     }
 
     @Test
-    void resendRecordsSuccessfulAndFailedDeliveries() {
+    void resendSchedulesEmailAndRecordsPendingAttempts() {
         var repository = mock(RelationshipRepository.class);
         var rotate = mock(RotateInitialPassword.class);
-        var emails = mock(PatientRelationshipEmailSender.class);
+        var emails = mock(RelationshipEmailDelivery.class);
         var transactions = transactionTemplate();
         var relationship = ProfessionalPatientRelationship.create(UUID.randomUUID(), UUID.randomUUID());
         var view = view(relationship);
@@ -136,25 +134,22 @@ class RelationshipUseCasesTest {
                 .thenReturn(Optional.of(view));
         when(repository.findById(view.relationshipId())).thenReturn(Optional.of(relationship));
         when(rotate.execute(view.patientUserAccountId())).thenReturn("temporary password");
-        var useCase = new ResendPatientAccessEmailUseCase(repository, rotate, emails, transactions, clock);
+        var useCase = new ReissuePatientAccessEmailUseCase(repository, rotate, emails, transactions, clock);
         var input = new RelationshipQueryInput(view.nutritionistUserAccountId(), view.patientId());
 
         useCase.execute(input);
-        assertEquals(RelationshipEmailStatus.SENT, relationship.getEmailDeliveryStatus());
-
-        doThrow(new RuntimeException("smtp down")).when(emails)
-                .sendInitialAccess(any(), any(), any(), any());
-        assertThrows(RelationshipEmailException.class, () -> useCase.execute(input));
-        assertEquals(RelationshipEmailStatus.FAILED, relationship.getEmailDeliveryStatus());
+        assertEquals(RelationshipEmailStatus.PENDING, relationship.getEmailDeliveryStatus());
+        useCase.execute(input);
+        assertEquals(RelationshipEmailStatus.PENDING, relationship.getEmailDeliveryStatus());
         assertEquals(2, relationship.getEmailAttemptCount());
     }
 
     @Test
     void resendReportsMissingViewAndEntity() {
         var repository = mock(RelationshipRepository.class);
-        var useCase = new ResendPatientAccessEmailUseCase(
+        var useCase = new ReissuePatientAccessEmailUseCase(
                 repository, mock(RotateInitialPassword.class),
-                mock(PatientRelationshipEmailSender.class), transactionTemplate(), clock
+                mock(RelationshipEmailDelivery.class), transactionTemplate(), clock
         );
         var input = new RelationshipQueryInput(UUID.randomUUID(), UUID.randomUUID());
         assertThrows(RelationshipNotFoundException.class, () -> useCase.execute(input));

@@ -25,7 +25,7 @@ separação entre domínio, aplicação, infraestrutura e apresentação.
 - Docker Compose;
 - JUnit, ArchUnit, Testcontainers e JaCoCo;
 - Springdoc OpenAPI;
-- Mailpit para inspeção de e-mails em desenvolvimento.
+- Resend para envio de e-mails.
 
 ## Pré-requisitos
 
@@ -37,10 +37,11 @@ Não é necessário instalar o Maven: o projeto inclui o Maven Wrapper.
 ## Executando localmente
 
 1. Crie `local.env` na raiz do projeto e defina uma chave JWT com pelo menos
-   32 bytes:
+   32 bytes e sua chave de API do Resend:
 
    ```properties
    JWT_SECRET=troque-esta-chave-local-por-uma-chave-segura
+   RESEND_API_KEY=re_sua_chave
    ```
 
 2. Inicie a aplicação:
@@ -49,8 +50,8 @@ Não é necessário instalar o Maven: o projeto inclui o Maven Wrapper.
    ./mvnw spring-boot:run
    ```
 
-O suporte a Docker Compose do Spring Boot inicia automaticamente o PostgreSQL e
-o Mailpit definidos em `compose.yaml`. As migrations do Flyway são aplicadas na
+O suporte a Docker Compose do Spring Boot inicia automaticamente o PostgreSQL
+definido em `compose.yaml`. As migrations do Flyway são aplicadas na
 inicialização.
 
 Depois que o servidor estiver pronto, os principais endereços locais são:
@@ -60,7 +61,6 @@ Depois que o servidor estiver pronto, os principais endereços locais são:
 | API | `http://localhost:8080` |
 | Swagger UI | `http://localhost:8080/swagger-ui.html` |
 | OpenAPI JSON | `http://localhost:8080/v3/api-docs` |
-| Mailpit | `http://localhost:8025` |
 | PostgreSQL | `localhost:5432` |
 
 Para encerrar os serviços locais iniciados pelo Compose:
@@ -79,11 +79,14 @@ de propriedades. Além de `JWT_SECRET`, as principais variáveis opcionais são:
 | `JWT_ISSUER` | `prato-em-dia` | Emissor dos tokens |
 | `JWT_ACCESS_TOKEN_TTL` | `PT15M` | Duração do access token |
 | `JWT_REFRESH_TOKEN_TTL` | `P30D` | Duração do refresh token |
-| `MAIL_HOST` | `localhost` | Servidor SMTP |
-| `MAIL_PORT` | `1025` | Porta SMTP |
-| `MAIL_FROM` | `no-reply@pratoemdia.local` | Remetente dos e-mails |
+| `MAIL_FROM` | `onboarding@resend.dev` | Remetente dos e-mails; use um domínio verificado no Resend para enviar a outros destinatários |
 | `APP_URL` | `http://localhost:3000` | URL usada nos links enviados por e-mail |
 | `SERVER_PORT` | `8080` | Porta HTTP da aplicação |
+
+`RESEND_API_KEY` é obrigatória. O envio de e-mails é agendado após a criação do
+vínculo ou a solicitação de reenvio. O status começa como `PENDING` e passa a
+`SENT` ou `FAILED` quando a chamada ao Resend termina. `SENT` indica que o
+Resend aceitou a mensagem, não que ela foi entregue à caixa de entrada.
 
 As propriedades padrão do Spring, como `SPRING_DATASOURCE_URL`,
 `SPRING_DATASOURCE_USERNAME` e `SPRING_DATASOURCE_PASSWORD`, podem ser usadas

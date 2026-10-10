@@ -8,7 +8,7 @@ import com.ulvratech.pratoemdia.server.features.relationships.application.port.i
 import com.ulvratech.pratoemdia.server.features.relationships.application.port.in.EndNutritionistRelationship;
 import com.ulvratech.pratoemdia.server.features.relationships.application.port.in.GetNutritionistPatient;
 import com.ulvratech.pratoemdia.server.features.relationships.application.port.in.ListNutritionistPatients;
-import com.ulvratech.pratoemdia.server.features.relationships.application.port.in.ResendPatientAccessEmail;
+import com.ulvratech.pratoemdia.server.features.relationships.application.port.in.ReissuePatientAccessEmail;
 import com.ulvratech.pratoemdia.server.features.relationships.presentation.web.request.CreatePatientRelationshipRequest;
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageResult;
 import com.ulvratech.pratoemdia.server.shared.openapi.OpenApiConfiguration;
@@ -45,20 +45,20 @@ public class NutritionistPatientsController {
     private final ListNutritionistPatients list;
     private final GetNutritionistPatient get;
     private final EndNutritionistRelationship end;
-    private final ResendPatientAccessEmail resend;
+    private final ReissuePatientAccessEmail reissueAccess;
 
     public NutritionistPatientsController(
             CreateRelationship c,
             ListNutritionistPatients l,
             GetNutritionistPatient g,
             EndNutritionistRelationship e,
-            ResendPatientAccessEmail r
+            ReissuePatientAccessEmail r
     ) {
         create = c;
         list = l;
         get = g;
         end = e;
-        resend = r;
+        reissueAccess = r;
     }
 
     @PostMapping
@@ -95,10 +95,10 @@ public class NutritionistPatientsController {
     }
 
     @PostMapping("/{patientId}/access-email")
-    @Operation(summary = "Reenviar acesso ao paciente", description = "Reenvia ao paciente o e-mail com as instruções de acesso.")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    void resend(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID patientId) {
-        resend.execute(new RelationshipQueryInput(id(jwt), patientId));
+    @Operation(summary = "Reenviar acesso ao paciente", description = "Agenda o envio das instruções de acesso ao paciente.")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    void reissueAccess(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID patientId) {
+        reissueAccess.execute(new RelationshipQueryInput(id(jwt), patientId));
     }
 
     private UUID id(Jwt jwt) {

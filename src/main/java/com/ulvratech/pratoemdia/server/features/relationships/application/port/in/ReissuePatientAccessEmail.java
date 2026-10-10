@@ -2,6 +2,6 @@ package com.ulvratech.pratoemdia.server.features.relationships.application.port.
 
 import com.ulvratech.pratoemdia.server.features.relationships.application.dto.RelationshipQueryInput;
 
-public interface ResendPatientAccessEmail {
+public interface ReissuePatientAccessEmail {
     void execute(RelationshipQueryInput input);
 }

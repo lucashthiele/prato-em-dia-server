@@ -73,10 +73,18 @@ public class ProfessionalPatientRelationship {
         endedByUserAccountId = actor;
     }
 
-    public void recordEmail(RelationshipEmailStatus result, Instant now) {
-        emailDeliveryStatus = result;
+    public int startEmailAttempt(Instant now) {
+        emailDeliveryStatus = RelationshipEmailStatus.PENDING;
         emailAttemptCount++;
         emailLastAttemptAt = now;
+        return emailAttemptCount;
+    }
+
+    public boolean completeEmailAttempt(int attempt, RelationshipEmailStatus result) {
+        if (emailAttemptCount != attempt || emailDeliveryStatus != RelationshipEmailStatus.PENDING)
+            return false;
+        emailDeliveryStatus = result;
+        return true;
     }
 
     public UUID getId() {

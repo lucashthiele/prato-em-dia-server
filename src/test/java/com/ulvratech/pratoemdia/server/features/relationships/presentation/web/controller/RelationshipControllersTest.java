@@ -9,7 +9,7 @@ import com.ulvratech.pratoemdia.server.features.relationships.application.port.i
 import com.ulvratech.pratoemdia.server.features.relationships.application.port.in.GetNutritionistPatient;
 import com.ulvratech.pratoemdia.server.features.relationships.application.port.in.GetPatientRelationship;
 import com.ulvratech.pratoemdia.server.features.relationships.application.port.in.ListNutritionistPatients;
-import com.ulvratech.pratoemdia.server.features.relationships.application.port.in.ResendPatientAccessEmail;
+import com.ulvratech.pratoemdia.server.features.relationships.application.port.in.ReissuePatientAccessEmail;
 import com.ulvratech.pratoemdia.server.features.relationships.presentation.web.request.CreatePatientRelationshipRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -29,8 +29,8 @@ class RelationshipControllersTest {
         var list = mock(ListNutritionistPatients.class);
         var get = mock(GetNutritionistPatient.class);
         var end = mock(EndNutritionistRelationship.class);
-        var resend = mock(ResendPatientAccessEmail.class);
-        var controller = new NutritionistPatientsController(create, list, get, end, resend);
+        var reissueAccess = mock(ReissuePatientAccessEmail.class);
+        var controller = new NutritionistPatientsController(create, list, get, end, reissueAccess);
         var actor = UUID.randomUUID();
         var patient = UUID.randomUUID();
         var jwt = jwt(actor);
@@ -45,13 +45,13 @@ class RelationshipControllersTest {
         controller.list(jwt, 2, 15);
         controller.get(jwt, patient);
         controller.end(jwt, patient);
-        controller.resend(jwt, patient);
+        controller.reissueAccess(jwt, patient);
 
         verify(create).execute(any(CreateRelationshipInput.class));
         verify(list).execute(new ListRelationshipsInput(actor, 2, 15));
         verify(get).execute(new RelationshipQueryInput(actor, patient));
         verify(end).execute(new RelationshipQueryInput(actor, patient));
-        verify(resend).execute(new RelationshipQueryInput(actor, patient));
+        verify(reissueAccess).execute(new RelationshipQueryInput(actor, patient));
     }
 
     @Test

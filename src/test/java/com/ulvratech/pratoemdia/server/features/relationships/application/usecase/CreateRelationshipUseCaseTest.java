@@ -3,8 +3,7 @@ package com.ulvratech.pratoemdia.server.features.relationships.application.useca
 import com.ulvratech.pratoemdia.server.features.identity.application.dto.ProvisionPatientAccountOutput;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.in.ProvisionPatientAccount;
 import com.ulvratech.pratoemdia.server.features.relationships.application.dto.CreateRelationshipInput;
-import com.ulvratech.pratoemdia.server.features.relationships.application.port.out.PatientRelationshipEmailSender;
-import com.ulvratech.pratoemdia.server.features.relationships.domain.entity.ProfessionalPatientRelationship;
+import com.ulvratech.pratoemdia.server.features.relationships.application.service.RelationshipEmailDelivery;
 import com.ulvratech.pratoemdia.server.features.relationships.domain.entity.RelationshipView;
 import com.ulvratech.pratoemdia.server.features.relationships.domain.enums.RelationshipEmailStatus;
 import com.ulvratech.pratoemdia.server.features.relationships.domain.enums.RelationshipStatus;
@@ -24,16 +23,15 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class CreateRelationshipUseCaseTest {
     @Test
-    void keepsProvisioningAndReportsFailedEmail() {
+    void returnsPendingWhileEmailIsScheduled() {
         var repository = mock(RelationshipRepository.class);
         var accounts = mock(ProvisionPatientAccount.class);
-        var emails = mock(PatientRelationshipEmailSender.class);
+        var emails = mock(RelationshipEmailDelivery.class);
         var transactions = mock(TransactionTemplate.class);
         when(transactions.execute(any()))
                 .thenAnswer(
@@ -83,27 +81,7 @@ class CreateRelationshipUseCaseTest {
                 RelationshipEmailStatus.PENDING,
                 now
         );
-        var failed = new RelationshipView(
-                relationshipId,
-                pProfile,
-                pAccount,
-                "Patient",
-                "patient@example.com",
-                nProfile,
-                nAccount,
-                "Nutritionist",
-                RelationshipStatus.ACTIVE,
-                RelationshipEmailStatus.FAILED,
-                now
-        );
-        when(repository.findViewById(any())).thenReturn(Optional.of(pending), Optional.of(failed));
-        when(repository.findById(relationshipId))
-                .thenReturn(
-                        Optional.of(ProfessionalPatientRelationship.create(nProfile, pProfile))
-                );
-        doThrow(new RuntimeException("smtp down"))
-                .when(emails)
-                .sendInitialAccess(any(), any(), any(), any());
+        when(repository.findViewById(any())).thenReturn(Optional.of(pending));
         var result = new CreateRelationshipUseCase(
                 repository,
                 accounts,
@@ -116,6 +94,6 @@ class CreateRelationshipUseCaseTest {
                                 nAccount, "patient@example.com", "Patient"
                         )
                 );
-        assertEquals("FAILED", result.emailDeliveryStatus());
+        assertEquals("PENDING", result.emailDeliveryStatus());
     }
 }
