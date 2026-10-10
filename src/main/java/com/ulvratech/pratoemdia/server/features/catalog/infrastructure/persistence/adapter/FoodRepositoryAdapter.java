@@ -43,7 +43,7 @@ public class FoodRepositoryAdapter implements FoodRepository {
     @Override
     public PageResult<Food> findActive(PageRequest request) {
         var pageable = org.springframework.data.domain.PageRequest.of(
-                request.page(), request.size(), Sort.by(Sort.Direction.ASC, "name")
+                request.page(), request.size(), Sort.by(Sort.Direction.ASC, "name", "id")
         );
         var page = repository.findAllByActiveTrue(pageable);
         return new PageResult<>(
