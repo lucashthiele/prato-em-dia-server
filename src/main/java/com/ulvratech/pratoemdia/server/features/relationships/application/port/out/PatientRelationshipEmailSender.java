@@ -1,9 +1,11 @@
 package com.ulvratech.pratoemdia.server.features.relationships.application.port.out;
 
+import java.util.concurrent.CompletableFuture;
+
 public interface PatientRelationshipEmailSender {
-    void sendInitialAccess(
+    CompletableFuture<Void> sendInitialAccess(
             String patientName, String email, String nutritionistName, String initialPassword
     );
 
-    void sendRelationshipNotice(String patientName, String email, String nutritionistName);
+    CompletableFuture<Void> sendRelationshipNotice(String patientName, String email, String nutritionistName);
 }
