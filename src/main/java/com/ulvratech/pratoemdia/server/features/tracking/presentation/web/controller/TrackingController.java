@@ -60,7 +60,8 @@ public class TrackingController {
             @Valid @RequestBody CreateCompletionEventRequest request
     ) {
         var consumedItems = request.consumedItems() == null
-                ? List.<ConsumedItemRequest>of() : request.consumedItems();
+                ? List.<ConsumedItemRequest>of()
+                : request.consumedItems();
         return ResponseEntity.status(201).body(
                 operations.create(
                         new Create(

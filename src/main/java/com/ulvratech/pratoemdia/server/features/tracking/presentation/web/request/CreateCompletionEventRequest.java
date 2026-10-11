@@ -25,8 +25,10 @@ public record CreateCompletionEventRequest(
             UUID plannedItemId,
             UUID allowedSubstitutionId) {
         public ConsumedItem toConsumedItem() {
-            return new ConsumedItem(catalogFoodId, catalogPortionId, unit, quantity, multiplier,
-                    plannedItemId, allowedSubstitutionId);
+            return new ConsumedItem(
+                    catalogFoodId, catalogPortionId, unit, quantity, multiplier,
+                    plannedItemId, allowedSubstitutionId
+            );
         }
     }
 }

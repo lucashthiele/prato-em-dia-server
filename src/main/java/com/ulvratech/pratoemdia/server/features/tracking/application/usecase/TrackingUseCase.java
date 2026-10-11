@@ -89,7 +89,8 @@ public class TrackingUseCase implements TrackingOperations {
         List<LoggedItem> consumed = resolveConsumed(plan.getPlanningMode(), meal, source, input.consumedItems());
         Type eventType = consumed.isEmpty() ? Type.NOT_COMPLETED
                 : consumed.stream().anyMatch(i -> i.allowedSubstitutionId() != null)
-                        ? Type.SUBSTITUTED : Type.COMPLETED;
+                        ? Type.SUBSTITUTED
+                        : Type.COMPLETED;
         var candidate = new MealCompletionEvent(
                 0, UUID.randomUUID(), patient, plan.getId(),
                 meal.id(), eventType, input.reason(), input.occurredAt(), now,
@@ -111,8 +112,10 @@ public class TrackingUseCase implements TrackingOperations {
                 .findFirst().orElseThrow();
         var source = references.prescriptionVersion(plan.getPrescriptionVersionId())
                 .orElseThrow(() -> invalid("Prescription version is unavailable"));
-        return new FoodLog(meal.id(), plan.getPlanningMode(), meal.items().stream()
-                .map(item -> foodLogItem(item, source, plan.getPlanningMode())).toList());
+        return new FoodLog(
+                meal.id(), plan.getPlanningMode(), meal.items().stream()
+                        .map(item -> foodLogItem(item, source, plan.getPlanningMode())).toList()
+        );
     }
 
     @Override
@@ -233,10 +236,13 @@ public class TrackingUseCase implements TrackingOperations {
                     || item.unit() == null
                     || item.unit().isBlank() || item.quantity() == null || item.multiplier() == null
                     || item.quantity().signum() < 0 || item.multiplier().signum() <= 0)
-                throw invalid("Each consumed item needs food, portion, unit, nonnegative quantity and positive multiplier");
-            PlannedMealItem planned = item.plannedItemId() == null ? null : meal.items().stream()
-                    .filter(candidate -> candidate.id().equals(item.plannedItemId())).findFirst()
-                    .orElseThrow(() -> invalid("Planned item is unavailable"));
+                throw invalid(
+                        "Each consumed item needs food, portion, unit, nonnegative quantity and positive multiplier"
+                );
+            PlannedMealItem planned = item.plannedItemId() == null ? null
+                    : meal.items().stream()
+                            .filter(candidate -> candidate.id().equals(item.plannedItemId())).findFirst()
+                            .orElseThrow(() -> invalid("Planned item is unavailable"));
             if (planned != null && !seenPlanned.add(planned.id()))
                 throw invalid("A planned item can appear only once in consumedItems");
             if (item.quantity().signum() == 0 && planned == null)
@@ -285,25 +291,42 @@ public class TrackingUseCase implements TrackingOperations {
                 : source.meals().stream().flatMap(meal -> meal.items().stream())
                         .filter(candidate -> candidate.id().equals(item.prescribedMealItemId()))
                         .flatMap(candidate -> candidate.substitutions().stream())
-                        .map(substitution -> logged(
-                                new ConsumedItem(substitution.foodId(), substitution.portionId(),
-                                        substitution.unit(), substitution.quantity(), BigDecimal.ONE,
-                                        item.id(), substitution.id()), catalogPortionOrNull(
-                                                substitution.foodId(), substitution.portionId())
-                        )).toList();
-        var planned = logged(new ConsumedItem(item.foodId(), item.foodPortionId(), item.unit(),
-                item.quantity(), BigDecimal.ONE, item.id(), null),
-                catalogPortionOrNull(item.foodId(), item.foodPortionId()));
-        return new FoodLogItem(planned.plannedItemId(), planned.catalogFoodId(),
+                        .map(
+                                substitution -> logged(
+                                        new ConsumedItem(
+                                                substitution.foodId(), substitution.portionId(),
+                                                substitution.unit(), substitution.quantity(), BigDecimal.ONE,
+                                                item.id(), substitution.id()
+                                        ),
+                                        catalogPortionOrNull(
+                                                substitution.foodId(), substitution.portionId()
+                                        )
+                                )
+                        ).toList();
+        var planned = logged(
+                new ConsumedItem(
+                        item.foodId(), item.foodPortionId(), item.unit(),
+                        item.quantity(), BigDecimal.ONE, item.id(), null
+                ),
+                catalogPortionOrNull(item.foodId(), item.foodPortionId())
+        );
+        return new FoodLogItem(
+                planned.plannedItemId(), planned.catalogFoodId(),
                 planned.catalogPortionId(), planned.unit(), planned.quantity(), planned.multiplier(),
-                planned.canonicalConversion(), planned.kcalSnapshot(), substitutions);
+                planned.canonicalConversion(), planned.kcalSnapshot(), substitutions
+        );
     }
 
     private List<LoggedItem> plannedSnapshot(PlannedMeal meal) {
-        return meal.items().stream().map(item -> logged(
-                new ConsumedItem(item.foodId(), item.foodPortionId(), item.unit(), item.quantity(),
-                        BigDecimal.ONE, item.id(), item.allowedSubstitutionId()),
-                catalogPortionOrNull(item.foodId(), item.foodPortionId()))).toList();
+        return meal.items().stream().map(
+                item -> logged(
+                        new ConsumedItem(
+                                item.foodId(), item.foodPortionId(), item.unit(), item.quantity(),
+                                BigDecimal.ONE, item.id(), item.allowedSubstitutionId()
+                        ),
+                        catalogPortionOrNull(item.foodId(), item.foodPortionId())
+                )
+        ).toList();
     }
 
     private FoodPortion checkedCatalogItem(ConsumedItem item) {
@@ -336,10 +359,12 @@ public class TrackingUseCase implements TrackingOperations {
             if (energy != null && energy.amount() != null)
                 kcal = energy.amount().multiply(factor).stripTrailingZeros();
         }
-        return new LoggedItem(item.plannedItemId(), item.catalogFoodId(), item.catalogPortionId(),
+        return new LoggedItem(
+                item.plannedItemId(), item.catalogFoodId(), item.catalogPortionId(),
                 item.unit().trim(), quantity, multiplier,
                 grams == null ? null : new CanonicalConversion(grams), kcal,
-                item.allowedSubstitutionId());
+                item.allowedSubstitutionId()
+        );
     }
 
     private Event sameOrConflict(MealCompletionEvent event, String hash) {
