@@ -181,6 +181,9 @@
                             <includes>
                                 <include>**/*.md</include>
                             </includes>
+                            <excludes>
+                                <exclude>.maestri/roles/**</exclude>
+                            </excludes>
                             <endWithNewline/>
                         </format>
                     </formats>
