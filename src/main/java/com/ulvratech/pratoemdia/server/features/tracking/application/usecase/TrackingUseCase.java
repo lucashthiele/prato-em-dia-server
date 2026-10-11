@@ -3,10 +3,17 @@ package com.ulvratech.pratoemdia.server.features.tracking.application.usecase;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulvratech.pratoemdia.server.features.planning.domain.entity.PlannedMealItem;
+import com.ulvratech.pratoemdia.server.features.planning.domain.entity.PlannedMeal;
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PlanningMode;
+import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.FoodPortion;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.TrackingData.Actor;
-import com.ulvratech.pratoemdia.server.features.tracking.application.dto.TrackingData.Choice;
+import com.ulvratech.pratoemdia.server.features.tracking.application.dto.TrackingData.CanonicalConversion;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.TrackingData.Create;
+import com.ulvratech.pratoemdia.server.features.tracking.application.dto.TrackingData.ConsumedItem;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.TrackingData.Event;
+import com.ulvratech.pratoemdia.server.features.tracking.application.dto.TrackingData.FoodLog;
+import com.ulvratech.pratoemdia.server.features.tracking.application.dto.TrackingData.FoodLogItem;
+import com.ulvratech.pratoemdia.server.features.tracking.application.dto.TrackingData.LoggedItem;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.TrackingData.Summary;
 import com.ulvratech.pratoemdia.server.features.tracking.application.exception.TrackingException;
 import com.ulvratech.pratoemdia.server.features.tracking.application.exception.TrackingException.Kind;
@@ -22,6 +29,8 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.HashMap;
@@ -57,13 +66,8 @@ public class TrackingUseCase implements TrackingOperations {
         if (input.idempotencyKey() == null || input.idempotencyKey().isBlank()
                 || input.idempotencyKey().length() > 255)
             throw invalid("Idempotency-Key is required and must be at most 255 characters");
-        if (input.eventType() == null || input.occurredAt() == null)
-            throw invalid("eventType and occurredAt are required");
-        try {
-            MealCompletionEvent.validateChoices(input.eventType(), input.choices());
-        } catch (IllegalArgumentException e) {
-            throw invalid(e.getMessage());
-        }
+        if (input.occurredAt() == null)
+            throw invalid("occurredAt is required");
         String hash = hash(input);
         var existing = repository.byKey(patient, input.idempotencyKey());
         if (existing.isPresent())
@@ -80,43 +84,38 @@ public class TrackingUseCase implements TrackingOperations {
         var date = input.occurredAt().atZone(ZONE).toLocalDate();
         if (date.isBefore(plan.getPeriodStart()) || date.isAfter(plan.getPeriodEnd()))
             throw invalid("occurredAt is outside the plan period");
-        List<PlannedMealItem> consumed = new ArrayList<>(meal.items());
-        if (input.eventType() == Type.SUBSTITUTED) {
-            var seen = new HashSet<UUID>();
-            var source = references.prescriptionVersion(plan.getPrescriptionVersionId())
-                    .orElseThrow(() -> invalid("Prescription version is unavailable"));
-            for (Choice choice : input.choices()) {
-                if (choice == null || choice.plannedMealItemId() == null
-                        || choice.allowedSubstitutionId() == null
-                        || !seen.add(choice.plannedMealItemId()))
-                    throw invalid("Each planned item needs one distinct substitution");
-                var item = meal.items().stream().filter(i -> i.id().equals(choice.plannedMealItemId()))
-                        .findFirst().orElseThrow(() -> invalid("Planned item is unavailable"));
-                var prescribed = source.meals().stream().flatMap(m -> m.items().stream())
-                        .filter(i -> i.id().equals(item.prescribedMealItemId())).findFirst()
-                        .orElseThrow(() -> invalid("Prescribed item is unavailable"));
-                var substitute = prescribed.substitutions().stream()
-                        .filter(s -> s.id().equals(choice.allowedSubstitutionId())).findFirst()
-                        .orElseThrow(() -> invalid("Substitution is not authorized"));
-                consumed.replaceAll(
-                        i -> i.id().equals(item.id())
-                                ? new PlannedMealItem(
-                                        i.id(), i.prescribedMealItemId(), substitute.id(),
-                                        substitute.foodId(), substitute.portionId(), substitute.quantity(),
-                                        substitute.unit(), i.order()
-                                )
-                                : i
-                );
-            }
-        }
+        var source = references.prescriptionVersion(plan.getPrescriptionVersionId())
+                .orElseThrow(() -> invalid("Prescription version is unavailable"));
+        List<LoggedItem> consumed = resolveConsumed(plan.getPlanningMode(), meal, source, input.consumedItems());
+        Type eventType = consumed.isEmpty() ? Type.NOT_COMPLETED
+                : consumed.stream().anyMatch(i -> i.allowedSubstitutionId() != null)
+                        ? Type.SUBSTITUTED
+                        : Type.COMPLETED;
         var candidate = new MealCompletionEvent(
                 0, UUID.randomUUID(), patient, plan.getId(),
-                meal.id(), input.eventType(), input.reason(), input.occurredAt(), now,
-                input.idempotencyKey(), hash, encode(meal), encode(meal.items()),
-                encode(input.eventType() == Type.NOT_COMPLETED ? List.of() : consumed)
+                meal.id(), eventType, input.reason(), input.occurredAt(), now,
+                input.idempotencyKey(), hash, encode(meal), encode(plannedSnapshot(meal)), encode(consumed)
         );
         var saved = repository.append(candidate);
         return sameOrConflict(saved, hash);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FoodLog foodLog(Actor actor, UUID plannedMealId) {
+        UUID patient = requirePatient(actor);
+        var plan = references.planForMeal(plannedMealId)
+                .orElseThrow(() -> new TrackingException(Kind.NOT_FOUND, "Planned meal was not found"));
+        if (!plan.getPatientId().equals(patient))
+            throw denied();
+        var meal = plan.getMeals().stream().filter(m -> m.id().equals(plannedMealId))
+                .findFirst().orElseThrow();
+        var source = references.prescriptionVersion(plan.getPrescriptionVersionId())
+                .orElseThrow(() -> invalid("Prescription version is unavailable"));
+        return new FoodLog(
+                meal.id(), plan.getPlanningMode(), meal.items().stream()
+                        .map(item -> foodLogItem(item, source, plan.getPlanningMode())).toList()
+        );
     }
 
     @Override
@@ -212,8 +211,8 @@ public class TrackingUseCase implements TrackingOperations {
     private String hash(Create input) {
         // The key is scoped to the patient; all command fields, including the meal, are compared.
         String canonical = encode(
-                new Object[] { input.plannedMealId(), input.eventType(),
-                        input.reason(), input.occurredAt(), input.choices() }
+                new Object[] { input.plannedMealId(), input.reason(), input.occurredAt(),
+                        input.consumedItems() }
         );
         try {
             return HexFormat.of().formatHex(
@@ -223,6 +222,149 @@ public class TrackingUseCase implements TrackingOperations {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    private List<LoggedItem> resolveConsumed(
+            PlanningMode mode, PlannedMeal meal,
+            com.ulvratech.pratoemdia.server.features.planning.application.dto.PrescriptionPlanningSource source,
+            List<ConsumedItem> input
+    ) {
+        var seenPlanned = new HashSet<UUID>();
+        var resolved = new ArrayList<LoggedItem>();
+        for (ConsumedItem item : input) {
+            if (item == null || item.catalogFoodId() == null || item.catalogPortionId() == null
+                    || item.unit() == null
+                    || item.unit().isBlank() || item.quantity() == null || item.multiplier() == null
+                    || item.quantity().signum() < 0 || item.multiplier().signum() <= 0)
+                throw invalid(
+                        "Each consumed item needs food, portion, unit, nonnegative quantity and positive multiplier"
+                );
+            PlannedMealItem planned = item.plannedItemId() == null ? null
+                    : meal.items().stream()
+                            .filter(candidate -> candidate.id().equals(item.plannedItemId())).findFirst()
+                            .orElseThrow(() -> invalid("Planned item is unavailable"));
+            if (planned != null && !seenPlanned.add(planned.id()))
+                throw invalid("A planned item can appear only once in consumedItems");
+            if (item.quantity().signum() == 0 && planned == null)
+                throw invalid("Only a planned item can be removed with quantity zero");
+            if (item.quantity().signum() == 0 && planned != null
+                    && !planned.foodId().equals(item.catalogFoodId()))
+                throw invalid("A removed planned item must keep its planned food");
+            if (planned == null && item.quantity().signum() <= 0)
+                throw invalid("A new free item needs a portion and positive quantity");
+            if (mode != PlanningMode.FREE && planned == null)
+                throw invalid("This planning mode requires a planned item");
+            if (mode == PlanningMode.RESTRICTED && !planned.foodId().equals(item.catalogFoodId()))
+                throw invalid("Restricted plans only allow the planned food");
+            if (item.allowedSubstitutionId() != null) {
+                if (mode != PlanningMode.SUBSTITUTIONS_ONLY)
+                    throw invalid("Allowed substitutions are only valid in substitutions-only plans");
+                if (planned == null)
+                    throw invalid("A substitution must reference a planned item");
+                var substitution = source.meals().stream().flatMap(candidate -> candidate.items().stream())
+                        .filter(candidate -> candidate.id().equals(planned.prescribedMealItemId()))
+                        .flatMap(candidate -> candidate.substitutions().stream())
+                        .filter(candidate -> candidate.id().equals(item.allowedSubstitutionId())).findFirst()
+                        .orElseThrow(() -> invalid("Substitution is not authorized"));
+                if (!substitution.foodId().equals(item.catalogFoodId()))
+                    throw invalid("Consumed food does not match the authorized substitution");
+            } else if (mode == PlanningMode.SUBSTITUTIONS_ONLY
+                    && !planned.foodId().equals(item.catalogFoodId())) {
+                throw invalid("Substitutions-only plans require an authorized substitution");
+            }
+            var portion = checkedCatalogItem(item);
+            if (portion.getUnit() != null && !portion.getUnit().equals(item.unit().trim()))
+                throw invalid("Consumed unit does not match the catalog portion unit");
+            resolved.add(logged(item, portion));
+        }
+        if (!input.isEmpty() && seenPlanned.size() != meal.items().size())
+            throw invalid("A nonempty consumedItems list needs exactly one line for every planned item");
+        return List.copyOf(resolved);
+    }
+
+    private FoodLogItem foodLogItem(
+            PlannedMealItem item,
+            com.ulvratech.pratoemdia.server.features.planning.application.dto.PrescriptionPlanningSource source,
+            PlanningMode mode
+    ) {
+        var substitutions = mode != PlanningMode.SUBSTITUTIONS_ONLY ? List.<LoggedItem>of()
+                : source.meals().stream().flatMap(meal -> meal.items().stream())
+                        .filter(candidate -> candidate.id().equals(item.prescribedMealItemId()))
+                        .flatMap(candidate -> candidate.substitutions().stream())
+                        .map(
+                                substitution -> logged(
+                                        new ConsumedItem(
+                                                substitution.foodId(), substitution.portionId(),
+                                                substitution.unit(), substitution.quantity(), BigDecimal.ONE,
+                                                item.id(), substitution.id()
+                                        ),
+                                        catalogPortionOrNull(
+                                                substitution.foodId(), substitution.portionId()
+                                        )
+                                )
+                        ).toList();
+        var planned = logged(
+                new ConsumedItem(
+                        item.foodId(), item.foodPortionId(), item.unit(),
+                        item.quantity(), BigDecimal.ONE, item.id(), null
+                ),
+                catalogPortionOrNull(item.foodId(), item.foodPortionId())
+        );
+        return new FoodLogItem(
+                planned.plannedItemId(), planned.catalogFoodId(),
+                planned.catalogPortionId(), planned.unit(), planned.quantity(), planned.multiplier(),
+                planned.canonicalConversion(), planned.kcalSnapshot(), substitutions
+        );
+    }
+
+    private List<LoggedItem> plannedSnapshot(PlannedMeal meal) {
+        return meal.items().stream().map(
+                item -> logged(
+                        new ConsumedItem(
+                                item.foodId(), item.foodPortionId(), item.unit(), item.quantity(),
+                                BigDecimal.ONE, item.id(), item.allowedSubstitutionId()
+                        ),
+                        catalogPortionOrNull(item.foodId(), item.foodPortionId())
+                )
+        ).toList();
+    }
+
+    private FoodPortion checkedCatalogItem(ConsumedItem item) {
+        references.activeFood(item.catalogFoodId())
+                .orElseThrow(() -> invalid("Catalog food is unavailable"));
+        if (item.catalogPortionId() == null)
+            throw invalid("Catalog portion is required");
+        return references.activePortion(item.catalogFoodId(), item.catalogPortionId())
+                .orElseThrow(() -> invalid("Catalog portion is unavailable for this food"));
+    }
+
+    private FoodPortion catalogPortionOrNull(UUID foodId, UUID portionId) {
+        return portionId == null ? null : references.activePortion(foodId, portionId).orElse(null);
+    }
+
+    private LoggedItem logged(ConsumedItem item, FoodPortion portion) {
+        BigDecimal multiplier = item.multiplier().stripTrailingZeros();
+        BigDecimal quantity = item.quantity().stripTrailingZeros();
+        BigDecimal factor = null;
+        BigDecimal grams = null;
+        if (portion != null && portion.getGramsEquivalent() != null) {
+            factor = quantity.multiply(multiplier).divide(portion.getQuantity(), 12, RoundingMode.HALF_UP);
+            grams = factor.multiply(portion.getGramsEquivalent()).stripTrailingZeros();
+        } else if ("g".equalsIgnoreCase(item.unit().trim())) {
+            grams = quantity.multiply(multiplier).stripTrailingZeros();
+        }
+        BigDecimal kcal = null;
+        if (portion != null && factor != null) {
+            var energy = portion.getNutrients().get("energy_kcal");
+            if (energy != null && energy.amount() != null)
+                kcal = energy.amount().multiply(factor).stripTrailingZeros();
+        }
+        return new LoggedItem(
+                item.plannedItemId(), item.catalogFoodId(), item.catalogPortionId(),
+                item.unit().trim(), quantity, multiplier,
+                grams == null ? null : new CanonicalConversion(grams), kcal,
+                item.allowedSubstitutionId()
+        );
     }
 
     private Event sameOrConflict(MealCompletionEvent event, String hash) {

@@ -1,6 +1,12 @@
 package com.ulvratech.pratoemdia.server.features.tracking.infrastructure.persistence.adapter;
 
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PrescriptionPlanningSource;
+import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.Food;
+import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.FoodPortion;
+import com.ulvratech.pratoemdia.server.features.catalog.infrastructure.persistence.mapper.FoodMapper;
+import com.ulvratech.pratoemdia.server.features.catalog.infrastructure.persistence.mapper.FoodPortionMapper;
+import com.ulvratech.pratoemdia.server.features.catalog.infrastructure.persistence.model.FoodModel;
+import com.ulvratech.pratoemdia.server.features.catalog.infrastructure.persistence.model.FoodPortionModel;
 import com.ulvratech.pratoemdia.server.features.planning.application.port.out.PlanningReferences;
 import com.ulvratech.pratoemdia.server.features.planning.domain.entity.WeeklyPlan;
 import com.ulvratech.pratoemdia.server.features.planning.infrastructure.persistence.mapper.WeeklyPlanningMapper;
@@ -16,14 +22,18 @@ public class TrackingReferencesAdapter implements TrackingReferences {
     private final EntityManager entityManager;
     private final WeeklyPlanningMapper mapper;
     private final PlanningReferences prescriptions;
+    private final FoodMapper foodMapper;
+    private final FoodPortionMapper portionMapper;
 
     public TrackingReferencesAdapter(
             EntityManager entityManager, WeeklyPlanningMapper mapper,
-            PlanningReferences prescriptions
+            PlanningReferences prescriptions, FoodMapper foodMapper, FoodPortionMapper portionMapper
     ) {
         this.entityManager = entityManager;
         this.mapper = mapper;
         this.prescriptions = prescriptions;
+        this.foodMapper = foodMapper;
+        this.portionMapper = portionMapper;
     }
 
     @Override
@@ -62,5 +72,18 @@ public class TrackingReferencesAdapter implements TrackingReferences {
     @Override
     public Optional<PrescriptionPlanningSource> prescriptionVersion(UUID versionId) {
         return prescriptions.prescriptionVersion(versionId);
+    }
+
+    @Override
+    public Optional<Food> activeFood(UUID foodId) {
+        return Optional.ofNullable(entityManager.find(FoodModel.class, foodId))
+                .filter(FoodModel::isActive).map(foodMapper::toDomain);
+    }
+
+    @Override
+    public Optional<FoodPortion> activePortion(UUID foodId, UUID portionId) {
+        return Optional.ofNullable(entityManager.find(FoodPortionModel.class, portionId))
+                .filter(portion -> portion.isActive() && portion.getFoodId().equals(foodId))
+                .map(portionMapper::toDomain);
     }
 }

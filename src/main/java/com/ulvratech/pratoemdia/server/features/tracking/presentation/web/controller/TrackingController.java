@@ -3,10 +3,11 @@ package com.ulvratech.pratoemdia.server.features.tracking.presentation.web.contr
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.TrackingData.Actor;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.TrackingData.Create;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.TrackingData.Event;
+import com.ulvratech.pratoemdia.server.features.tracking.application.dto.TrackingData.FoodLog;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.TrackingData.Summary;
 import com.ulvratech.pratoemdia.server.features.tracking.application.port.in.TrackingOperations;
 import com.ulvratech.pratoemdia.server.features.tracking.presentation.web.request.CreateCompletionEventRequest;
-import com.ulvratech.pratoemdia.server.features.tracking.presentation.web.request.CreateCompletionEventRequest.ChoiceRequest;
+import com.ulvratech.pratoemdia.server.features.tracking.presentation.web.request.CreateCompletionEventRequest.ConsumedItemRequest;
 import com.ulvratech.pratoemdia.server.shared.openapi.OpenApiConfiguration;
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageResult;
 import io.swagger.v3.oas.annotations.Operation;
@@ -58,16 +59,24 @@ public class TrackingController {
             @Parameter(description = "Chave única por paciente", required = true) @RequestHeader("Idempotency-Key") String key,
             @Valid @RequestBody CreateCompletionEventRequest request
     ) {
-        var choices = request.substitutions() == null ? List.<ChoiceRequest>of() : request.substitutions();
+        var consumedItems = request.consumedItems() == null
+                ? List.<ConsumedItemRequest>of()
+                : request.consumedItems();
         return ResponseEntity.status(201).body(
                 operations.create(
                         new Create(
                                 actor(jwt), plannedMealId,
-                                key, request.eventType(), request.reason(), request.occurredAt(),
-                                choices.stream().map(ChoiceRequest::toChoice).toList()
+                                key, request.reason(), request.occurredAt(),
+                                consumedItems.stream().map(ConsumedItemRequest::toConsumedItem).toList()
                         )
                 )
         );
+    }
+
+    @GetMapping("/planned-meals/{plannedMealId}/food-log")
+    @Operation(summary = "Contexto para registro de alimentação", description = "Retorna somente o planejado e substituições autorizadas; modo e dados calculados são derivados no servidor.")
+    FoodLog foodLog(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID plannedMealId) {
+        return operations.foodLog(actor(jwt), plannedMealId);
     }
 
     @GetMapping("/planned-meals/{plannedMealId}/completion-events")
