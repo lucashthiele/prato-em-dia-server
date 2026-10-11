@@ -25,3 +25,7 @@ O Swagger adiciona o prefixo ao header `Authorization` automaticamente.
 
 As operações `login` e `refresh` aparecem como públicas. As demais operações
 declaram o esquema `bearerAuth`, de acordo com a autenticação JWT do servidor.
+
+O contexto e o registro append-only da tela de alimentação estão descritos em
+[food-log.md](food-log.md); os schemas efetivos permanecem gerados a partir dos
+DTOs do controller.

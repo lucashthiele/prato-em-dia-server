@@ -1,6 +1,10 @@
 package com.ulvratech.pratoemdia.server.features.tracking.infrastructure.persistence.adapter;
 
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PrescriptionPlanningSource;
+import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.Food;
+import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.FoodPortion;
+import com.ulvratech.pratoemdia.server.features.catalog.domain.port.out.FoodPortionRepository;
+import com.ulvratech.pratoemdia.server.features.catalog.domain.port.out.FoodRepository;
 import com.ulvratech.pratoemdia.server.features.planning.application.port.out.PlanningReferences;
 import com.ulvratech.pratoemdia.server.features.planning.domain.entity.WeeklyPlan;
 import com.ulvratech.pratoemdia.server.features.planning.infrastructure.persistence.mapper.WeeklyPlanningMapper;
@@ -16,14 +20,18 @@ public class TrackingReferencesAdapter implements TrackingReferences {
     private final EntityManager entityManager;
     private final WeeklyPlanningMapper mapper;
     private final PlanningReferences prescriptions;
+    private final FoodRepository foods;
+    private final FoodPortionRepository portions;
 
     public TrackingReferencesAdapter(
             EntityManager entityManager, WeeklyPlanningMapper mapper,
-            PlanningReferences prescriptions
+            PlanningReferences prescriptions, FoodRepository foods, FoodPortionRepository portions
     ) {
         this.entityManager = entityManager;
         this.mapper = mapper;
         this.prescriptions = prescriptions;
+        this.foods = foods;
+        this.portions = portions;
     }
 
     @Override
@@ -62,5 +70,16 @@ public class TrackingReferencesAdapter implements TrackingReferences {
     @Override
     public Optional<PrescriptionPlanningSource> prescriptionVersion(UUID versionId) {
         return prescriptions.prescriptionVersion(versionId);
+    }
+
+    @Override
+    public Optional<Food> activeFood(UUID foodId) {
+        return foods.findActiveById(foodId);
+    }
+
+    @Override
+    public Optional<FoodPortion> activePortion(UUID foodId, UUID portionId) {
+        return portions.findActiveByFoodId(foodId).stream()
+                .filter(portion -> portion.getId().equals(portionId)).findFirst();
     }
 }
