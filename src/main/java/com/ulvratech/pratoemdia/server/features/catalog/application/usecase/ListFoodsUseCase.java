@@ -4,6 +4,7 @@ import com.ulvratech.pratoemdia.server.features.catalog.application.dto.FoodOutp
 import com.ulvratech.pratoemdia.server.features.catalog.application.dto.ListFoodsInput;
 import com.ulvratech.pratoemdia.server.features.catalog.application.port.in.ListFoods;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.port.out.FoodRepository;
+import com.ulvratech.pratoemdia.server.features.catalog.domain.FoodNameNormalizer;
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageRequest;
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageResult;
 import org.springframework.stereotype.Service;
@@ -18,7 +19,10 @@ public class ListFoodsUseCase implements ListFoods {
 
     @Override
     public PageResult<FoodOutput> execute(ListFoodsInput input) {
-        var page = repository.findActive(new PageRequest(input.page(), input.size()));
+        var term = FoodNameNormalizer.normalize(input.q());
+        var page = term == null || term.isBlank()
+                ? repository.findActive(new PageRequest(input.page(), input.size()))
+                : repository.searchActive(term, new PageRequest(input.page(), input.size()));
         return new PageResult<>(
                 page.content().stream().map(FoodOutput::from).toList(),
                 page.page(), page.size(), page.totalElements(), page.totalPages()

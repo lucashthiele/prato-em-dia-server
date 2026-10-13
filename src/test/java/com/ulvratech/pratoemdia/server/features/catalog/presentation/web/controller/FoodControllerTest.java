@@ -45,7 +45,7 @@ class FoodControllerTest {
                 BigDecimal.valueOf(100)
         );
 
-        controller.list(1, 10);
+        controller.list(1, 10, null);
         controller.get(id);
         var created = controller.create(
                 jwt(UUID.randomUUID(), "ADMIN"),

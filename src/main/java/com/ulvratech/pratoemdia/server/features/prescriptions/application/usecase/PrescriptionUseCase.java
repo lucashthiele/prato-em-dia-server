@@ -24,6 +24,7 @@ import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.Pres
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.PrescribedMealItem;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.Prescription;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.PrescriptionVersion;
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.NutritionTarget;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.port.out.PrescriptionRepository;
 import jakarta.transaction.Transactional;
 import java.time.Clock;
@@ -65,6 +66,10 @@ public class PrescriptionUseCase implements PrescriptionCommands, PrescriptionQu
                 input.content().notes(),
                 meals(input.content())
         );
+        prescription.getVersions().getFirst().replaceContent(
+                input.content().title(), input.content().notes(), meals(input.content()),
+                targets(input.content())
+        );
         return PrescriptionOutput.from(repository.save(prescription));
     }
 
@@ -96,7 +101,10 @@ public class PrescriptionUseCase implements PrescriptionCommands, PrescriptionQu
         try {
             prescription
                     .requireVersion(input.versionId())
-                    .replaceContent(input.content().title(), input.content().notes(), meals(input.content()));
+                    .replaceContent(
+                            input.content().title(), input.content().notes(),
+                            meals(input.content()), targets(input.content())
+                    );
             return version(repository.save(prescription), input.versionId());
         } catch (IllegalStateException exception) {
             throw conflict(exception);
@@ -255,6 +263,12 @@ public class PrescriptionUseCase implements PrescriptionCommands, PrescriptionQu
         return input.meals().stream().map(this::meal).toList();
     }
 
+    private List<NutritionTarget> targets(PrescriptionContentInput input) {
+        return input.nutritionTargets().stream()
+                .map(target -> new NutritionTarget(target.nutrientCode(), target.amount(), target.unit()))
+                .toList();
+    }
+
     private PrescribedMeal meal(MealInput meal) {
         return PrescribedMeal.create(
                 meal.name(),
@@ -321,7 +335,13 @@ public class PrescriptionUseCase implements PrescriptionCommands, PrescriptionQu
                                                 .toList()
                                 )
                         )
-                        .toList()
+                        .toList(),
+                version.getNutritionTargets().stream()
+                        .map(
+                                target -> new PrescriptionContentInput.TargetInput(
+                                        target.nutrientCode(), target.amount(), target.unit()
+                                )
+                        ).toList()
         );
     }
 

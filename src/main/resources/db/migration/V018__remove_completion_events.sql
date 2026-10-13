@@ -1,0 +1,4 @@
+DROP TRIGGER meal_completion_event_append_only ON meal_completion_event;
+DROP FUNCTION reject_meal_completion_event_mutation();
+DROP TABLE meal_completion_event;
+DROP TYPE meal_completion_event_type;

@@ -16,6 +16,7 @@ public class PrescriptionVersion {
     private Instant publishedAt;
     private Instant archivedAt;
     private List<PrescribedMeal> meals;
+    private List<NutritionTarget> nutritionTargets;
 
     public PrescriptionVersion(
             UUID id,
@@ -29,6 +30,17 @@ public class PrescriptionVersion {
             Instant archivedAt,
             List<PrescribedMeal> meals
     ) {
+        this(
+                id, number, status, title, notes, createdByUserId, createdAt,
+                publishedAt, archivedAt, meals, List.of()
+        );
+    }
+
+    public PrescriptionVersion(
+            UUID id, int number, PrescriptionVersionStatus status, String title, String notes,
+            UUID createdByUserId, Instant createdAt, Instant publishedAt, Instant archivedAt,
+            List<PrescribedMeal> meals, List<NutritionTarget> nutritionTargets
+    ) {
         if (id == null || createdByUserId == null || number < 1)
             throw new IllegalArgumentException("Invalid prescription version");
         this.id = id;
@@ -41,10 +53,18 @@ public class PrescriptionVersion {
         this.publishedAt = publishedAt;
         this.archivedAt = archivedAt;
         this.meals = validatedMeals(meals == null ? List.of() : meals);
+        this.nutritionTargets = validatedTargets(nutritionTargets);
     }
 
     public static PrescriptionVersion draft(
             int number, UUID actor, String title, String notes, List<PrescribedMeal> meals
+    ) {
+        return draft(number, actor, title, notes, meals, List.of());
+    }
+
+    public static PrescriptionVersion draft(
+            int number, UUID actor, String title, String notes, List<PrescribedMeal> meals,
+            List<NutritionTarget> nutritionTargets
     ) {
         return new PrescriptionVersion(
                 UUID.randomUUID(),
@@ -56,7 +76,8 @@ public class PrescriptionVersion {
                 null,
                 null,
                 null,
-                meals
+                meals,
+                nutritionTargets
         );
     }
 
@@ -73,6 +94,13 @@ public class PrescriptionVersion {
             throw new IllegalArgumentException("Duplicate meal order");
         if (copy.stream().map(PrescribedMeal::mealType).distinct().count() != copy.size())
             throw new IllegalArgumentException("Duplicate meal type");
+        return copy;
+    }
+
+    private static List<NutritionTarget> validatedTargets(List<NutritionTarget> targets) {
+        var copy = List.copyOf(targets == null ? List.of() : targets);
+        if (copy.stream().map(NutritionTarget::nutrientCode).distinct().count() != copy.size())
+            throw new IllegalArgumentException("Duplicate nutrition target");
         return copy;
     }
 
@@ -115,15 +143,24 @@ public class PrescriptionVersion {
                                                 .toList()
                                 )
                         )
-                        .toList()
+                        .toList(),
+                nutritionTargets
         );
     }
 
     public void replaceContent(String title, String notes, List<PrescribedMeal> meals) {
+        replaceContent(title, notes, meals, List.of());
+    }
+
+    public void replaceContent(
+            String title, String notes, List<PrescribedMeal> meals,
+            List<NutritionTarget> nutritionTargets
+    ) {
         ensureDraft();
         this.title = normalizedLimited(title, 180);
         this.notes = AllowedSubstitution.normalized(notes);
         this.meals = validatedMeals(meals);
+        this.nutritionTargets = validatedTargets(nutritionTargets);
     }
 
     public void publish(Instant now) {
@@ -184,5 +221,9 @@ public class PrescriptionVersion {
 
     public List<PrescribedMeal> getMeals() {
         return meals;
+    }
+
+    public List<NutritionTarget> getNutritionTargets() {
+        return List.copyOf(nutritionTargets);
     }
 }

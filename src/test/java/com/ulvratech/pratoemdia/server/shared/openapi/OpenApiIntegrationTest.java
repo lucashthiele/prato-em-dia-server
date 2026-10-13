@@ -45,46 +45,18 @@ class OpenApiIntegrationTest {
     }
 
     @Test
-    void documentsTrackingPayloadsAndResponses() throws Exception {
+    void documentsDiaryAndExecutionContracts() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/v1/patients/me/calendar-periods'].get").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/patients/me/daily-nutrition-summary'].get").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/patients/me/meal-executions'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/patients/me/meal-executions/{id}'].put").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/patients/me/meal-executions/{id}/move'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/patients/me/meal-executions/{id}/restore'].post").exists())
                 .andExpect(
-                        jsonPath(
-                                "$.paths['/api/v1/planned-meals/{plannedMealId}/completion-events'].post.parameters[?(@.name == 'Idempotency-Key')].required"
-                        ).value(true)
-                )
-                .andExpect(
-                        jsonPath(
-                                "$.paths['/api/v1/planned-meals/{plannedMealId}/completion-events'].post.requestBody.content['application/json'].schema['$ref']"
-                        ).exists()
-                )
-                .andExpect(
-                        jsonPath(
-                                "$.paths['/api/v1/planned-meals/{plannedMealId}/completion-events'].post.responses['201']"
-                        ).exists()
-                )
-                .andExpect(
-                        jsonPath(
-                                "$.paths['/api/v1/planned-meals/{plannedMealId}/completion-events'].post.responses['409']"
-                        ).exists()
-                )
-                .andExpect(
-                        jsonPath(
-                                "$.paths['/api/v1/planned-meals/{plannedMealId}/completion-events'].get.responses['200']"
-                        ).exists()
-                )
-                .andExpect(jsonPath("$.paths['/api/v1/patients/me/completion-events'].get.responses['200']").exists())
-                .andExpect(
-                        jsonPath(
-                                "$.paths['/api/v1/nutritionists/me/patients/{patientId}/weekly-plans/{planId}/summary'].get.responses['200']"
-                        ).exists()
-                )
-                .andExpect(
-                        jsonPath(
-                                "$.paths['/api/v1/nutritionists/me/patients/{patientId}/weekly-plans/{planId}'].get.responses['200']"
-                        ).exists()
-                )
-                .andExpect(jsonPath("$.components.schemas.CreateCompletionEventRequest.required").isArray());
+                        jsonPath("$.paths['/api/v1/planned-meals/{plannedMealId}/completion-events']").doesNotExist()
+                );
     }
 
     @Test

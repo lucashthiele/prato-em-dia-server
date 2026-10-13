@@ -62,4 +62,8 @@ public class PrescriptionVersionModel {
     @BatchSize(size = 50)
     @Builder.Default
     private List<PrescribedMealModel> meals = new ArrayList<>();
+    @OneToMany(mappedBy = "version", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 50)
+    @Builder.Default
+    private List<NutritionTargetModel> nutritionTargets = new ArrayList<>();
 }
