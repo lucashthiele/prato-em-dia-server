@@ -51,7 +51,8 @@ public record PrescriptionOutput(
             Instant createdAt,
             Instant publishedAt,
             Instant archivedAt,
-            List<MealOutput> meals) {
+            List<MealOutput> meals,
+            List<NutritionTargetOutput> nutritionTargets) {
         public static VersionOutput from(PrescriptionVersion version) {
             return new VersionOutput(
                     version.getId(),
@@ -66,9 +67,19 @@ public record PrescriptionOutput(
                     version.getMeals().stream()
                             .sorted(Comparator.comparingInt(PrescribedMeal::order))
                             .map(MealOutput::from)
-                            .toList()
+                            .toList(),
+                    version.getNutritionTargets().stream()
+                            .map(
+                                    target -> new NutritionTargetOutput(
+                                            target.nutrientCode(),
+                                            target.amount(), target.unit()
+                                    )
+                            ).toList()
             );
         }
+    }
+
+    public record NutritionTargetOutput(String nutrientCode, BigDecimal amount, String unit) {
     }
 
     public record MealOutput(

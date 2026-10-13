@@ -3,6 +3,7 @@ package com.ulvratech.pratoemdia.server.features.prescriptions.infrastructure.pe
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.PrescribedMeal;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.PrescribedMealItem;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.Prescription;
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.NutritionTarget;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.port.out.PrescriptionRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,67 @@ class PrescriptionMigrationTest {
 
     @Autowired
     PrescriptionRepository repository;
+
+    @Test
+    void copiesPublishedNutritionTargetsIntoNewDraft() throws Exception {
+        UUID nutritionistAccount = UUID.randomUUID();
+        UUID patientAccount = UUID.randomUUID();
+        UUID nutritionist = UUID.randomUUID();
+        UUID patient = UUID.randomUUID();
+        UUID food = UUID.randomUUID();
+        try (var connection = connection()) {
+            execute(
+                    connection, "insert into user_account(id,email,password_hash,role) values (?,?,?,?::user_role)",
+                    nutritionistAccount, "target-nutritionist@example.com", "hash", "NUTRITIONIST"
+            );
+            execute(
+                    connection, "insert into user_account(id,email,password_hash,role) values (?,?,?,?::user_role)",
+                    patientAccount, "target-patient@example.com", "hash", "PATIENT"
+            );
+            execute(
+                    connection, "insert into nutritionist_profile(id,user_account_id,full_name) values (?,?,?)",
+                    nutritionist, nutritionistAccount, "Nutritionist"
+            );
+            execute(
+                    connection, "insert into patient_profile(id,user_account_id,full_name) values (?,?,?)",
+                    patient, patientAccount, "Patient"
+            );
+            execute(
+                    connection,
+                    "insert into food(id,name,default_unit,created_by_user_id,origin) values (?,?,?,?,?::food_origin)",
+                    food, "Target test food", "g", nutritionistAccount, "NUTRITIONIST"
+            );
+        }
+
+        var meal = PrescribedMeal.create(
+                "Lunch", 0, null, null, List.of(
+                        PrescribedMealItem.create(food, null, new BigDecimal("100"), "g", 0, null, List.of())
+                )
+        );
+        var prescription = Prescription.create(
+                patient, nutritionist, nutritionistAccount,
+                "Targets", null, List.of(meal)
+        );
+        var first = prescription.getVersions().getFirst();
+        first.replaceContent(
+                "Targets", null, List.of(meal),
+                List.of(new NutritionTarget("protein", new BigDecimal("75"), "g"))
+        );
+        var saved = repository.save(prescription);
+        saved.publish(first.getId(), Instant.parse("2026-10-13T12:00:00Z"));
+        var published = repository.save(saved);
+        published.addDraft(nutritionistAccount);
+        var reloaded = repository.findById(repository.save(published).getId()).orElseThrow();
+
+        assertEquals(
+                0, new BigDecimal("75").compareTo(
+                        reloaded.getVersions().stream()
+                                .filter(version -> version.getStatus().name().equals("DRAFT"))
+                                .findFirst().orElseThrow()
+                                .getNutritionTargets().getFirst().amount()
+                )
+        );
+    }
 
     @Test
     void persistsTheAggregateAndDatabaseProtectsPublishedContent() throws Exception {

@@ -15,6 +15,8 @@ import com.ulvratech.pratoemdia.server.features.importer.application.dto.ImportM
 import com.ulvratech.pratoemdia.server.features.importer.infrastructure.config.MongoImportProperties;
 import com.ulvratech.pratoemdia.server.features.importer.infrastructure.mongodb.MongoCatalogReader;
 import com.ulvratech.pratoemdia.server.features.catalog.application.port.in.SyncImportedFoods;
+import com.ulvratech.pratoemdia.server.features.catalog.application.port.in.ListFoods;
+import com.ulvratech.pratoemdia.server.features.catalog.application.dto.ListFoodsInput;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +60,80 @@ class CatalogMigrationTest {
 
     @Autowired
     SyncImportedFoods syncImportedFoods;
+
+    @Autowired
+    ListFoods listFoods;
+
+    @Test
+    void searchesActiveFoodsWithoutCaseOrAccentAndKeepsPagination() throws Exception {
+        try (var connection = DriverManager.getConnection(
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()
+        )) {
+            execute(
+                    connection,
+                    "insert into food(id,name,default_unit,origin,active,source,source_external_id,source_description) values (?,?,?,?::food_origin,?,?,?,?)",
+                    UUID.randomUUID(), "Maçã verde", "g", "IMPORTED", true, "TEST", "green", "Maçã verde"
+            );
+            execute(
+                    connection,
+                    "insert into food(id,name,default_unit,origin,active,source,source_external_id,source_description) values (?,?,?,?::food_origin,?,?,?,?)",
+                    UUID.randomUUID(), "Maçã vermelha", "g", "IMPORTED", true, "TEST", "red", "Maçã vermelha"
+            );
+            execute(
+                    connection,
+                    "insert into food(id,name,default_unit,origin,active,source,source_external_id,source_description) values (?,?,?,?::food_origin,?,?,?,?)",
+                    UUID.randomUUID(), "Maçã inativa", "g", "IMPORTED", false, "TEST", "inactive", "Maçã inativa"
+            );
+        }
+
+        var first = listFoods.execute(new ListFoodsInput(0, 1, "MACA"));
+        var second = listFoods.execute(new ListFoodsInput(1, 1, "MACA"));
+
+        assertEquals(2, first.totalElements());
+        assertEquals("Maçã verde", first.content().getFirst().name());
+        assertEquals("Maçã vermelha", second.content().getFirst().name());
+        assertTrue(
+                listFoods.execute(new ListFoodsInput(0, 10, "banana inexistente"))
+                        .content().isEmpty()
+        );
+    }
+
+    @Test
+    void rejectsDifferentUnitsForTheSameNutrientCode() throws Exception {
+        UUID foodId = UUID.randomUUID();
+        UUID firstPortion = UUID.randomUUID();
+        UUID secondPortion = UUID.randomUUID();
+        try (var connection = DriverManager.getConnection(
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()
+        )) {
+            execute(
+                    connection,
+                    "insert into food(id,name,default_unit,origin,source,source_external_id,source_description) values (?,?,?,'IMPORTED'::food_origin,?,?,?)",
+                    foodId, "Nutrient unit test", "g", "TEST", foodId.toString(), "Nutrient unit test"
+            );
+            execute(
+                    connection, "insert into food_portion(id,food_id,label,quantity,unit) values (?,?,?,100,'g')",
+                    firstPortion, foodId, "First 100 g"
+            );
+            execute(
+                    connection, "insert into food_portion(id,food_id,label,quantity,unit) values (?,?,?,100,'g')",
+                    secondPortion, foodId, "Second 100 g"
+            );
+            execute(
+                    connection,
+                    "insert into food_portion_nutrient(id,food_portion_id,nutrient_code,amount,unit,value_status) values (?,?,?,?,?,'VALUE')",
+                    UUID.randomUUID(), firstPortion, "test_nutrient", 10, "mg"
+            );
+
+            assertThrows(
+                    SQLException.class, () -> execute(
+                            connection,
+                            "insert into food_portion_nutrient(id,food_portion_id,nutrient_code,amount,unit,value_status) values (?,?,?,?,?,'VALUE')",
+                            UUID.randomUUID(), secondPortion, "test_nutrient", 1, "g"
+                    )
+            );
+        }
+    }
 
     @Test
     void persistsFoodDetailsAndEnforcesPositivePortionQuantity() throws Exception {

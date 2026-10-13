@@ -14,11 +14,27 @@ import java.util.List;
 import java.util.UUID;
 
 public record PrescriptionContentRequest(
-        @Size(max = 180) String title, String notes, @NotNull List<@Valid MealRequest> meals) {
+        @Size(max = 180) String title, String notes, @NotNull List<@Valid MealRequest> meals,
+        List<@Valid TargetRequest> nutritionTargets) {
+    public PrescriptionContentRequest(String title, String notes, List<MealRequest> meals) {
+        this(title, notes, meals, List.of());
+    }
+
     public PrescriptionContentInput toInput() {
         return new PrescriptionContentInput(
-                title, notes, meals.stream().map(MealRequest::toInput).toList()
+                title, notes, meals.stream().map(MealRequest::toInput).toList(),
+                (nutritionTargets == null ? List.<TargetRequest>of() : nutritionTargets).stream()
+                        .map(
+                                target -> new PrescriptionContentInput.TargetInput(
+                                        target.nutrientCode(), target.amount(), target.unit()
+                                )
+                        ).toList()
         );
+    }
+
+    public record TargetRequest(@NotBlank @Size(max = 64) String nutrientCode,
+            @NotNull @DecimalMin("0") BigDecimal amount,
+            @NotBlank @Size(max = 16) String unit) {
     }
 
     public record MealRequest(

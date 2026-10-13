@@ -18,6 +18,8 @@ public interface FoodRepository {
 
     PageResult<Food> findActive(PageRequest page);
 
+    PageResult<Food> searchActive(String normalizedTerm, PageRequest page);
+
     List<Food> findBySourceAndExternalIds(String source, Collection<String> externalIds);
 
     List<Food> saveAll(Collection<Food> foods);

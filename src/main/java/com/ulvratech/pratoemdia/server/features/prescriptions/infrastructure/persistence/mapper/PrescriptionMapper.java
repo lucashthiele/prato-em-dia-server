@@ -5,11 +5,13 @@ import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.Pres
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.PrescribedMealItem;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.Prescription;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.PrescriptionVersion;
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.NutritionTarget;
 import com.ulvratech.pratoemdia.server.features.prescriptions.infrastructure.persistence.model.AllowedSubstitutionModel;
 import com.ulvratech.pratoemdia.server.features.prescriptions.infrastructure.persistence.model.PrescribedMealItemModel;
 import com.ulvratech.pratoemdia.server.features.prescriptions.infrastructure.persistence.model.PrescribedMealModel;
 import com.ulvratech.pratoemdia.server.features.prescriptions.infrastructure.persistence.model.PrescriptionModel;
 import com.ulvratech.pratoemdia.server.features.prescriptions.infrastructure.persistence.model.PrescriptionVersionModel;
+import com.ulvratech.pratoemdia.server.features.prescriptions.infrastructure.persistence.model.NutritionTargetModel;
 import java.util.ArrayList;
 import org.springframework.stereotype.Component;
 
@@ -50,6 +52,21 @@ public class PrescriptionMapper {
         model.setMeals(
                 version.getMeals().stream()
                         .map(meal -> toModel(model, meal))
+                        .collect(java.util.stream.Collectors.toCollection(ArrayList::new))
+        );
+        model.setNutritionTargets(
+                version.getNutritionTargets().stream()
+                        .map(
+                                target -> NutritionTargetModel.builder()
+                                        .id(
+                                                java.util.UUID.nameUUIDFromBytes(
+                                                        (version.getId() + ":" + target.nutrientCode())
+                                                                .getBytes(java.nio.charset.StandardCharsets.UTF_8)
+                                                )
+                                        ).version(model)
+                                        .nutrientCode(target.nutrientCode()).amount(target.amount())
+                                        .unit(target.unit()).build()
+                        )
                         .collect(java.util.stream.Collectors.toCollection(ArrayList::new))
         );
         return model;
@@ -129,7 +146,14 @@ public class PrescriptionMapper {
                 model.getCreatedAt(),
                 model.getPublishedAt(),
                 model.getArchivedAt(),
-                model.getMeals().stream().map(this::toDomain).toList()
+                model.getMeals().stream().map(this::toDomain).toList(),
+                model.getNutritionTargets().stream()
+                        .map(
+                                target -> new NutritionTarget(
+                                        target.getNutrientCode(),
+                                        target.getAmount(), target.getUnit()
+                                )
+                        ).toList()
         );
     }
 

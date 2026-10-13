@@ -1,76 +1,67 @@
-# Registro de alimentação
+# Diário alimentar
 
-Esta entrega não persiste rascunho remoto. A tela mantém qualquer edição não
-enviada localmente e grava somente eventos imutáveis em
-`meal_completion_event`.
+O registro salvo é uma `MealExecution` mutável. Cada execução pertence ao paciente,
+tem uma data e pode apontar para uma refeição planejada. `completion-events` não
+faz parte desta API.
 
-## Contexto da tela
+## Contexto e calendário
 
-`GET /api/v1/planned-meals/{plannedMealId}/food-log` é exclusivo do paciente
-dono do plano e devolve:
+- `GET /api/v1/planned-meals/{plannedMealId}/food-log` devolve modo, itens
+  planejados, conversão, kcal disponíveis e substituições autorizadas. Apenas o
+  paciente dono do plano pode consultá-lo.
+- `GET /api/v1/patients/me/calendar-periods` devolve `plans` com início/fim,
+  `prescriptions` com o intervalo entre publicação e arquivamento, e
+  `freeExecutionDates` com datas isoladas de execuções livres ativas.
+- `GET /api/v1/patients/me/daily-nutrition-summary?date=YYYY-MM-DD` devolve
+  `date`, `planId` e `prescriptionVersionId` quando há plano, além de mapas por
+  código de nutriente: `prescribed`, `planned` e `realized`. Cada valor tem
+  `amount` e `unit`. Quando há plano, códigos ausentes em um dos três mapas são
+  preenchidos com zero. Sem plano, somente o realizado é retornado.
 
-```json
-{
-  "plannedMealId": "uuid",
-  "mode": "RESTRICTED|SUBSTITUTIONS_ONLY|FREE",
-  "items": [{
-    "plannedItemId": "uuid",
-    "catalogFoodId": "uuid",
-    "catalogPortionId": "uuid ou null",
-    "unit": "g",
-    "quantity": 100,
-    "multiplier": 1,
-    "canonicalConversion": { "grams": 100 },
-    "kcalSnapshot": 52,
-    "allowedSubstitutions": []
-  }]
-}
-```
+## Execuções
 
-`mode` vem sempre do `WeeklyPlan`. `allowedSubstitutions` só traz opções em
-`SUBSTITUTIONS_ONLY`; em `RESTRICTED` fica vazio e em `FREE` o cliente usa o
-catálogo. O endpoint não duplica nome ou rótulos de
-catálogo: o cliente resolve exibição por `GET /api/v1/foods/{foodId}`. Os
-campos calculados só aparecem como valor quando a porção ativa do catálogo
-permite calculá-los; não são substituídos por zero.
+As rotas abaixo começam em `/api/v1/patients/me/meal-executions`:
 
-## Registro append-only
+| Método e caminho | Ação |
+| --- | --- |
+| `GET ?date=YYYY-MM-DD` | Listar execuções ativas na data |
+| `GET /{id}` | Consultar execução, inclusive seu estado de remoção |
+| `POST` | Criar execução |
+| `PUT /{id}` | Substituir os itens consumidos |
+| `POST /{id}/move` | Mover para outra data/refeição |
+| `DELETE /{id}` | Remover temporariamente |
+| `POST /{id}/restore` | Restaurar com token |
 
-`POST /api/v1/planned-meals/{plannedMealId}/completion-events` exige
-`Idempotency-Key` e aceita `occurredAt`, `reason` opcional e `consumedItems`.
-Cada item tem `catalogFoodId`, `catalogPortionId` obrigatório, `unit`, `quantity`,
-`multiplier`, `plannedItemId` opcional e `allowedSubstitutionId` opcional.
-`allowedSubstitutionId` é aceito exclusivamente em `SUBSTITUTIONS_ONLY`.
+Criação e substituição recebem `date`, `plannedMealId` opcional e `items`.
+Cada item recebe `foodId`, `portionId`, `unit`, `quantity`, `multiplier`,
+`plannedItemId` opcional e `allowedSubstitutionId` opcional. Quantidade e
+multiplicador devem ser positivos. Os alimentos e porções devem estar ativos;
+a porção deve pertencer ao alimento. O servidor deriva conversão, kcal e
+nutrientes e persiste os valores calculados como snapshots.
 
-O paciente nunca envia `mode`, `eventType`, conversão, kcal nem snapshots. O
-servidor valida posse do plano, período, catálogo ativo, porção ativa pertencente
-ao alimento e unidade da porção quando cadastrada, deriva os snapshots e calcula
-o tipo: lista vazia é `NOT_COMPLETED`;
-uma alternativa autorizada é `SUBSTITUTED`; as demais composições são
-`COMPLETED`. Repetição com a mesma chave e payload devolve o mesmo evento;
-payload diferente retorna `409`.
+Uma execução vinculada usa o modo congelado no plano. Em `RESTRICTED`, mantém
+os alimentos planejados; em `SUBSTITUTIONS_ONLY`, aceita somente alimentos
+planejados ou substituições autorizadas; em `FREE`, aceita alimentos ativos.
+Uma execução sem refeição pode ser criada em qualquer data somente se a
+prescrição publicada atual estiver em `FREE`. Sua versão é salva na execução.
 
-- Quando `consumedItems` não é vazia, ela contém exatamente uma linha por item
-  planejado; `plannedItemId` duplicado ou ausente é inválido. Linhas adicionais
-  sem `plannedItemId` existem apenas em `FREE`.
-- `RESTRICTED`: cada item referencia um planejado e usa o mesmo alimento.
-- `SUBSTITUTIONS_ONLY`: aceita o alimento planejado ou uma autorização válida
-  para aquele item planejado. O snapshot consumido contém a alternativa, não
-  o alimento original, e retém `allowedSubstitutionId` como referência técnica.
-- `FREE`: aceita alimento ativo. Um alimento novo não referencia item planejado
-  e exige porção e quantidade/multiplicador positivos. Remover o planejado é
-  uma linha com seu `plannedItemId`, o alimento originalmente planejado e
-  `quantity: 0`; ela pode indicar outra porção ativa desse mesmo alimento. Para
-  troca livre, essa linha zero acompanha uma nova linha sem `plannedItemId`.
+Criação, substituição, realocação e remoção exigem `Idempotency-Key`. As três
+últimas também exigem `If-Match` com a versão da execução. Repetir o mesmo
+comando e chave devolve a resposta original. Versão, destino ocupado ou chave
+conflitante retornam `409`. A realocação valida o destino antes de gravar;
+`items` pode ser enviado para vincular os itens à nova refeição. Sem `items`,
+os itens consumidos são preservados, e vínculos com planejados são removidos
+ao mover para uma data livre.
 
-A unidade declarada é obrigatória. Quando a porção do catálogo tem unidade,
-ela deve ser exatamente essa unidade; se o registro legado da porção não tem
-unidade, o servidor não inventa uma unidade clínica e aceita a unidade
-declarada sem compará-la.
+`DELETE` devolve `restoreToken` e `restoreExpiresAt`. `POST /{id}/restore`
+recebe `{ "restoreToken": "uuid" }`, é idempotente com o mesmo token e só
+funciona por cinco segundos após a remoção.
 
-O contexto GET preserva `catalogPortionId` opcional do planejamento legado,
-mas uma linha enviada no POST nunca pode omiti-lo.
+## Metas e valores nutricionais
 
-O planejamento e sua prescrição nunca são alterados por esse registro. Os
-snapshots de refeição, planejado e consumido permanecem separados. Não há
-edição ou exclusão de evento salvo nesta entrega.
+O conteúdo de cada versão da prescrição aceita `nutritionTargets`, uma lista
+de `{ "nutrientCode": "protein", "amount": 75, "unit": "g" }`. A versão
+publicada congela as metas. O planejado é congelado quando os itens do plano
+são gravados; o realizado é congelado quando os itens consumidos são gravados.
+O catálogo mantém uma unidade consistente por código de nutriente, e metas
+devem usar essa unidade quando o código já existe no catálogo.

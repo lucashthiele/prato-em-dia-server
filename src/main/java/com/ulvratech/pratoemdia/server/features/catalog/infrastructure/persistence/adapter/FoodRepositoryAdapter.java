@@ -53,6 +53,18 @@ public class FoodRepositoryAdapter implements FoodRepository {
     }
 
     @Override
+    public PageResult<Food> searchActive(String normalizedTerm, PageRequest request) {
+        var pageable = org.springframework.data.domain.PageRequest.of(
+                request.page(), request.size(), Sort.by(Sort.Direction.ASC, "name", "id")
+        );
+        var page = repository.searchActive(normalizedTerm, pageable);
+        return new PageResult<>(
+                page.getContent().stream().map(mapper::toDomain).toList(),
+                page.getNumber(), page.getSize(), page.getTotalElements(), page.getTotalPages()
+        );
+    }
+
+    @Override
     public List<Food> findBySourceAndExternalIds(
             String source, Collection<String> externalIds
     ) {

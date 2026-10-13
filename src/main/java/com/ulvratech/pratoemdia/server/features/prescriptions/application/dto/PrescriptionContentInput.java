@@ -6,9 +6,18 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
-public record PrescriptionContentInput(String title, String notes, List<MealInput> meals) {
+public record PrescriptionContentInput(String title, String notes, List<MealInput> meals,
+        List<TargetInput> nutritionTargets) {
     public PrescriptionContentInput {
         meals = List.copyOf(meals == null ? List.of() : meals);
+        nutritionTargets = List.copyOf(nutritionTargets == null ? List.of() : nutritionTargets);
+    }
+
+    public PrescriptionContentInput(String title, String notes, List<MealInput> meals) {
+        this(title, notes, meals, List.of());
+    }
+
+    public record TargetInput(String nutrientCode, BigDecimal amount, String unit) {
     }
 
     public record MealInput(
