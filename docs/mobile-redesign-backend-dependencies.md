@@ -6,7 +6,7 @@ Entregar todos os seis contratos em uma única versão: busca remota do catálog
 
 ## Mudanças principais
 
-- Estender `GET /api/v1/foods` com `q`, mantendo a paginação atual (`page` e `size`); a busca será remota, case/acento-insensitive e limitada a alimentos ativos.
+- Estender `GET /api/v1/foods` com `q` (decisão LUC-45: o nome do parâmetro é `q`, máx. 180 caracteres; termo vazio após normalização retorna 400), mantendo a paginação atual (`page` e `size`); a busca será remota, case/acento-insensitive e limitada a alimentos ativos.
 - Criar `GET /api/v1/patients/me/calendar-periods`, retornando intervalos explícitos de planos e prescrições consultáveis, além de datas isoladas com execuções livres, para o calendário não inferir disponibilidade localmente.
 - Adicionar metas nutricionais à versão da prescrição: cada meta terá código de nutriente, quantidade e unidade. Os contratos de criar/editar/consultar prescrição passarão a receber e devolver essas metas. O futuro portal poderá preenchê-las automaticamente a partir dos alimentos, mas a prescrição continuará sendo a fonte de verdade publicada.
 - Criar `GET /api/v1/patients/me/daily-nutrition-summary?date=YYYY-MM-DD`, com identificação de data/plano/prescrição quando aplicáveis e totais separados de:

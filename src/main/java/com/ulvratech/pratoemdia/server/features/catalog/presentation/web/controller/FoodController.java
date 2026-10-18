@@ -29,6 +29,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -76,11 +77,11 @@ public class FoodController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar alimentos", description = "Retorna uma página do catálogo de alimentos.")
+    @Operation(summary = "Listar alimentos", description = "Retorna uma página do catálogo de alimentos. O parâmetro opcional q (máx. 180 caracteres) busca por nome, ignorando maiúsculas e acentos; q sem texto pesquisável retorna 400.")
     PageResult<FoodOutput> list(
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
-            @RequestParam(required = false) String q
+            @RequestParam(required = false) @Size(max = 180) String q
     ) {
         return listFoods.execute(new ListFoodsInput(page, size, q));
     }

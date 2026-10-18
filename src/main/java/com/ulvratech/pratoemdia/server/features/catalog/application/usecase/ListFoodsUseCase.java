@@ -20,7 +20,9 @@ public class ListFoodsUseCase implements ListFoods {
     @Override
     public PageResult<FoodOutput> execute(ListFoodsInput input) {
         var term = FoodNameNormalizer.normalize(input.q());
-        var page = term == null || term.isBlank()
+        if (term != null && term.isBlank())
+            throw new IllegalArgumentException("Search term must not be blank");
+        var page = term == null
                 ? repository.findActive(new PageRequest(input.page(), input.size()))
                 : repository.searchActive(term, new PageRequest(input.page(), input.size()));
         return new PageResult<>(
