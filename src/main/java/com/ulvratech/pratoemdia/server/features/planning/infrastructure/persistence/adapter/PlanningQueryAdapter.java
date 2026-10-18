@@ -58,7 +58,7 @@ public class PlanningQueryAdapter {
     }
 
     public Optional<PlanSlot> planSlot(UUID plannedMealId, UUID patientId) {
-        return meals.findByIdAndPlanPatientId(plannedMealId, patientId)
+        return meals.findByIdAndPlanPatientIdAndPlanActiveTrue(plannedMealId, patientId)
                 .map(
                         meal -> new PlanSlot(
                                 meal.getPlan().getId(), meal.getPlan().getPrescriptionVersionId(),

@@ -53,13 +53,13 @@ public class WeeklyPlanningRepositoryAdapter implements WeeklyPlanningRepository
     @Override
     @Transactional(readOnly = true)
     public Optional<WeeklyPlan> findPlan(UUID id) {
-        return plans.findById(id).map(mapper::toDomain);
+        return plans.findByIdAndActiveTrue(id).map(mapper::toDomain);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<WeeklyPlan> findPlans(UUID patientId) {
-        return plans.findAllByPatientIdOrderByPeriodStartDesc(patientId).stream()
+        return plans.findAllByPatientIdAndActiveTrueOrderByPeriodStartDesc(patientId).stream()
                 .map(mapper::toDomain)
                 .toList();
     }
@@ -67,7 +67,7 @@ public class WeeklyPlanningRepositoryAdapter implements WeeklyPlanningRepository
     @Override
     @Transactional(readOnly = true)
     public boolean existsForPeriod(UUID patientId, LocalDate start, LocalDate end) {
-        return plans.existsByPatientIdAndPeriodStartAndPeriodEnd(patientId, start, end);
+        return plans.existsByPatientIdAndPeriodStartAndPeriodEndAndActiveTrue(patientId, start, end);
     }
 
     @Override
@@ -76,10 +76,15 @@ public class WeeklyPlanningRepositoryAdapter implements WeeklyPlanningRepository
     }
 
     @Override
+    public void deactivatePlan(UUID planId) {
+        plans.deactivate(planId);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<WeeklyPlan> findPendingDue(Instant now) {
         return plans
-                .findAllByStatusAndConfirmationDeadlineLessThanEqual(WeeklyPlanStatus.PENDING, now)
+                .findAllByStatusAndActiveTrueAndConfirmationDeadlineLessThanEqual(WeeklyPlanStatus.PENDING, now)
                 .stream()
                 .map(mapper::toDomain)
                 .toList();

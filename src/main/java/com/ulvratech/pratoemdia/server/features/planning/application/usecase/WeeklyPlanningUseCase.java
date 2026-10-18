@@ -113,6 +113,12 @@ public class WeeklyPlanningUseCase
     }
 
     @Override
+    public void delete(PlanQuery input) {
+        var plan = requireOwned(input.planId(), input.actor());
+        repository.deactivatePlan(plan.getId());
+    }
+
+    @Override
     public WeeklyPlanOutput update(PlanUpdate input) {
         var plan = requireOwned(input.planId(), input.actor());
         if (input.version() != plan.getPersistenceVersion())

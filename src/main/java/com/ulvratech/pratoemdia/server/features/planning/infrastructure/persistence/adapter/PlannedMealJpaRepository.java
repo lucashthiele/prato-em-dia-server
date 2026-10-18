@@ -6,5 +6,5 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 interface PlannedMealJpaRepository extends JpaRepository<PlannedMealModel, UUID> {
-    Optional<PlannedMealModel> findByIdAndPlanPatientId(UUID id, UUID patientId);
+    Optional<PlannedMealModel> findByIdAndPlanPatientIdAndPlanActiveTrue(UUID id, UUID patientId);
 }

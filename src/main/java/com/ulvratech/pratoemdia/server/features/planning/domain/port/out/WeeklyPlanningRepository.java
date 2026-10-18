@@ -24,5 +24,7 @@ public interface WeeklyPlanningRepository {
 
     WeeklyPlan savePlan(WeeklyPlan plan);
 
+    void deactivatePlan(UUID planId);
+
     List<WeeklyPlan> findPendingDue(Instant now);
 }
