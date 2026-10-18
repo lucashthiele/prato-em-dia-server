@@ -282,7 +282,7 @@ public class ExecutionDataAdapter implements ExecutionData {
         var found = jdbc.query(
                 "select p.id,p.prescription_version_id,p.planning_mode,m.meal_date "
                         + "from planned_meal m join weekly_plan p on p.id=m.weekly_plan_id "
-                        + "where m.id=? and p.patient_id=?",
+                        + "where m.id=? and p.patient_id=? and p.active",
                 (rs, row) -> new Context(
                         rs.getObject(1, UUID.class), rs.getObject(2, UUID.class),
                         rs.getString(3), rs.getObject(4, LocalDate.class)

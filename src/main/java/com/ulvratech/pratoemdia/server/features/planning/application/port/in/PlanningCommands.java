@@ -15,4 +15,6 @@ public interface PlanningCommands {
     WeeklyPlanOutput update(PlanUpdate input);
 
     WeeklyPlanOutput confirm(PlanQuery input);
+
+    void delete(PlanQuery input);
 }

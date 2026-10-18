@@ -10,6 +10,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PlanningInputs.Actor;
+import com.ulvratech.pratoemdia.server.features.planning.application.dto.PlanningInputs.PlanQuery;
+import com.ulvratech.pratoemdia.server.features.planning.application.exception.PlanningAccessDeniedException;
+import com.ulvratech.pratoemdia.server.features.planning.domain.entity.WeeklyPlan;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PrescriptionPlanningSource;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PrescriptionPlanningSource.ItemSource;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PrescriptionPlanningSource.MealSource;
@@ -71,6 +74,60 @@ class WeeklyPlanningUseCaseTest {
                 PlanningConflictException.class, () -> useCase.generate(new Actor(user, "PATIENT"))
         );
         verify(references, never()).currentPublishedPrescription(any());
+    }
+
+    @Test
+    void deleteDeactivatesOwnedPlan() {
+        var fixture = deleteFixture();
+
+        fixture.useCase.delete(new PlanQuery(fixture.actor, fixture.plan.getId()));
+
+        verify(fixture.repository).deactivatePlan(fixture.plan.getId());
+    }
+
+    @Test
+    void deleteOfAnotherPatientsPlanIsDenied() {
+        var fixture = deleteFixture();
+        var other = new Actor(UUID.randomUUID(), "PATIENT");
+        when(fixture.references.patientProfileId(other.userAccountId()))
+                .thenReturn(Optional.of(UUID.randomUUID()));
+
+        assertThrows(
+                PlanningAccessDeniedException.class,
+                () -> fixture.useCase.delete(new PlanQuery(other, fixture.plan.getId()))
+        );
+        verify(fixture.repository, never()).deactivatePlan(any());
+    }
+
+    private record DeleteFixture(
+            WeeklyPlanningRepository repository,
+            PlanningReferences references,
+            WeeklyPlanningUseCase useCase,
+            Actor actor,
+            WeeklyPlan plan) {
+    }
+
+    private DeleteFixture deleteFixture() {
+        var repository = mock(WeeklyPlanningRepository.class);
+        var references = mock(PlanningReferences.class);
+        var actor = new Actor(UUID.randomUUID(), "PATIENT");
+        var patient = UUID.randomUUID();
+        var plan = WeeklyPlan.create(
+                patient,
+                UUID.randomUUID(),
+                PlanningMode.FREE,
+                LocalDate.of(2026, 9, 18),
+                Instant.parse("2026-09-18T03:00:00Z"),
+                List.of()
+        );
+        when(references.patientProfileId(actor.userAccountId())).thenReturn(Optional.of(patient));
+        when(repository.findPlan(plan.getId())).thenReturn(Optional.of(plan));
+        var useCase = new WeeklyPlanningUseCase(
+                repository,
+                references,
+                Clock.fixed(Instant.parse("2026-09-17T12:00:00Z"), ZoneOffset.UTC)
+        );
+        return new DeleteFixture(repository, references, useCase, actor, plan);
     }
 
     private PrescriptionPlanningSource source(UUID version, PlanningMode mode) {

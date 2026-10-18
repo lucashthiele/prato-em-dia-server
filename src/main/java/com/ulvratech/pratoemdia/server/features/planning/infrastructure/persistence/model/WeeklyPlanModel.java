@@ -73,6 +73,10 @@ public class WeeklyPlanModel {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean active = true;
+
     @Version
     private long version;
 
