@@ -27,6 +27,18 @@ interface PrescriptionVersionJpaRepository extends JpaRepository<PrescriptionVer
             @Param("versionStatus") PrescriptionVersionStatus versionStatus, Pageable pageable
     );
 
+    @Query("""
+            select v from PrescriptionVersionModel v
+            where v.prescription.patientId = :patientId
+              and v.prescription.status = :prescriptionStatus and v.status = :versionStatus
+            order by v.publishedAt desc
+            """)
+    List<PrescriptionVersionModel> findCurrentPublished(
+            @Param("patientId") UUID patientId,
+            @Param("prescriptionStatus") PrescriptionStatus prescriptionStatus,
+            @Param("versionStatus") PrescriptionVersionStatus versionStatus, Pageable pageable
+    );
+
     List<PrescriptionVersionModel> findAllByPrescriptionPatientIdAndPublishedAtIsNotNullOrderByPublishedAtAsc(
             UUID patientId
     );

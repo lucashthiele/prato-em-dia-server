@@ -18,6 +18,8 @@ interface WeeklyPlanJpaRepository extends JpaRepository<WeeklyPlanModel, UUID> {
             UUID patientId, LocalDate start, LocalDate end
     );
 
+    Optional<WeeklyPlanModel> findDistinctByMealsId(UUID mealId);
+
     boolean existsByPatientIdAndPeriodStartAndPeriodEnd(
             UUID patientId, LocalDate start, LocalDate end
     );

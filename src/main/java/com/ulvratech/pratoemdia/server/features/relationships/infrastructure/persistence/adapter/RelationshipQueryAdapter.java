@@ -20,4 +20,8 @@ public class RelationshipQueryAdapter {
                 nutritionistId, patientId, RelationshipStatus.ACTIVE
         ).isPresent();
     }
+
+    public boolean hasActiveRelationshipForNutritionistAccount(UUID accountId, UUID patientId) {
+        return relationships.findActiveViewByNutritionist(accountId, patientId).isPresent();
+    }
 }

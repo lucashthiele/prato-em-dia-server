@@ -1,5 +1,7 @@
 package com.ulvratech.pratoemdia.server.features.planning.infrastructure.persistence.adapter;
 
+import com.ulvratech.pratoemdia.server.features.planning.domain.entity.WeeklyPlan;
+import com.ulvratech.pratoemdia.server.features.planning.infrastructure.persistence.mapper.WeeklyPlanningMapper;
 import com.ulvratech.pratoemdia.server.features.planning.infrastructure.persistence.model.WeeklyPlanModel;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.MealType;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PlanningMode;
@@ -29,20 +31,30 @@ public class PlanningQueryAdapter {
     public record NutrientSum(String code, BigDecimal amount, String unit) {
     }
 
+    private final WeeklyPlanningMapper mapper;
     private final WeeklyPlanJpaRepository plans;
     private final PlannedMealJpaRepository meals;
     private final PlannedMealItemJpaRepository items;
     private final PlannedMealItemNutrientSnapshotJpaRepository snapshots;
 
     PlanningQueryAdapter(
-            WeeklyPlanJpaRepository plans, PlannedMealJpaRepository meals,
+            WeeklyPlanningMapper mapper, WeeklyPlanJpaRepository plans, PlannedMealJpaRepository meals,
             PlannedMealItemJpaRepository items,
             PlannedMealItemNutrientSnapshotJpaRepository snapshots
     ) {
+        this.mapper = mapper;
         this.plans = plans;
         this.meals = meals;
         this.items = items;
         this.snapshots = snapshots;
+    }
+
+    public Optional<WeeklyPlan> plan(UUID planId) {
+        return plans.findById(planId).map(mapper::toDomain);
+    }
+
+    public Optional<WeeklyPlan> planForMeal(UUID plannedMealId) {
+        return plans.findDistinctByMealsId(plannedMealId).map(mapper::toDomain);
     }
 
     public Optional<PlanSlot> planSlot(UUID plannedMealId, UUID patientId) {
