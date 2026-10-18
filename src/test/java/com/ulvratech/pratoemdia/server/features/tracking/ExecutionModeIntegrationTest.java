@@ -131,7 +131,10 @@ class ExecutionModeIntegrationTest {
 
         var error = assertThrows(
                 TrackingException.class,
-                () -> executions.create(actor, "wrong-portion", new ExecutionTypes.Write(date, meal, List.of(wrong)))
+                () -> executions.create(
+                        actor, "wrong-portion",
+                        new ExecutionTypes.Write(date, java.time.LocalTime.NOON, null, meal, List.of(wrong))
+                )
         );
         assertEquals(TrackingException.Kind.INVALID, error.kind());
 
@@ -142,7 +145,7 @@ class ExecutionModeIntegrationTest {
         assertEquals(
                 "SUBSTITUTIONS_ONLY", executions.create(
                         actor, "authorized-substitution",
-                        new ExecutionTypes.Write(date, meal, List.of(correct))
+                        new ExecutionTypes.Write(date, java.time.LocalTime.NOON, null, meal, List.of(correct))
                 ).mode()
         );
 
@@ -166,7 +169,9 @@ class ExecutionModeIntegrationTest {
                 TrackingException.class,
                 () -> executions.create(
                         actor, "restricted-substitution",
-                        new ExecutionTypes.Write(restrictedDate, restrictedMeal, List.of(unauthorized))
+                        new ExecutionTypes.Write(
+                                restrictedDate, java.time.LocalTime.NOON, null, restrictedMeal, List.of(unauthorized)
+                        )
                 )
         );
         assertEquals(TrackingException.Kind.INVALID, restrictedError.kind());
@@ -177,7 +182,9 @@ class ExecutionModeIntegrationTest {
         assertEquals(
                 "RESTRICTED", executions.create(
                         actor, "restricted-original",
-                        new ExecutionTypes.Write(restrictedDate, restrictedMeal, List.of(original))
+                        new ExecutionTypes.Write(
+                                restrictedDate, java.time.LocalTime.NOON, null, restrictedMeal, List.of(original)
+                        )
                 ).mode()
         );
     }

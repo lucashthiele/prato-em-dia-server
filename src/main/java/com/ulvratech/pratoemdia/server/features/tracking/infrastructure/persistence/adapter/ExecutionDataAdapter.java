@@ -19,7 +19,9 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Clock;
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.MealType;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.HexFormat;
@@ -44,7 +46,11 @@ public class ExecutionDataAdapter implements ExecutionData {
         this.clock = clock;
     }
 
-    private record Context(UUID planId, UUID versionId, String mode, LocalDate mealDate) {
+    private record Context(UUID planId, UUID versionId, String mode, LocalDate mealDate,
+            LocalTime mealTime, MealType mealType) {
+    }
+
+    private record Slot(LocalTime time, MealType type) {
     }
 
     private record Portion(BigDecimal quantity, String unit, BigDecimal gramsEquivalent) {
@@ -61,13 +67,15 @@ public class ExecutionDataAdapter implements ExecutionData {
             return repeatedExecution(patientId, key, repeated);
         var context = context(patientId, input.date(), input.plannedMealId());
         validateItems(context, input.plannedMealId(), input.items());
+        var slot = slot(context, input, null, null);
         var id = UUID.randomUUID();
         var now = clock.instant();
         try {
             jdbc.update(
-                    "insert into meal_execution(id,patient_id,execution_date,planned_meal_id,weekly_plan_id,prescription_version_id,mode,created_at,updated_at) "
-                            + "values (?,?,?,?,?,?,?::planning_mode,?,?)",
-                    id, patientId, input.date(), input.plannedMealId(), context.planId(),
+                    "insert into meal_execution(id,patient_id,execution_date,meal_time,meal_type,planned_meal_id,weekly_plan_id,prescription_version_id,mode,created_at,updated_at) "
+                            + "values (?,?,?,?,?::meal_type,?,?,?,?::planning_mode,?,?)",
+                    id, patientId, input.date(), slot.time(), slot.type().name(),
+                    input.plannedMealId(), context.planId(),
                     context.versionId(), context.mode(), java.sql.Timestamp.from(now),
                     java.sql.Timestamp.from(now)
             );
@@ -88,7 +96,7 @@ public class ExecutionDataAdapter implements ExecutionData {
     @Transactional(readOnly = true)
     public Execution get(UUID patientId, UUID id) {
         var rows = jdbc.query(
-                "select id,version,execution_date,planned_meal_id,weekly_plan_id,prescription_version_id,mode,created_at,updated_at,deleted_at,restore_expires_at "
+                "select id,version,execution_date,meal_time,meal_type::text,planned_meal_id,weekly_plan_id,prescription_version_id,mode,created_at,updated_at,deleted_at,restore_expires_at "
                         + "from meal_execution where patient_id=? and id=?",
                 (rs, row) -> execution(rs, patientId), patientId, id
         );
@@ -103,7 +111,7 @@ public class ExecutionDataAdapter implements ExecutionData {
         if (date == null)
             throw invalid("Date is required");
         return jdbc.query(
-                "select id,version,execution_date,planned_meal_id,weekly_plan_id,prescription_version_id,mode,created_at,updated_at,deleted_at,restore_expires_at "
+                "select id,version,execution_date,meal_time,meal_type::text,planned_meal_id,weekly_plan_id,prescription_version_id,mode,created_at,updated_at,deleted_at,restore_expires_at "
                         + "from meal_execution where patient_id=? and execution_date=? and deleted_at is null order by created_at,id",
                 (rs, row) -> execution(rs, patientId), patientId, date
         );
@@ -126,9 +134,11 @@ public class ExecutionDataAdapter implements ExecutionData {
             throw conflict("Use move to change the execution destination");
         var context = context(patientId, input.date(), input.plannedMealId());
         validateItems(context, input.plannedMealId(), input.items());
+        var slot = slot(context, input, before.time(), before.mealType());
         if (jdbc.update(
-                "update meal_execution set version=version+1,updated_at=? "
+                "update meal_execution set meal_time=?,meal_type=?::meal_type,version=version+1,updated_at=? "
                         + "where id=? and patient_id=? and version=? and deleted_at is null",
+                slot.time(), slot.type().name(),
                 java.sql.Timestamp.from(clock.instant()), id, patientId, expectedVersion
         ) != 1)
             throw conflict("Execution version is stale");
@@ -171,12 +181,15 @@ public class ExecutionDataAdapter implements ExecutionData {
                         )
                         .toList();
         validateItems(context, plannedMealId, items);
+        var slot = slot(context, destination, before.time(), before.mealType());
         try {
             if (jdbc.update(
-                    "update meal_execution set execution_date=?,planned_meal_id=?,weekly_plan_id=?,"
+                    "update meal_execution set execution_date=?,meal_time=?,meal_type=?::meal_type,"
+                            + "planned_meal_id=?,weekly_plan_id=?,"
                             + "prescription_version_id=?,mode=?::planning_mode,version=version+1,updated_at=? "
                             + "where id=? and patient_id=? and version=? and deleted_at is null",
-                    date, plannedMealId, context.planId(), context.versionId(), context.mode(),
+                    date, slot.time(), slot.type().name(), plannedMealId, context.planId(), context.versionId(),
+                    context.mode(),
                     java.sql.Timestamp.from(clock.instant()), id, patientId, expectedVersion
             ) != 1)
                 throw conflict("Execution version is stale");
@@ -274,18 +287,19 @@ public class ExecutionDataAdapter implements ExecutionData {
                     "select v.id from prescription p join prescription_version v on v.prescription_id=p.id "
                             + "where p.patient_id=? and p.status='ACTIVE' and p.planning_mode='FREE' "
                             + "and v.status='PUBLISHED' order by v.published_at desc limit 1",
-                    (rs, row) -> new Context(null, rs.getObject(1, UUID.class), "FREE", null),
+                    (rs, row) -> new Context(null, rs.getObject(1, UUID.class), "FREE", null, null, null),
                     patientId
             ).stream().findFirst()
                     .orElseThrow(() -> invalid("A current published FREE prescription is required"));
         }
         var found = jdbc.query(
-                "select p.id,p.prescription_version_id,p.planning_mode,m.meal_date "
+                "select p.id,p.prescription_version_id,p.planning_mode,m.meal_date,m.meal_time,m.meal_type::text "
                         + "from planned_meal m join weekly_plan p on p.id=m.weekly_plan_id "
                         + "where m.id=? and p.patient_id=?",
                 (rs, row) -> new Context(
                         rs.getObject(1, UUID.class), rs.getObject(2, UUID.class),
-                        rs.getString(3), rs.getObject(4, LocalDate.class)
+                        rs.getString(3), rs.getObject(4, LocalDate.class),
+                        rs.getObject(5, LocalTime.class), MealType.valueOf(rs.getString(6))
                 ),
                 plannedMealId, patientId
         ).stream().findFirst()
@@ -293,6 +307,23 @@ public class ExecutionDataAdapter implements ExecutionData {
         if (!date.equals(found.mealDate()))
             throw invalid("Execution date must match the planned meal date");
         return found;
+    }
+
+    private Slot slot(Context context, Write input, LocalTime previousTime, MealType previousType) {
+        var type = input.mealType();
+        if (context.mealType() != null) {
+            if (type != null && type != context.mealType())
+                throw invalid("Meal type must match the planned meal");
+            type = context.mealType();
+        } else if (type == null) {
+            type = previousType;
+        }
+        var time = input.time();
+        if (time == null)
+            time = context.mealTime() != null ? context.mealTime() : previousTime;
+        if (type == null || time == null)
+            throw invalid("Meal time and meal type are required");
+        return new Slot(time, type);
     }
 
     private void validateItems(Context context, UUID mealId, List<ItemInput> items) {
@@ -410,11 +441,12 @@ public class ExecutionDataAdapter implements ExecutionData {
             );
         return new Execution(
                 id, rs.getLong(2), rs.getObject(3, LocalDate.class),
-                rs.getObject(4, UUID.class), rs.getObject(5, UUID.class),
-                rs.getObject(6, UUID.class), rs.getString(7), items, totals,
-                rs.getTimestamp(8).toInstant(), rs.getTimestamp(9).toInstant(),
-                rs.getTimestamp(10) == null ? null : rs.getTimestamp(10).toInstant(),
-                rs.getTimestamp(11) == null ? null : rs.getTimestamp(11).toInstant()
+                rs.getObject(4, LocalTime.class), MealType.valueOf(rs.getString(5)),
+                rs.getObject(6, UUID.class), rs.getObject(7, UUID.class),
+                rs.getObject(8, UUID.class), rs.getString(9), items, totals,
+                rs.getTimestamp(10).toInstant(), rs.getTimestamp(11).toInstant(),
+                rs.getTimestamp(12) == null ? null : rs.getTimestamp(12).toInstant(),
+                rs.getTimestamp(13) == null ? null : rs.getTimestamp(13).toInstant()
         );
     }
 
