@@ -5,11 +5,20 @@ import com.ulvratech.pratoemdia.server.features.planning.infrastructure.persiste
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 interface WeeklyPlanJpaRepository extends JpaRepository<WeeklyPlanModel, UUID> {
     List<WeeklyPlanModel> findAllByPatientIdOrderByPeriodStartDesc(UUID patientId);
+
+    List<WeeklyPlanModel> findAllByPatientIdOrderByPeriodStartAsc(UUID patientId);
+
+    Optional<WeeklyPlanModel> findFirstByPatientIdAndPeriodStartLessThanEqualAndPeriodEndGreaterThanEqualOrderByPeriodStartDesc(
+            UUID patientId, LocalDate start, LocalDate end
+    );
+
+    Optional<WeeklyPlanModel> findDistinctByMealsId(UUID mealId);
 
     boolean existsByPatientIdAndPeriodStartAndPeriodEnd(
             UUID patientId, LocalDate start, LocalDate end

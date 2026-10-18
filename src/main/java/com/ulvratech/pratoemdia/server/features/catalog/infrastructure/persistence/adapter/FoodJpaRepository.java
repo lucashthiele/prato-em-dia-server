@@ -18,6 +18,8 @@ public interface FoodJpaRepository extends JpaRepository<FoodModel, UUID> {
 
     Optional<FoodModel> findByIdAndActiveTrue(UUID id);
 
+    boolean existsByIdAndActiveTrue(UUID id);
+
     Page<FoodModel> findAllByActiveTrue(Pageable pageable);
 
     @Query(value = "select * from food where active = true and lower(unaccent(name)) like concat('%', :term, '%')", countQuery = "select count(*) from food where active = true and lower(unaccent(name)) like concat('%', :term, '%')", nativeQuery = true)

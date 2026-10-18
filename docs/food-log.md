@@ -32,7 +32,13 @@ As rotas abaixo começam em `/api/v1/patients/me/meal-executions`:
 | `DELETE /{id}` | Remover temporariamente |
 | `POST /{id}/restore` | Restaurar com token |
 
-Criação e substituição recebem `date`, `plannedMealId` opcional e `items`.
+Criação e substituição recebem `date`, `time` (`HH:mm`), `mealType`
+(`BREAKFAST`, `LUNCH`, `SNACK` ou `DINNER`), `plannedMealId` opcional e `items`.
+Execuções sem refeição planejada exigem `time` e `mealType`. Quando há
+`plannedMealId`, a categoria vem da refeição (um `mealType` divergente é
+rejeitado) e `time` assume o horário planejado se omitido; `time` pode ser
+editado em `PUT`. Na realocação, `time` e `mealType` omitidos preservam os
+valores atuais (ou os da refeição de destino). A resposta devolve ambos.
 Cada item recebe `foodId`, `portionId`, `unit`, `quantity`, `multiplier`,
 `plannedItemId` opcional e `allowedSubstitutionId` opcional. Quantidade e
 multiplicador devem ser positivos. Os alimentos e porções devem estar ativos;

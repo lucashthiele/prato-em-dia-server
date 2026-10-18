@@ -100,6 +100,16 @@ class ArchitectureTest {
             .or().resideInAPackage(CONTROLLERS)
             .should().dependOnClassesThat().haveSimpleNameEndingWith("Repository");
 
+    @ArchTest
+    static final ArchRule persistence_goes_through_jpa_models_and_repositories = noClasses()
+            .that().resideInAPackage(FEATURES)
+            .should().dependOnClassesThat().resideInAPackage("org.springframework.jdbc..")
+            .because("persistence uses @Entity models with Spring Data repositories, not JdbcTemplate/JdbcClient");
+    @ArchTest
+    static final ArchRule application_and_domain_do_not_depend_on_persistence_models = noClasses()
+            .that().resideInAnyPackage(APPLICATION, DOMAIN)
+            .should().dependOnClassesThat().resideInAPackage("..infrastructure.persistence.model..");
+
     private static ArchCondition<JavaClass> notAccessRepositoriesFromAnotherFeature() {
         return new ArchCondition<>("not access repositories from another feature") {
             @Override
