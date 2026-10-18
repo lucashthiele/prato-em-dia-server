@@ -44,7 +44,7 @@ class TrackingUseCasesTest {
         var account = UUID.randomUUID();
         var patient = UUID.randomUUID();
         var date = LocalDate.parse("2026-10-13");
-        var input = new ExecutionTypes.Write(date, null, java.util.List.of());
+        var input = new ExecutionTypes.Write(date, null, null, null, java.util.List.of());
         when(diary.patientId(account)).thenReturn(Optional.of(patient));
 
         useCase.create(new ExecutionTypes.Actor(account, "PATIENT"), "request-1", input);

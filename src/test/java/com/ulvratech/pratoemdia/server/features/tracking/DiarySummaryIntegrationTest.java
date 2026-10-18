@@ -211,7 +211,8 @@ class DiarySummaryIntegrationTest {
                             .header("Idempotency-Key", "free-execution-1")
                             .contentType("application/json")
                             .content(
-                                    "{\"date\":\"2026-10-20\",\"items\":[{\"foodId\":\"" + food
+                                    "{\"date\":\"2026-10-20\",\"time\":\"13:30\",\"mealType\":\"LUNCH\",\"items\":[{\"foodId\":\""
+                                            + food
                                             + "\",\"portionId\":\"" + portion
                                             + "\",\"unit\":\"g\",\"quantity\":100,\"multiplier\":1}]}"
                             )
@@ -222,6 +223,8 @@ class DiarySummaryIntegrationTest {
             )
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.mode").value("FREE"))
+                    .andExpect(jsonPath("$.time").value("13:30:00"))
+                    .andExpect(jsonPath("$.mealType").value("LUNCH"))
                     .andReturn();
             var id = com.jayway.jsonpath.JsonPath.read(created.getResponse().getContentAsString(), "$.id").toString();
             mvc.perform(
@@ -250,7 +253,8 @@ class DiarySummaryIntegrationTest {
                             .header("If-Match", "1")
                             .contentType("application/json")
                             .content(
-                                    "{\"date\":\"2026-10-20\",\"items\":[{\"foodId\":\"" + food
+                                    "{\"date\":\"2026-10-20\",\"time\":\"13:30\",\"mealType\":\"LUNCH\",\"items\":[{\"foodId\":\""
+                                            + food
                                             + "\",\"portionId\":\"" + portion
                                             + "\",\"unit\":\"g\",\"quantity\":200,\"multiplier\":1}]}"
                             )
@@ -267,7 +271,8 @@ class DiarySummaryIntegrationTest {
                             .header("Idempotency-Key", "free-execution-1")
                             .contentType("application/json")
                             .content(
-                                    "{\"date\":\"2026-10-20\",\"items\":[{\"foodId\":\"" + food
+                                    "{\"date\":\"2026-10-20\",\"time\":\"13:30\",\"mealType\":\"LUNCH\",\"items\":[{\"foodId\":\""
+                                            + food
                                             + "\",\"portionId\":\"" + portion
                                             + "\",\"unit\":\"g\",\"quantity\":100,\"multiplier\":1}]}"
                             )

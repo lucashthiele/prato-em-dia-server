@@ -14,6 +14,14 @@ import org.springframework.data.jpa.repository.Query;
 interface WeeklyPlanJpaRepository extends JpaRepository<WeeklyPlanModel, UUID> {
     List<WeeklyPlanModel> findAllByPatientIdAndActiveTrueOrderByPeriodStartDesc(UUID patientId);
 
+    List<WeeklyPlanModel> findAllByPatientIdOrderByPeriodStartAsc(UUID patientId);
+
+    Optional<WeeklyPlanModel> findFirstByPatientIdAndPeriodStartLessThanEqualAndPeriodEndGreaterThanEqualOrderByPeriodStartDesc(
+            UUID patientId, LocalDate start, LocalDate end
+    );
+
+    Optional<WeeklyPlanModel> findDistinctByMealsId(UUID mealId);
+
     boolean existsByPatientIdAndPeriodStartAndPeriodEndAndActiveTrue(
             UUID patientId, LocalDate start, LocalDate end
     );

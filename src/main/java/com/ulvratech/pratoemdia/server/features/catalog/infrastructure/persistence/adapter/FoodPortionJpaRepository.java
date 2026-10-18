@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface FoodPortionJpaRepository extends JpaRepository<FoodPortionModel, UUID> {
@@ -13,6 +14,11 @@ public interface FoodPortionJpaRepository extends JpaRepository<FoodPortionModel
 
     @EntityGraph(attributePaths = "nutrients")
     List<FoodPortionModel> findAllByFoodIdInAndSourceTypeIsNotNull(List<UUID> foodIds);
+
+    @EntityGraph(attributePaths = "nutrients")
+    Optional<FoodPortionModel> findByIdAndFoodIdAndActiveTrue(UUID id, UUID foodId);
+
+    boolean existsByIdAndFoodIdAndActiveTrue(UUID id, UUID foodId);
 
     void deleteAllByFoodIdInAndSourceTypeIsNotNull(List<UUID> foodIds);
 }

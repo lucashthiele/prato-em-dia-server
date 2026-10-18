@@ -1,132 +1,94 @@
 package com.ulvratech.pratoemdia.server.features.planning.infrastructure.persistence.adapter;
 
+import com.ulvratech.pratoemdia.server.features.catalog.infrastructure.persistence.adapter.CatalogQueryAdapter;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PrescriptionPlanningSource;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PrescriptionPlanningSource.ItemSource;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PrescriptionPlanningSource.MealSource;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PrescriptionPlanningSource.SubstitutionSource;
 import com.ulvratech.pratoemdia.server.features.planning.application.port.out.PlanningReferences;
-import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PrescriptionStatus;
-import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PrescriptionVersionStatus;
-import com.ulvratech.pratoemdia.server.features.prescriptions.infrastructure.persistence.model.PrescriptionVersionModel;
-import jakarta.persistence.EntityManager;
+import com.ulvratech.pratoemdia.server.features.prescriptions.infrastructure.persistence.adapter.PrescriptionQueryAdapter;
+import com.ulvratech.pratoemdia.server.features.prescriptions.infrastructure.persistence.adapter.PrescriptionQueryAdapter.Version;
+import com.ulvratech.pratoemdia.server.features.profiles.infrastructure.persistence.adapter.ProfileQueryAdapter;
+import com.ulvratech.pratoemdia.server.features.relationships.infrastructure.persistence.adapter.RelationshipQueryAdapter;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 @Component
-@Transactional(readOnly = true)
 public class PlanningReferencesAdapter implements PlanningReferences {
-    private final EntityManager entityManager;
+    private final ProfileQueryAdapter profiles;
+    private final RelationshipQueryAdapter relationships;
+    private final PrescriptionQueryAdapter prescriptions;
+    private final CatalogQueryAdapter catalog;
 
-    public PlanningReferencesAdapter(EntityManager entityManager) {
-        this.entityManager = entityManager;
+    public PlanningReferencesAdapter(
+            ProfileQueryAdapter profiles, RelationshipQueryAdapter relationships,
+            PrescriptionQueryAdapter prescriptions, CatalogQueryAdapter catalog
+    ) {
+        this.profiles = profiles;
+        this.relationships = relationships;
+        this.prescriptions = prescriptions;
+        this.catalog = catalog;
     }
 
     @Override
     public Optional<UUID> patientProfileId(UUID userAccountId) {
-        return entityManager
-                .createQuery("select p.id from PatientProfileModel p where p.userAccountId=:id", UUID.class)
-                .setParameter("id", userAccountId)
-                .getResultStream()
-                .findFirst();
+        return profiles.patientProfileId(userAccountId);
     }
 
     @Override
     public boolean hasActiveRelationship(UUID accountId, UUID patientId) {
-        return !entityManager.createNativeQuery("""
-                SELECT r.id FROM nutritionist_patient_relationship r
-                JOIN nutritionist_profile n ON n.id = r.nutritionist_id
-                WHERE n.user_account_id = :account AND r.patient_id = :patient
-                  AND r.status = 'ACTIVE'
-                """).setParameter("account", accountId).setParameter("patient", patientId)
-                .setMaxResults(1).getResultList().isEmpty();
+        return relationships.hasActiveRelationshipForNutritionistAccount(accountId, patientId);
     }
 
     @Override
     public Optional<PrescriptionPlanningSource> currentPublishedPrescription(UUID patientId) {
-        var found = entityManager
-                .createQuery(
-                        "select v from PrescriptionVersionModel v join v.prescription p "
-                                + "where p.patientId=:patient and p.status=:active and v.status=:published order by v.publishedAt desc",
-                        PrescriptionVersionModel.class
-                )
-                .setParameter("patient", patientId)
-                .setParameter("active", PrescriptionStatus.ACTIVE)
-                .setParameter("published", PrescriptionVersionStatus.PUBLISHED)
-                .setMaxResults(1)
-                .getResultStream()
-                .findFirst();
-        return found.map(this::source);
+        return prescriptions.currentPublishedVersion(patientId).map(this::source);
     }
 
     @Override
     public Optional<PrescriptionPlanningSource> prescriptionVersion(UUID versionId) {
-        return Optional.ofNullable(entityManager.find(PrescriptionVersionModel.class, versionId))
-                .map(this::source);
-    }
-
-    private PrescriptionPlanningSource source(PrescriptionVersionModel version) {
-        return new PrescriptionPlanningSource(
-                version.getId(),
-                version.getPrescription().getPlanningMode(),
-                version.getMeals().stream()
-                        .map(
-                                meal -> new MealSource(
-                                        meal.getId(),
-                                        meal.getName(),
-                                        meal.getMealType(),
-                                        meal.getOrder(),
-                                        meal.getSuggestedTime(),
-                                        meal.getItems().stream()
-                                                .map(
-                                                        item -> new ItemSource(
-                                                                item.getId(),
-                                                                item.getFoodId(),
-                                                                item.getFoodPortionId(),
-                                                                item.getQuantity(),
-                                                                item.getUnit(),
-                                                                item.getOrder(),
-                                                                item.getSubstitutions().stream()
-                                                                        .map(
-                                                                                sub -> new SubstitutionSource(
-                                                                                        sub.getId(),
-                                                                                        sub.getFoodId(),
-                                                                                        sub.getFoodPortionId(),
-                                                                                        sub.getQuantity(),
-                                                                                        sub.getUnit()
-                                                                                )
-                                                                        )
-                                                                        .toList()
-                                                        )
-                                                )
-                                                .toList()
-                                )
-                        )
-                        .toList()
-        );
+        return prescriptions.version(versionId).map(this::source);
     }
 
     @Override
     public boolean isActiveFood(UUID foodId) {
-        return entityManager
-                .createQuery(
-                        "select count(f) from FoodModel f where f.id=:id and f.active=true", Long.class
-                )
-                .setParameter("id", foodId)
-                .getSingleResult() > 0;
+        return catalog.isActiveFood(foodId);
     }
 
     @Override
     public boolean portionBelongsToFood(UUID portionId, UUID foodId) {
-        return entityManager
-                .createQuery(
-                        "select count(p) from FoodPortionModel p "
-                                + "where p.id=:portion and p.foodId=:food and p.active=true",
-                        Long.class
-                )
-                .setParameter("portion", portionId)
-                .setParameter("food", foodId)
-                .getSingleResult() > 0;
+        return catalog.portionBelongsToFood(portionId, foodId);
+    }
+
+    private PrescriptionPlanningSource source(Version version) {
+        return new PrescriptionPlanningSource(
+                version.id(),
+                version.planningMode(),
+                version.meals().stream()
+                        .map(
+                                meal -> new MealSource(
+                                        meal.id(), meal.name(), meal.mealType(), meal.order(),
+                                        meal.suggestedTime(),
+                                        meal.items().stream()
+                                                .map(
+                                                        item -> new ItemSource(
+                                                                item.id(), item.foodId(),
+                                                                item.portionId(), item.quantity(),
+                                                                item.unit(), item.order(),
+                                                                item.substitutions().stream()
+                                                                        .map(
+                                                                                sub -> new SubstitutionSource(
+                                                                                        sub.id(), sub.foodId(),
+                                                                                        sub.portionId(),
+                                                                                        sub.quantity(),
+                                                                                        sub.unit()
+                                                                                )
+                                                                        ).toList()
+                                                        )
+                                                ).toList()
+                                )
+                        ).toList()
+        );
     }
 }
