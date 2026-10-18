@@ -2,7 +2,7 @@ package com.ulvratech.pratoemdia.server.features.tracking.infrastructure.persist
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ulvratech.pratoemdia.server.features.catalog.infrastructure.persistence.model.FoodPortionModel;
+import com.ulvratech.pratoemdia.server.features.catalog.infrastructure.persistence.adapter.CatalogQueryAdapter;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.MealType;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PlanningMode;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.ExecutionTypes.Deleted;
@@ -336,10 +336,10 @@ public class ExecutionDataAdapter implements ExecutionData {
             throw invalid("Every planned item must be represented");
     }
 
-    private FoodPortionModel portion(ItemInput item) {
+    private CatalogQueryAdapter.Portion portion(ItemInput item) {
         var portion = lookups.activePortion(item.foodId(), item.portionId())
                 .orElseThrow(() -> invalid("Food or portion is missing or inactive"));
-        if (portion.getUnit() != null && !portion.getUnit().equals(item.unit().trim()))
+        if (portion.unit() != null && !portion.unit().equals(item.unit().trim()))
             throw invalid("Unit does not match the selected portion");
         return portion;
     }
@@ -355,9 +355,9 @@ public class ExecutionDataAdapter implements ExecutionData {
         for (var input : inputs) {
             var portion = portion(input);
             var consumed = input.quantity().multiply(input.multiplier());
-            var factor = consumed.divide(portion.getQuantity(), 12, RoundingMode.HALF_UP);
-            var grams = portion.getGramsEquivalent() == null ? null
-                    : portion.getGramsEquivalent().multiply(factor).setScale(SCALE_AMOUNT, RoundingMode.HALF_UP);
+            var factor = consumed.divide(portion.quantity(), 12, RoundingMode.HALF_UP);
+            var grams = portion.gramsEquivalent() == null ? null
+                    : portion.gramsEquivalent().multiply(factor).setScale(SCALE_AMOUNT, RoundingMode.HALF_UP);
             var item = MealExecutionItemModel.builder()
                     .id(UUID.randomUUID()).execution(model).order(order++)
                     .plannedItemId(input.plannedItemId())
@@ -366,19 +366,19 @@ public class ExecutionDataAdapter implements ExecutionData {
                     .quantity(input.quantity().setScale(SCALE_QUANTITY, RoundingMode.HALF_UP))
                     .multiplier(input.multiplier().setScale(SCALE_QUANTITY, RoundingMode.HALF_UP))
                     .unit(input.unit().trim()).grams(grams).build();
-            for (var nutrient : portion.getNutrients()) {
-                if (nutrient.getAmount() == null)
+            for (var nutrient : portion.nutrients()) {
+                if (nutrient.amount() == null)
                     continue;
-                if ("energy_kcal".equals(nutrient.getNutrientCode()))
-                    item.setKcal(nutrient.getAmount().multiply(factor).setScale(SCALE_AMOUNT, RoundingMode.HALF_UP));
+                if ("energy_kcal".equals(nutrient.code()))
+                    item.setKcal(nutrient.amount().multiply(factor).setScale(SCALE_AMOUNT, RoundingMode.HALF_UP));
                 item.getNutrients().add(
                         MealExecutionNutrientSnapshotModel.builder()
-                                .item(item).nutrientCode(nutrient.getNutrientCode())
+                                .item(item).nutrientCode(nutrient.code())
                                 .amount(
-                                        nutrient.getAmount().multiply(consumed)
-                                                .divide(portion.getQuantity(), SCALE_AMOUNT, RoundingMode.HALF_UP)
+                                        nutrient.amount().multiply(consumed)
+                                                .divide(portion.quantity(), SCALE_AMOUNT, RoundingMode.HALF_UP)
                                 )
-                                .unit(nutrient.getUnit()).build()
+                                .unit(nutrient.unit()).build()
                 );
             }
             model.getItems().add(item);
