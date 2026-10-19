@@ -28,4 +28,12 @@ public class ProfileQueryAdapter {
     public Optional<UUID> nutritionistProfileId(UUID accountId) {
         return nutritionists.findByUserAccountId(accountId).map(NutritionistProfileModel::getId);
     }
+
+    public Optional<PatientContact> patientContact(UUID patientId) {
+        return patients.findById(patientId)
+                .map(patient -> new PatientContact(patient.getFullName(), patient.getUserAccountId()));
+    }
+
+    public record PatientContact(String fullName, UUID userAccountId) {
+    }
 }

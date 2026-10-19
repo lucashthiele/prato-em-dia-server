@@ -94,6 +94,12 @@ vínculo ou a solicitação de reenvio. O status começa como `PENDING` e passa 
 `SENT` ou `FAILED` quando a chamada ao Resend termina. `SENT` indica que o
 Resend aceitou a mensagem, não que ela foi entregue à caixa de entrada.
 
+Quando um plano semanal é criado, seja pela geração automática ou pela geração
+manual (inclusive após excluir o plano), o paciente recebe um e-mail com período,
+quantidade de refeições e prazo de confirmação, sem nomes de alimentos. O envio
+só ocorre após o commit, não é rastreado e falhas são apenas registradas em log.
+Edição, confirmação e exclusão do plano não enviam e-mail.
+
 As propriedades padrão do Spring, como `SPRING_DATASOURCE_URL`,
 `SPRING_DATASOURCE_USERNAME` e `SPRING_DATASOURCE_PASSWORD`, podem ser usadas
 para conectar a outro PostgreSQL. Nesse caso, use também
