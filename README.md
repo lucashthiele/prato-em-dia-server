@@ -187,3 +187,7 @@ Cada feature segue, conforme a necessidade, as camadas `domain`,
 - [Importação do catálogo TACO](docs/catalog-taco-import.md)
 - [Importação do catálogo TBCA via MongoDB](docs/catalog-mongodb-import.md)
 - [Desenvolvimento com Git worktrees](docs/worktrees.md)
+
+## Licença
+
+Este projeto é distribuído sob a [PolyForm Noncommercial License 1.0.0](LICENSE). Uso não comercial é livre; uso comercial requer autorização prévia — entre em contato: lhthiele@outlook.com.
