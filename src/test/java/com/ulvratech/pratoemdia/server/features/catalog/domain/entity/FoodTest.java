@@ -32,6 +32,17 @@ class FoodTest {
     }
 
     @Test
+    void derivesNormalizedNameOnCreateAndUpdate() {
+        var food = Food.create(
+                " Maçã Verde ", null, "g", null, null, UUID.randomUUID(), FoodOrigin.PATIENT
+        );
+        assertEquals("maca verde", food.getNormalizedName());
+
+        food.update("Pão  Francês!", null, "g", null, null, true);
+        assertEquals("pao frances", food.getNormalizedName());
+    }
+
+    @Test
     void rejectsBlankRequiredFields() {
         UUID author = UUID.randomUUID();
 

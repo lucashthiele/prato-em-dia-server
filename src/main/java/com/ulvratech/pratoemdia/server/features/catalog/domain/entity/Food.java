@@ -1,5 +1,6 @@
 package com.ulvratech.pratoemdia.server.features.catalog.domain.entity;
 
+import com.ulvratech.pratoemdia.server.features.catalog.domain.FoodNameNormalizer;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.enums.FoodOrigin;
 
 import java.time.Instant;
@@ -69,6 +70,7 @@ public class Food {
     ) {
         this.id = id;
         this.name = required(name, "name");
+        this.normalizedName = optional(FoodNameNormalizer.normalize(this.name));
         this.category = optional(category);
         this.defaultUnit = required(defaultUnit, "defaultUnit");
         this.notes = optional(notes);
@@ -161,10 +163,12 @@ public class Food {
     ) {
         if (createdByUserId == null)
             throw new IllegalArgumentException("createdByUserId is required");
-        return new Food(
+        var food = new Food(
                 UUID.randomUUID(), name, category, defaultUnit, notes, preparationMethod,
                 true, createdByUserId, origin, null, null, 0
         );
+        food.normalizedName = optional(FoodNameNormalizer.normalize(food.name));
+        return food;
     }
 
     public void update(
@@ -176,6 +180,7 @@ public class Food {
             boolean active
     ) {
         this.name = required(name, "name");
+        this.normalizedName = optional(FoodNameNormalizer.normalize(this.name));
         this.category = optional(category);
         this.defaultUnit = required(defaultUnit, "defaultUnit");
         this.notes = optional(notes);

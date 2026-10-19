@@ -71,18 +71,20 @@ class CatalogMigrationTest {
         )) {
             execute(
                     connection,
-                    "insert into food(id,name,default_unit,origin,active,source,source_external_id,source_description) values (?,?,?,?::food_origin,?,?,?,?)",
-                    UUID.randomUUID(), "Maçã verde", "g", "IMPORTED", true, "TEST", "green", "Maçã verde"
+                    "insert into food(id,name,default_unit,origin,active,source,source_external_id,source_description,normalized_name) values (?,?,?,?::food_origin,?,?,?,?,?)",
+                    UUID.randomUUID(), "Maçã verde", "g", "IMPORTED", true, "TEST", "green", "Maçã verde", "maca verde"
             );
             execute(
                     connection,
-                    "insert into food(id,name,default_unit,origin,active,source,source_external_id,source_description) values (?,?,?,?::food_origin,?,?,?,?)",
-                    UUID.randomUUID(), "Maçã vermelha", "g", "IMPORTED", true, "TEST", "red", "Maçã vermelha"
+                    "insert into food(id,name,default_unit,origin,active,source,source_external_id,source_description,normalized_name) values (?,?,?,?::food_origin,?,?,?,?,?)",
+                    UUID.randomUUID(), "Maçã vermelha", "g", "IMPORTED", true, "TEST", "red", "Maçã vermelha",
+                    "maca vermelha"
             );
             execute(
                     connection,
-                    "insert into food(id,name,default_unit,origin,active,source,source_external_id,source_description) values (?,?,?,?::food_origin,?,?,?,?)",
-                    UUID.randomUUID(), "Maçã inativa", "g", "IMPORTED", false, "TEST", "inactive", "Maçã inativa"
+                    "insert into food(id,name,default_unit,origin,active,source,source_external_id,source_description,normalized_name) values (?,?,?,?::food_origin,?,?,?,?,?)",
+                    UUID.randomUUID(), "Maçã inativa", "g", "IMPORTED", false, "TEST", "inactive", "Maçã inativa",
+                    "maca inativa"
             );
         }
 
@@ -96,6 +98,22 @@ class CatalogMigrationTest {
                 listFoods.execute(new ListFoodsInput(0, 10, "banana inexistente"))
                         .content().isEmpty()
         );
+    }
+
+    @Test
+    void createsPartialTrigramIndexOnNormalizedName() throws Exception {
+        try (var connection = DriverManager.getConnection(
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()
+        );
+                var statement = connection.prepareStatement(
+                        "select indexdef from pg_indexes where indexname='ix_food_normalized_name_trgm'"
+                );
+                var result = statement.executeQuery()) {
+            assertTrue(result.next());
+            var definition = result.getString(1);
+            assertTrue(definition.contains("gin_trgm_ops"));
+            assertTrue(definition.contains("active = true"));
+        }
     }
 
     @Test
