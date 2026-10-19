@@ -22,7 +22,7 @@ public interface FoodJpaRepository extends JpaRepository<FoodModel, UUID> {
 
     Page<FoodModel> findAllByActiveTrue(Pageable pageable);
 
-    @Query(value = "select * from food where active = true and lower(unaccent(name)) like concat('%', :term, '%')", countQuery = "select count(*) from food where active = true and lower(unaccent(name)) like concat('%', :term, '%')", nativeQuery = true)
+    @Query(value = "select * from food where active = true and normalized_name like concat('%', :term, '%')", countQuery = "select count(*) from food where active = true and normalized_name like concat('%', :term, '%')", nativeQuery = true)
     Page<FoodModel> searchActive(@Param("term") String normalizedTerm, Pageable pageable);
 
     List<FoodModel> findAllBySourceAndSourceExternalIdIn(
