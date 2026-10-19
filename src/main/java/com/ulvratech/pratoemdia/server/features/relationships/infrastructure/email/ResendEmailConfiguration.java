@@ -28,4 +28,16 @@ public class ResendEmailConfiguration {
         executor.initialize();
         return executor;
     }
+
+    @Bean("notificationEmailExecutor")
+    Executor notificationEmailExecutor() {
+        var executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(4);
+        executor.setQueueCapacity(500);
+        executor.setThreadNamePrefix("notification-email-");
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
+        executor.initialize();
+        return executor;
+    }
 }

@@ -1,5 +1,7 @@
 package com.ulvratech.pratoemdia.server.features.planning.application.usecase;
 
+import com.ulvratech.pratoemdia.server.features.planning.application.dto.GeneratedPlan;
+import com.ulvratech.pratoemdia.server.features.planning.application.dto.PlanGeneratedNotice;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PlanningInputs.Actor;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PlanningInputs.ItemInput;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PlanningInputs.MealInput;
@@ -16,6 +18,7 @@ import com.ulvratech.pratoemdia.server.features.planning.application.exception.W
 import com.ulvratech.pratoemdia.server.features.planning.application.port.in.PlanningCommands;
 import com.ulvratech.pratoemdia.server.features.planning.application.port.in.PlanningQueries;
 import com.ulvratech.pratoemdia.server.features.planning.application.port.in.ReconcileWeeklyPlanning;
+import com.ulvratech.pratoemdia.server.features.planning.application.port.out.PlanGeneratedNotifier;
 import com.ulvratech.pratoemdia.server.features.planning.application.port.out.PlanningReferences;
 import com.ulvratech.pratoemdia.server.features.planning.domain.entity.PlannedMeal;
 import com.ulvratech.pratoemdia.server.features.planning.domain.entity.PlannedMealItem;
@@ -36,24 +39,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 @Service
 @Transactional
+@Slf4j
 public class WeeklyPlanningUseCase
         implements PlanningCommands, PlanningQueries, ReconcileWeeklyPlanning {
     public static final ZoneId ZONE = ZoneId.of("America/Sao_Paulo");
     private final WeeklyPlanningRepository repository;
     private final PlanningReferences references;
     private final Clock clock;
+    private final PlanGeneratedNotifier notifier;
 
     public WeeklyPlanningUseCase(
-            WeeklyPlanningRepository repository, PlanningReferences references, Clock clock
+            WeeklyPlanningRepository repository, PlanningReferences references, Clock clock,
+            PlanGeneratedNotifier notifier
     ) {
         this.repository = repository;
         this.references = references;
         this.clock = clock;
+        this.notifier = notifier;
     }
 
     @Override
@@ -79,7 +87,9 @@ public class WeeklyPlanningUseCase
     @Override
     public WeeklyPlanOutput generate(Actor actor) {
         UUID patient = requirePatient(actor);
-        return WeeklyPlanOutput.from(generateFor(patient, LocalDate.now(clock.withZone(ZONE)), true));
+        var generated = generateFor(patient, LocalDate.now(clock.withZone(ZONE)), true);
+        notifyGenerated(generated, false);
+        return WeeklyPlanOutput.from(generated.plan());
     }
 
     @Override
@@ -146,7 +156,7 @@ public class WeeklyPlanningUseCase
                 .forEach(
                         preference -> {
                             try {
-                                generateFor(preference.patientId(), now.toLocalDate(), false);
+                                notifyGenerated(generateFor(preference.patientId(), now.toLocalDate(), false), true);
                             } catch (WeeklyPlanNotFoundException | PlanningConflictException ignored) {
                             }
                         }
@@ -167,17 +177,32 @@ public class WeeklyPlanningUseCase
                 );
     }
 
-    private WeeklyPlan generateFor(UUID patient, LocalDate generatedOn, boolean conflictWhenExists) {
+    private void notifyGenerated(GeneratedPlan generated, boolean automatic) {
+        if (!generated.created())
+            return;
+        try {
+            notifier.planGenerated(PlanGeneratedNotice.from(generated.plan(), automatic));
+        } catch (RuntimeException error) {
+            log.error("Failed to notify plan generation. planId={}", generated.plan().getId(), error);
+        }
+    }
+
+    private GeneratedPlan generateFor(UUID patient, LocalDate generatedOn, boolean conflictWhenExists) {
         LocalDate start = generatedOn.plusDays(1), end = start.plusDays(6);
         if (repository.existsForPeriod(patient, start, end)) {
             if (conflictWhenExists)
                 throw new PlanningConflictException("Weekly plan already exists for this period");
-            return repository.findPlans(patient).stream()
-                    .filter(p -> p.getPeriodStart().equals(start))
-                    .findFirst()
-                    .orElseThrow(
-                            () -> new PlanningConflictException("Weekly plan already exists for this period")
-                    );
+            return new GeneratedPlan(
+                    repository.findPlans(patient).stream()
+                            .filter(p -> p.getPeriodStart().equals(start))
+                            .findFirst()
+                            .orElseThrow(
+                                    () -> new PlanningConflictException(
+                                            "Weekly plan already exists for this period"
+                                    )
+                            ),
+                    false
+            );
         }
         var source = references
                 .currentPublishedPrescription(patient)
@@ -190,10 +215,13 @@ public class WeeklyPlanningUseCase
         }
         Instant deadline = start.atStartOfDay(ZONE).toInstant();
         try {
-            return repository.savePlan(
-                    WeeklyPlan.create(
-                            patient, source.versionId(), source.planningMode(), start, deadline, meals
-                    )
+            return new GeneratedPlan(
+                    repository.savePlan(
+                            WeeklyPlan.create(
+                                    patient, source.versionId(), source.planningMode(), start, deadline, meals
+                            )
+                    ),
+                    true
             );
         } catch (DataIntegrityViolationException exception) {
             throw new PlanningConflictException("Weekly plan already exists for this period");
