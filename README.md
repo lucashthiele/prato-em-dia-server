@@ -186,6 +186,7 @@ Cada feature segue, conforme a necessidade, as camadas `domain`,
 - [Dependências de backend do redesign mobile](docs/mobile-redesign-backend-dependencies.md)
 - [Importação do catálogo TACO](docs/catalog-taco-import.md)
 - [Importação do catálogo TBCA via MongoDB](docs/catalog-mongodb-import.md)
+- [Seed de dados para desenvolvimento](docs/dev-seed.md)
 - [Desenvolvimento com Git worktrees](docs/worktrees.md)
 
 ## Licença

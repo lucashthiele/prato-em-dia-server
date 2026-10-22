@@ -1,0 +1,13 @@
+spring:
+  main:
+    web-application-type: none
+
+# The seeder runs without an HTTP server and never sends email. These fallbacks only
+# satisfy beans that are part of the shared application context.
+security:
+  jwt:
+    secret: ${JWT_SECRET:dev-seed-non-web-context-secret-value}
+
+relationships:
+  mail:
+    resend-api-key: ${RESEND_API_KEY:dev-seed-unused}
