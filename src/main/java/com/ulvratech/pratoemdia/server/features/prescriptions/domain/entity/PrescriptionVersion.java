@@ -174,7 +174,7 @@ public class PrescriptionVersion {
         this.notes = AllowedSubstitution.normalized(notes);
         this.meals = validatedMeals(meals);
         this.nutritionTargets = validatedTargets(nutritionTargets);
-        this.updatedAt = Instant.now();
+        this.updatedAt = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
     }
 
     public void publish(Instant now) {

@@ -46,7 +46,10 @@ public class PrescriptionMapper {
                 .notes(version.getNotes())
                 .createdByUserId(version.getCreatedByUserId())
                 .createdAt(version.getCreatedAt())
-                .updatedAt(version.getUpdatedAt() != null ? version.getUpdatedAt() : java.time.Instant.now())
+                .updatedAt(
+                        version.getUpdatedAt() != null ? version.getUpdatedAt()
+                                : java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS)
+                )
                 .publishedAt(version.getPublishedAt())
                 .archivedAt(version.getArchivedAt())
                 .build();
