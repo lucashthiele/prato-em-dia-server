@@ -1,6 +1,7 @@
 package com.ulvratech.pratoemdia.server.features.relationships.infrastructure.persistence.adapter;
 
 import com.ulvratech.pratoemdia.server.features.relationships.domain.entity.RelationshipView;
+import com.ulvratech.pratoemdia.server.features.relationships.domain.enums.RelationshipEmailStatus;
 import com.ulvratech.pratoemdia.server.features.relationships.domain.enums.RelationshipStatus;
 import com.ulvratech.pratoemdia.server.features.relationships.infrastructure.persistence.model.RelationshipModel;
 
@@ -21,6 +22,14 @@ public interface RelationshipJpaRepository extends JpaRepository<RelationshipMod
             + " UserAccountModel pa where r.patientId=p.id and r.nutritionistId=n.id and"
             + " p.userAccountId=pa.id ";
 
+    String FILTERED = "and n.userAccountId=:accountId and r.status='ACTIVE'"
+            + " and (lower(function('unaccent', p.fullName)) like :pattern escape '\\'"
+            + " or lower(pa.email) like :pattern escape '\\')"
+            + " and (:filterStatus = false or r.emailDeliveryStatus = :status)"
+            + " and (:openDraftOnly = false or exists (select 1 from PrescriptionVersionModel v"
+            + " where v.prescription.nutritionistId = r.nutritionistId"
+            + " and v.prescription.patientId = r.patientId and v.status = 'DRAFT'))";
+
     Optional<RelationshipModel> findByNutritionistIdAndPatientIdAndStatus(
             UUID nutritionistId, UUID patientId, RelationshipStatus status
     );
@@ -38,12 +47,17 @@ public interface RelationshipJpaRepository extends JpaRepository<RelationshipMod
     @Query(VIEW + "and r.id=:relationshipId")
     Optional<RelationshipView> findViewById(@Param("relationshipId") UUID relationshipId);
 
-    @Query(value = VIEW
-            + "and n.userAccountId=:accountId and r.status='ACTIVE'", countQuery = "select count(r) from RelationshipModel r, NutritionistProfileModel n where"
-                    + " r.nutritionistId=n.id and n.userAccountId=:accountId and"
-                    + " r.status='ACTIVE'")
+    @Query(value = VIEW + FILTERED, countQuery = "select count(r) from RelationshipModel r,"
+            + " PatientProfileModel p, NutritionistProfileModel n, UserAccountModel pa where"
+            + " r.patientId=p.id and r.nutritionistId=n.id and p.userAccountId=pa.id "
+            + FILTERED)
     Page<RelationshipView> findActiveByNutritionistAccount(
-            @Param("accountId") UUID accountId, Pageable pageable
+            @Param("accountId") UUID accountId,
+            @Param("pattern") String pattern,
+            @Param("filterStatus") boolean filterStatus,
+            @Param("status") RelationshipEmailStatus status,
+            @Param("openDraftOnly") boolean openDraftOnly,
+            Pageable pageable
     );
 
     @Query("select n.id from NutritionistProfileModel n where n.userAccountId=:accountId")
