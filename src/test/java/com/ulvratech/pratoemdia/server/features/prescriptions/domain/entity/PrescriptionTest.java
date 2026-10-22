@@ -35,6 +35,15 @@ class PrescriptionTest {
     }
 
     @Test
+    void draftUpdatedAtMatchesDatabasePrecision() {
+        var draft = prescription().getVersions().getFirst();
+
+        draft.replaceContent("Changed", null, draft.getMeals());
+
+        assertEquals(draft.getUpdatedAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS), draft.getUpdatedAt());
+    }
+
+    @Test
     void refusesToPublishAnEmptyDraft() {
         var prescription = Prescription.create(
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "Plan", null, List.of()
