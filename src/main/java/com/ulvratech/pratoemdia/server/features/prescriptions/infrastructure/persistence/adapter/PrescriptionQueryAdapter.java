@@ -1,5 +1,6 @@
 package com.ulvratech.pratoemdia.server.features.prescriptions.infrastructure.persistence.adapter;
 
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.DraftSummary;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.MealType;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PlanningMode;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PrescriptionStatus;
@@ -59,6 +60,14 @@ public class PrescriptionQueryAdapter {
                 patientId, PrescriptionStatus.ACTIVE, PlanningMode.FREE,
                 PrescriptionVersionStatus.PUBLISHED, PageRequest.of(0, 1)
         ).stream().findFirst();
+    }
+
+    public List<DraftSummary> openDrafts(UUID nutritionistAccountId, int limit) {
+        return versions.findOpenDrafts(nutritionistAccountId, PageRequest.of(0, limit));
+    }
+
+    public long countOpenDrafts(UUID nutritionistAccountId) {
+        return versions.countOpenDrafts(nutritionistAccountId);
     }
 
     public List<PublishedPeriod> publishedPeriods(UUID patientId) {

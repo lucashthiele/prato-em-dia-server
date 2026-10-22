@@ -46,6 +46,7 @@ public class PrescriptionMapper {
                 .notes(version.getNotes())
                 .createdByUserId(version.getCreatedByUserId())
                 .createdAt(version.getCreatedAt())
+                .updatedAt(version.getUpdatedAt() != null ? version.getUpdatedAt() : java.time.Instant.now())
                 .publishedAt(version.getPublishedAt())
                 .archivedAt(version.getArchivedAt())
                 .build();
@@ -144,6 +145,7 @@ public class PrescriptionMapper {
                 model.getNotes(),
                 model.getCreatedByUserId(),
                 model.getCreatedAt(),
+                model.getUpdatedAt(),
                 model.getPublishedAt(),
                 model.getArchivedAt(),
                 model.getMeals().stream().map(this::toDomain).toList(),

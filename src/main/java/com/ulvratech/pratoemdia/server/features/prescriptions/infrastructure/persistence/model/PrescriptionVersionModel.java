@@ -54,6 +54,8 @@ public class PrescriptionVersionModel {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
     @Column(name = "published_at")
     private Instant publishedAt;
     @Column(name = "archived_at")

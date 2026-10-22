@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -45,6 +46,11 @@ public interface RelationshipJpaRepository extends JpaRepository<RelationshipMod
     Page<RelationshipView> findActiveByNutritionistAccount(
             @Param("accountId") UUID accountId, Pageable pageable
     );
+
+    @Query("select r.emailDeliveryStatus, count(r) from RelationshipModel r, NutritionistProfileModel n"
+            + " where r.nutritionistId=n.id and n.userAccountId=:accountId and r.status='ACTIVE'"
+            + " group by r.emailDeliveryStatus")
+    List<Object[]> countActiveByNutritionistAccountAndEmailStatus(@Param("accountId") UUID accountId);
 
     @Query("select n.id from NutritionistProfileModel n where n.userAccountId=:accountId")
     Optional<UUID> findNutritionistProfileIdByAccount(@Param("accountId") UUID accountId);
