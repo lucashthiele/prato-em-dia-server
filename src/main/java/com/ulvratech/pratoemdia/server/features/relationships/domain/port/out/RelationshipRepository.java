@@ -1,6 +1,7 @@
 package com.ulvratech.pratoemdia.server.features.relationships.domain.port.out;
 
 import com.ulvratech.pratoemdia.server.features.relationships.domain.entity.ProfessionalPatientRelationship;
+import com.ulvratech.pratoemdia.server.features.relationships.domain.entity.RelationshipFilter;
 import com.ulvratech.pratoemdia.server.features.relationships.domain.entity.RelationshipView;
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageRequest;
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageResult;
@@ -27,7 +28,9 @@ public interface RelationshipRepository {
 
     Optional<RelationshipView> findViewById(UUID relationshipId);
 
-    PageResult<RelationshipView> findActiveByNutritionistAccount(UUID accountId, PageRequest page);
+    PageResult<RelationshipView> findActiveByNutritionistAccount(
+            UUID accountId, RelationshipFilter filter, PageRequest page
+    );
 
     Optional<UUID> findNutritionistProfileIdByAccount(UUID accountId);
 

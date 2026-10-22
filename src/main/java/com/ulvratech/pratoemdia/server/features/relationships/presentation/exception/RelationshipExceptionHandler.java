@@ -42,6 +42,15 @@ public class RelationshipExceptionHandler {
         );
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    ResponseEntity<ApiErrorResponse> invalid() {
+        return response(
+                HttpStatus.BAD_REQUEST,
+                "RELATIONSHIP_INVALID_VALUE",
+                "Um ou mais parâmetros da listagem são inválidos."
+        );
+    }
+
     private ResponseEntity<ApiErrorResponse> response(HttpStatus s, String c, String m) {
         return ResponseEntity.status(s).body(new ApiErrorResponse(s.value(), c, m, List.of()));
     }

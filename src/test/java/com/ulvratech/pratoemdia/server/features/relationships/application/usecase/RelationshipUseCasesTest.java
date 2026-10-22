@@ -90,7 +90,7 @@ class RelationshipUseCasesTest {
         when(repository.findActiveViewByNutritionistAccountAndPatient(account, view.patientId()))
                 .thenReturn(Optional.of(view));
         when(repository.findActiveViewByPatientAccount(account)).thenReturn(Optional.of(view));
-        when(repository.findActiveByNutritionistAccount(eq(account), any()))
+        when(repository.findActiveByNutritionistAccount(eq(account), any(), any()))
                 .thenReturn(new PageResult<>(List.of(view), 1, 5, 1, 1));
 
         assertEquals(

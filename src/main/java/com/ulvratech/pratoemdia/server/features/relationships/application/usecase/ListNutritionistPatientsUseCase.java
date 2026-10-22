@@ -3,11 +3,16 @@ package com.ulvratech.pratoemdia.server.features.relationships.application.useca
 import com.ulvratech.pratoemdia.server.features.relationships.application.dto.ListRelationshipsInput;
 import com.ulvratech.pratoemdia.server.features.relationships.application.dto.RelationshipOutput;
 import com.ulvratech.pratoemdia.server.features.relationships.application.port.in.ListNutritionistPatients;
+import com.ulvratech.pratoemdia.server.features.relationships.domain.entity.RelationshipFilter;
+import com.ulvratech.pratoemdia.server.features.relationships.domain.enums.RelationshipSort;
 import com.ulvratech.pratoemdia.server.features.relationships.domain.port.out.RelationshipRepository;
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageRequest;
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageResult;
 
 import org.springframework.stereotype.Service;
+
+import java.text.Normalizer;
+import java.util.Locale;
 
 @Service
 public class ListNutritionistPatientsUseCase implements ListNutritionistPatients {
@@ -18,8 +23,14 @@ public class ListNutritionistPatientsUseCase implements ListNutritionistPatients
     }
 
     public PageResult<RelationshipOutput> execute(ListRelationshipsInput i) {
+        var filter = new RelationshipFilter(
+                normalizeSearch(i.q()),
+                i.emailDeliveryStatus(),
+                Boolean.TRUE.equals(i.hasOpenDraft()),
+                RelationshipSort.parse(i.sort())
+        );
         var p = repository.findActiveByNutritionistAccount(
-                i.accountId(), new PageRequest(i.page(), i.size())
+                i.accountId(), filter, new PageRequest(i.page(), i.size())
         );
         return new PageResult<>(
                 p.content().stream().map(RelationshipOutput::from).toList(),
@@ -28,5 +39,14 @@ public class ListNutritionistPatientsUseCase implements ListNutritionistPatients
                 p.totalElements(),
                 p.totalPages()
         );
+    }
+
+    private static String normalizeSearch(String q) {
+        if (q == null)
+            return null;
+        var term = Normalizer.normalize(q.trim(), Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .toLowerCase(Locale.ROOT);
+        return term.isEmpty() ? null : term;
     }
 }

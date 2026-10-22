@@ -1,13 +1,18 @@
 package com.ulvratech.pratoemdia.server.features.relationships.infrastructure.persistence.adapter;
 
 import com.ulvratech.pratoemdia.server.features.relationships.domain.entity.ProfessionalPatientRelationship;
+import com.ulvratech.pratoemdia.server.features.relationships.domain.entity.RelationshipFilter;
 import com.ulvratech.pratoemdia.server.features.relationships.domain.entity.RelationshipView;
+import com.ulvratech.pratoemdia.server.features.relationships.domain.enums.RelationshipEmailStatus;
+import com.ulvratech.pratoemdia.server.features.relationships.domain.enums.RelationshipSort;
 import com.ulvratech.pratoemdia.server.features.relationships.domain.enums.RelationshipStatus;
 import com.ulvratech.pratoemdia.server.features.relationships.domain.port.out.RelationshipRepository;
 import com.ulvratech.pratoemdia.server.features.relationships.infrastructure.persistence.mapper.RelationshipMapper;
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageRequest;
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageResult;
 
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.JpaSort;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -61,9 +66,18 @@ public class RelationshipRepositoryAdapter implements RelationshipRepository {
         return repository.findViewById(id);
     }
 
-    public PageResult<RelationshipView> findActiveByNutritionistAccount(UUID a, PageRequest p) {
+    public PageResult<RelationshipView> findActiveByNutritionistAccount(
+            UUID a, RelationshipFilter f, PageRequest p
+    ) {
+        var pattern = f.search() == null ? "%" : "%" + escapeLike(f.search()) + "%";
         var page = repository.findActiveByNutritionistAccount(
-                a, org.springframework.data.domain.PageRequest.of(p.page(), p.size())
+                a,
+                pattern,
+                f.emailDeliveryStatus() != null,
+                f.emailDeliveryStatus() == null ? RelationshipEmailStatus.PENDING
+                        : f.emailDeliveryStatus(),
+                f.openDraftOnly(),
+                org.springframework.data.domain.PageRequest.of(p.page(), p.size(), sort(f.sort()))
         );
         return new PageResult<>(
                 page.getContent(),
@@ -72,6 +86,18 @@ public class RelationshipRepositoryAdapter implements RelationshipRepository {
                 page.getTotalElements(),
                 page.getTotalPages()
         );
+    }
+
+    private static Sort sort(RelationshipSort s) {
+        return switch (s) {
+            case CREATED_AT_DESC -> JpaSort.unsafe(Sort.Direction.DESC, "r.createdAt", "r.id");
+            case CREATED_AT_ASC -> JpaSort.unsafe(Sort.Direction.ASC, "r.createdAt", "r.id");
+            case NAME_ASC -> JpaSort.unsafe(Sort.Direction.ASC, "lower(p.fullName)", "r.id");
+        };
+    }
+
+    private static String escapeLike(String term) {
+        return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     public Optional<UUID> findNutritionistProfileIdByAccount(UUID a) {
