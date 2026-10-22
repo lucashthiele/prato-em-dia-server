@@ -10,6 +10,7 @@ public class PrescriptionVersion {
     private final int number;
     private final UUID createdByUserId;
     private final Instant createdAt;
+    private Instant updatedAt;
     private PrescriptionVersionStatus status;
     private String title;
     private String notes;
@@ -41,6 +42,17 @@ public class PrescriptionVersion {
             UUID createdByUserId, Instant createdAt, Instant publishedAt, Instant archivedAt,
             List<PrescribedMeal> meals, List<NutritionTarget> nutritionTargets
     ) {
+        this(
+                id, number, status, title, notes, createdByUserId, createdAt, createdAt,
+                publishedAt, archivedAt, meals, nutritionTargets
+        );
+    }
+
+    public PrescriptionVersion(
+            UUID id, int number, PrescriptionVersionStatus status, String title, String notes,
+            UUID createdByUserId, Instant createdAt, Instant updatedAt, Instant publishedAt,
+            Instant archivedAt, List<PrescribedMeal> meals, List<NutritionTarget> nutritionTargets
+    ) {
         if (id == null || createdByUserId == null || number < 1)
             throw new IllegalArgumentException("Invalid prescription version");
         this.id = id;
@@ -50,6 +62,7 @@ public class PrescriptionVersion {
         this.notes = AllowedSubstitution.normalized(notes);
         this.createdByUserId = createdByUserId;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
         this.publishedAt = publishedAt;
         this.archivedAt = archivedAt;
         this.meals = validatedMeals(meals == null ? List.of() : meals);
@@ -161,6 +174,7 @@ public class PrescriptionVersion {
         this.notes = AllowedSubstitution.normalized(notes);
         this.meals = validatedMeals(meals);
         this.nutritionTargets = validatedTargets(nutritionTargets);
+        this.updatedAt = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
     }
 
     public void publish(Instant now) {
@@ -209,6 +223,10 @@ public class PrescriptionVersion {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 
     public Instant getPublishedAt() {
