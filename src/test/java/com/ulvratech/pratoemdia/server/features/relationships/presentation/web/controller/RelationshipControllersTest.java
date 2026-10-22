@@ -42,7 +42,7 @@ class RelationshipControllersTest {
                 )
                         .getStatusCode().value()
         );
-        controller.list(jwt, 2, 15);
+        controller.list(jwt, 2, 15, null, null, null, null);
         controller.get(jwt, patient);
         controller.end(jwt, patient);
         controller.reissueAccess(jwt, patient);

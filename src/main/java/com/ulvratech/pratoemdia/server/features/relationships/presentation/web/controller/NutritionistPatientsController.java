@@ -12,12 +12,16 @@ import com.ulvratech.pratoemdia.server.features.relationships.application.port.i
 import com.ulvratech.pratoemdia.server.features.relationships.presentation.web.request.CreatePatientRelationshipRequest;
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageResult;
 import com.ulvratech.pratoemdia.server.shared.openapi.OpenApiConfiguration;
+import com.ulvratech.pratoemdia.server.features.relationships.domain.enums.RelationshipEmailStatus;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -72,13 +76,21 @@ public class NutritionistPatientsController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar pacientes", description = "Retorna uma página dos pacientes vinculados ao nutricionista.")
+    @Operation(summary = "Listar pacientes", description = "Retorna uma página dos pacientes vinculados ao nutricionista. Todos os filtros são opcionais, combinam entre si e `totalElements` reflete o filtro aplicado.")
     PageResult<RelationshipOutput> list(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            @Parameter(description = "Busca por nome (sem distinção de maiúsculas e acentos) ou e-mail. Texto em branco é ignorado.") @RequestParam(required = false) @Size(max = 180) String q,
+            @Parameter(description = "Filtra pelo status do envio do e-mail de acesso.") @RequestParam(required = false) RelationshipEmailStatus emailDeliveryStatus,
+            @Parameter(description = "Quando true, retorna apenas pacientes com uma versão de prescrição em rascunho.") @RequestParam(required = false) Boolean hasOpenDraft,
+            @Parameter(description = "Ordenação: createdAt,desc (padrão), createdAt,asc ou fullName,asc.", schema = @Schema(allowableValues = {
+                    "createdAt,desc", "createdAt,asc",
+                    "fullName,asc" }, defaultValue = "createdAt,desc")) @RequestParam(required = false) String sort
     ) {
-        return list.execute(new ListRelationshipsInput(id(jwt), page, size));
+        return list.execute(
+                new ListRelationshipsInput(id(jwt), page, size, q, emailDeliveryStatus, hasOpenDraft, sort)
+        );
     }
 
     @GetMapping("/{patientId}")
