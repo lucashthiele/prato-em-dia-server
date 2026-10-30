@@ -52,6 +52,35 @@ class IdentitySeeder {
             }
         }
         seedRelationships();
+        seedBulkRelationships();
+    }
+
+    /**
+     * Links the bulk patients to Ana. The email status cycles through SENT, PENDING and FAILED, and created_at is
+     * scattered over distinct days (in an order unrelated to the name) so sorting visibly changes the list.
+     */
+    private void seedBulkRelationships() {
+        var emailStatuses = java.util.List.of("SENT", "PENDING", "FAILED");
+        var patients = SeedAccount.BULK_PATIENTS;
+        for (int index = 0; index < patients.size(); index++) {
+            var patient = patients.get(index);
+            var emailStatus = emailStatuses.get(index % emailStatuses.size());
+            int daysAgo = (index * 17) % patients.size() + 1;
+            jdbc.update(
+                    """
+                            INSERT INTO nutritionist_patient_relationship (
+                                id, nutritionist_id, patient_id, status, email_delivery_status, email_attempt_count,
+                                email_last_attempt_at, created_at, updated_at
+                            )
+                            VALUES (?, ?, ?, 'ACTIVE', CAST(? AS relationship_email_status), ?,
+                                    now() - make_interval(days => ?), now() - make_interval(days => ?),
+                                    now() - make_interval(days => ?))
+                            ON CONFLICT DO NOTHING
+                            """,
+                    SeedIds.of("relationship:" + patient.key()), SeedAccount.ANA.profileId(), patient.profileId(),
+                    emailStatus, emailStatus.equals("PENDING") ? 0 : 1, daysAgo, daysAgo, daysAgo
+            );
+        }
     }
 
     private void seedRelationships() {
