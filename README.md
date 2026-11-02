@@ -188,6 +188,9 @@ Cada feature segue, conforme a necessidade, as camadas `domain`,
 - [Importação do catálogo TBCA via MongoDB](docs/catalog-mongodb-import.md)
 - [Seed de dados para desenvolvimento](docs/dev-seed.md)
 - [Desenvolvimento com Git worktrees](docs/worktrees.md)
+- [Roadmap de implementação e decisões por ticket](docs/roadmap-de-implementacao.md)
+- [Infraestrutura e deploy](docs/infraestrutura.md)
+- [ADRs](docs/adr/) e [glossário do domínio](GLOSSARY.md)
 
 ## Licença
 
