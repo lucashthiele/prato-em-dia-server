@@ -118,6 +118,26 @@ class DevSeedIntegrationTest {
     }
 
     @Test
+    void givesAnaMoreActivePatientsThanOnePageWithMixedEmailStatusAndCreationDates() throws Exception {
+        run(properties(true));
+
+        var activeLinks = jdbc.queryForObject("""
+                SELECT count(*) FROM nutritionist_patient_relationship
+                WHERE nutritionist_id = ? AND status = 'ACTIVE'
+                """, Integer.class, SeedAccount.ANA.profileId());
+        assertThat(activeLinks).isGreaterThan(20);
+        assertThat(
+                jdbc.queryForObject(
+                        "SELECT count(*) FROM nutritionist_patient_relationship WHERE email_delivery_status = 'FAILED'",
+                        Integer.class
+                )
+        ).isPositive();
+        assertThat(jdbc.queryForObject("""
+                SELECT count(DISTINCT created_at) FROM nutritionist_patient_relationship WHERE nutritionist_id = ?
+                """, Integer.class, SeedAccount.ANA.profileId())).isGreaterThan(1);
+    }
+
+    @Test
     void publishedPrescriptionsAreFinalizedAndEachPatientHasAtMostOnePublishedVersion() throws Exception {
         run(properties(true));
 

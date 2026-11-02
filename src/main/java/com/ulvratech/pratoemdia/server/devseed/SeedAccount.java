@@ -45,7 +45,21 @@ record SeedAccount(
             "Conta INATIVA; vínculo encerrado; prescrição arquivada"
     );
 
-    static final List<SeedAccount> ALL = List.of(ADMIN, ANA, BRUNO, CARLA, DIEGO, ELISA, FABIO, GABI);
+    /** Extra active patients of Ana, enough to go past the 20-per-page patient list. */
+    static final int BULK_PATIENT_COUNT = 45;
+    static final List<SeedAccount> BULK_PATIENTS = java.util.stream.IntStream.rangeClosed(1, BULK_PATIENT_COUNT)
+            .mapToObj(number -> {
+                var suffix = "%02d".formatted(number);
+                return new SeedAccount(
+                        "lote" + suffix, "patient.lote" + suffix + EMAIL_DOMAIN, "PATIENT", "Paciente " + suffix,
+                        true, false, "Paciente em lote para paginacao da lista; sem prescricao nem historico"
+                );
+            })
+            .toList();
+
+    static final List<SeedAccount> ALL = java.util.stream.Stream.concat(
+            List.of(ADMIN, ANA, BRUNO, CARLA, DIEGO, ELISA, FABIO, GABI).stream(), BULK_PATIENTS.stream()
+    ).toList();
 
     boolean isPatient() {
         return role.equals("PATIENT");
