@@ -55,6 +55,15 @@ public class DiaryController {
         return diary.dailySummary(actor(jwt), date);
     }
 
+    @GetMapping("/daily-meal-categories")
+    @Operation(summary = "Estado e permissão das categorias do dia", description = "Devolve sempre as quatro categorias, com estado derivado (NOT_LOGGED, PARTIAL, LOGGED), permissão de registro e itens planejados cobertos e não cobertos.")
+    public DiaryTypes.DailyMealCategories dailyMealCategories(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    ) {
+        return diary.dailyMealCategories(actor(jwt), date);
+    }
+
     @PostMapping("/meal-executions")
     @Operation(summary = "Criar execução de refeição", description = "Valida o modo da prescrição ou do plano e salva itens com snapshots nutricionais.")
     public ResponseEntity<ExecutionTypes.Execution> createExecution(

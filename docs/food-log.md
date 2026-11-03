@@ -18,6 +18,19 @@ faz parte desta API.
   `amount` e `unit`. Quando há plano, códigos ausentes em um dos três mapas são
   preenchidos com zero. Sem plano, somente o realizado é retornado.
 
+- `GET /api/v1/patients/me/daily-meal-categories?date=YYYY-MM-DD` devolve sempre as quatro
+  categorias (`BREAKFAST`, `LUNCH`, `SNACK`, `DINNER`, nessa ordem), cada uma com `mealType`,
+  `state`, `canRegister`, `blockedReason`, `plannedMealId` (opcional), `coveredItemCount`,
+  `uncoveredItemCount` e as listas `coveredPlannedItemIds` e `uncoveredPlannedItemIds`.
+  O cálculo é todo do servidor (LUC-36, LUC-41, LUC-71):
+  - `state`: `NOT_LOGGED` sem execução ativa; em `RESTRICTED` e `SUBSTITUTIONS_ONLY`, `PARTIAL`
+    enquanto algum item planejado não estiver coberto (direta ou por substituição autorizada) e
+    `LOGGED` quando todos estiverem cobertos; em `FREE` não existe `PARTIAL`. Categoria sem itens
+    planejados ou dia sem plano: qualquer execução ativa é `LOGGED`.
+  - `canRegister`: `true` em `FREE`; em `RESTRICTED` e `SUBSTITUTIONS_ONLY` só quando há itens
+    planejados na categoria. Caso contrário `false` com `blockedReason = NO_ALLOWED_FOODS`.
+    Em dia sem plano vale o modo da prescrição publicada; sem prescrição publicada, bloqueado.
+
 ## Execuções
 
 As rotas abaixo começam em `/api/v1/patients/me/meal-executions`:

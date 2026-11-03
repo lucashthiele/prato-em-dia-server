@@ -9,6 +9,7 @@ import com.ulvratech.pratoemdia.server.features.tracking.application.dto.DiaryTy
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.DiaryTypes.PlanPeriod;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.DiaryTypes.PrescriptionPeriod;
 import com.ulvratech.pratoemdia.server.features.tracking.application.port.out.DiaryData;
+import com.ulvratech.pratoemdia.server.features.tracking.domain.MealCategories;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -92,6 +93,29 @@ public class DiaryDataAdapter implements DiaryData {
                 date, context.planId(), context.versionId(),
                 prescribedFilled, plannedFilled, realizedFilled
         );
+    }
+
+    @Override
+    public MealCategories.DayFacts dayFacts(UUID patientId, LocalDate date) {
+        var planned = planning.plannedMealsOn(patientId, date).stream()
+                .map(
+                        meal -> new MealCategories.PlannedCategory(
+                                meal.id(), meal.mealType(), meal.mode(), meal.itemIds()
+                        )
+                ).toList();
+        var facts = executions.findAllByPatientIdAndDateAndDeletedAtIsNullOrderByCreatedAtAscIdAsc(patientId, date)
+                .stream()
+                .map(
+                        execution -> new MealCategories.ExecutionFact(
+                                execution.getMealType(), execution.getPlannedMealId(),
+                                execution.getItems().stream().map(item -> item.getPlannedItemId())
+                                        .filter(java.util.Objects::nonNull)
+                                        .collect(java.util.stream.Collectors.toSet())
+                        )
+                ).toList();
+        var mode = prescriptions.currentPublishedVersion(patientId)
+                .map(PrescriptionQueryAdapter.Version::planningMode).orElse(null);
+        return new MealCategories.DayFacts(mode, planned, facts);
     }
 
     private Map<String, NutrientTotal> targets(UUID versionId) {

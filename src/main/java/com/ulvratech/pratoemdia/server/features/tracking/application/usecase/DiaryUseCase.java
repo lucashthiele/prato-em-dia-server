@@ -2,7 +2,10 @@ package com.ulvratech.pratoemdia.server.features.tracking.application.usecase;
 
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.DiaryTypes.Actor;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.DiaryTypes.Calendar;
+import com.ulvratech.pratoemdia.server.features.tracking.application.dto.DiaryTypes.DailyMealCategories;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.DiaryTypes.DailySummary;
+import com.ulvratech.pratoemdia.server.features.tracking.application.dto.DiaryTypes.MealCategory;
+import com.ulvratech.pratoemdia.server.features.tracking.domain.MealCategories;
 
 import com.ulvratech.pratoemdia.server.features.tracking.application.exception.TrackingException;
 import com.ulvratech.pratoemdia.server.features.tracking.application.exception.TrackingException.Kind;
@@ -29,6 +32,24 @@ public class DiaryUseCase implements DiaryOperations {
         if (date == null)
             throw new TrackingException(Kind.INVALID, "Date is required");
         return data.dailySummary(patient(actor), date);
+    }
+
+    @Override
+    public DailyMealCategories dailyMealCategories(Actor actor, LocalDate date) {
+        if (date == null)
+            throw new TrackingException(Kind.INVALID, "Date is required");
+        var statuses = MealCategories.derive(data.dayFacts(patient(actor), date));
+        return new DailyMealCategories(
+                date,
+                statuses.stream().map(
+                        status -> new MealCategory(
+                                status.mealType(), status.state(), status.canRegister(),
+                                status.blockedReason(), status.plannedMealId(),
+                                status.coveredItemIds().size(), status.uncoveredItemIds().size(),
+                                status.coveredItemIds(), status.uncoveredItemIds()
+                        )
+                ).toList()
+        );
     }
 
     private java.util.UUID patient(Actor actor) {

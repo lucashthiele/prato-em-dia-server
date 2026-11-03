@@ -25,6 +25,9 @@ public class PlanningQueryAdapter {
     public record PlannedItemRef(UUID foodId, UUID prescribedItemId) {
     }
 
+    public record PlannedMealOn(UUID id, MealType mealType, PlanningMode mode, List<UUID> itemIds) {
+    }
+
     public record PlanPeriod(UUID planId, UUID versionId, LocalDate start, LocalDate end) {
     }
 
@@ -71,6 +74,16 @@ public class PlanningQueryAdapter {
     public Optional<PlannedItemRef> plannedItem(UUID plannedItemId, UUID plannedMealId) {
         return items.findByIdAndMealId(plannedItemId, plannedMealId)
                 .map(item -> new PlannedItemRef(item.getFoodId(), item.getPrescribedMealItemId()));
+    }
+
+    public List<PlannedMealOn> plannedMealsOn(UUID patientId, LocalDate date) {
+        return meals.findAllByPlanPatientIdAndPlanActiveTrueAndDate(patientId, date).stream()
+                .map(
+                        meal -> new PlannedMealOn(
+                                meal.getId(), meal.getMealType(), meal.getPlan().getPlanningMode(),
+                                meal.getItems().stream().map(item -> item.getId()).toList()
+                        )
+                ).toList();
     }
 
     public long plannedItemCount(UUID plannedMealId) {
