@@ -9,7 +9,7 @@ separação entre domínio, aplicação, infraestrutura e apresentação.
 
 ## Funcionalidades
 
-- autenticação stateless com access token JWT e refresh token;
+- autenticação com access token JWT e refresh token (ver [OpenAPI](docs/openapi.md) e o ADR 0001);
 - perfis de nutricionistas e pacientes;
 - vínculo entre nutricionista e paciente, com envio de acesso por e-mail;
 - catálogo de alimentos, porções e informações nutricionais, com busca remota
@@ -106,6 +106,29 @@ para conectar a outro PostgreSQL. Nesse caso, use também
 `SPRING_DOCKER_COMPOSE_ENABLED=false` se os containers locais não forem
 necessários.
 
+### Perfis de ambiente
+
+| Perfil | Uso |
+| --- | --- |
+| (padrão) / `local` | Desenvolvimento, com o PostgreSQL do `compose.yaml` |
+| `dev-seed` | Popula o banco local ([dev-seed](docs/dev-seed.md)) |
+| `prod` | VPS: banco por `DATABASE_URL`, `DATABASE_USERNAME` e `DATABASE_PASSWORD`, Compose desligado e Swagger UI desligado |
+
+Todos os perfis rodam com `spring.jpa.hibernate.ddl-auto=validate` e
+`spring.flyway.validate-on-migrate=true`.
+
+### Saúde e métricas
+
+O Actuator usa uma porta de gerenciamento própria (`MANAGEMENT_PORT`, padrão `8081`),
+que nunca é publicada: `/actuator/health/liveness`, `/actuator/health/readiness` e
+`/actuator/prometheus`.
+
+### Jobs agendados
+
+Os jobs usam ShedLock (tabela `shedlock`), então duas instâncias (blue/green) não
+executam o mesmo disparo. `app.scheduling.enabled=false` desliga o agendamento
+(testes e perfil local).
+
 ## Testes e build
 
 Execute a suíte completa, as verificações de arquitetura e a geração do
@@ -189,7 +212,8 @@ Cada feature segue, conforme a necessidade, as camadas `domain`,
 - [Seed de dados para desenvolvimento](docs/dev-seed.md)
 - [Desenvolvimento com Git worktrees](docs/worktrees.md)
 - [Roadmap de implementação e decisões por ticket](docs/roadmap-de-implementacao.md)
-- [Infraestrutura e deploy](docs/infraestrutura.md)
+- [Infraestrutura e deploy](docs/infraestrutura.md) e o [trabalho manual de infraestrutura](docs/trabalho-manual/w4-infra.md)
+- [Contrato de erros](docs/erros.md) e [migrations](docs/migrations.md)
 - [ADRs](docs/adr/) e [glossário do domínio](GLOSSARY.md)
 
 ## Licença
