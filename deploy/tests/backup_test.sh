@@ -13,6 +13,8 @@ fail() { echo "  FALHOU: $*"; FAILURES=$((FAILURES + 1)); }
 cleanup() {
   docker rm -f "pg-$NET" "restore-$NET" "hook-$NET" >/dev/null 2>&1
   docker network rm "$NET" >/dev/null 2>&1
+  # Arquivos criados pelos containers (root) não podem ser apagados pelo usuário do runner.
+  docker run --rm -v "$WORK:/work" alpine rm -rf /work/bucket /work/keys /work/hook >/dev/null 2>&1
   rm -rf "$WORK"
 }
 trap cleanup EXIT
@@ -22,6 +24,9 @@ docker network create "$NET" >/dev/null
 
 mkdir -p "$WORK/bucket" "$WORK/keys" "$WORK/hook"
 chmod 777 "$WORK/bucket" "$WORK/keys" "$WORK/hook"
+# Criado aqui para pertencer ao usuário do teste: o container (root) só acrescenta linhas.
+: >"$WORK/hook/requests.log"
+chmod 666 "$WORK/hook/requests.log"
 
 wait_pg() {
   for _ in $(seq 1 30); do
