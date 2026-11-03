@@ -3,6 +3,11 @@ spring:
     name: server
   config:
     import: optional:file:./local.env[.properties]
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    validate-on-migrate: true
 server:
   error:
     include-binding-errors: never
