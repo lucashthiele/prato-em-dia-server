@@ -42,6 +42,10 @@ class SeedReset {
                 "DELETE FROM nutritionist_patient_relationship WHERE patient_id IN " + PATIENTS
                         + " OR nutritionist_id IN " + NUTRITIONISTS
         );
+        jdbc.update(
+                "DELETE FROM audit_event WHERE actor_account_id IN " + ACCOUNTS + " OR target_account_id IN " + ACCOUNTS
+        );
+        jdbc.update("DELETE FROM email_outbox WHERE account_id IN " + ACCOUNTS);
         jdbc.update("DELETE FROM consent_record WHERE user_account_id IN " + ACCOUNTS);
         jdbc.update("DELETE FROM refresh_token WHERE user_account_id IN " + ACCOUNTS);
         jdbc.update("DELETE FROM patient_profile WHERE id IN " + PATIENTS);
