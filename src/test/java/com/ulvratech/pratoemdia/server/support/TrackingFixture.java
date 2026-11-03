@@ -158,8 +158,8 @@ public final class TrackingFixture {
         publish();
         var mealId = UUID.randomUUID();
         jdbc.update(
-                "insert into planned_meal(id,weekly_plan_id,prescribed_meal_id,meal_date,meal_type,name,meal_order) values (?,?,?,?,?::meal_type,?,?)",
-                mealId, plan, prescribed.id(), date, prescribed.type(), prescribed.type(), prescribed.order()
+                "insert into planned_meal(id,weekly_plan_id,patient_id,prescribed_meal_id,meal_date,meal_type,name,meal_order) values (?,?,(select patient_id from weekly_plan where id = ?),?,?,?::meal_type,?,?)",
+                mealId, plan, plan, prescribed.id(), date, prescribed.type(), prescribed.type(), prescribed.order()
         );
         var items = new ArrayList<PlannedItem>();
         for (var item : prescribed.items()) {

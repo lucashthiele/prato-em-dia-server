@@ -220,7 +220,7 @@ class ShoppingListIntegrationTest {
         var plan = planningQueries.get(query);
         var meals = plan.meals().stream().map(
                 meal -> new com.ulvratech.pratoemdia.server.features.planning.application.dto.PlanningInputs.MealInput(
-                        meal.id(), meal.date(), meal.time(), meal.mealType(), meal.name(), meal.order(),
+                        meal.id(), meal.date(), meal.mealType(), meal.name(), meal.order(),
                         meal.items().stream().map(
                                 item -> new com.ulvratech.pratoemdia.server.features.planning.application.dto.PlanningInputs.ItemInput(
                                         item.id(), item.foodId(), item.foodPortionId(),

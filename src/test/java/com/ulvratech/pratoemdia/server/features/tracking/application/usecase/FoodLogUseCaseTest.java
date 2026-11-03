@@ -74,11 +74,11 @@ class FoodLogUseCaseTest {
                 new BigDecimal(plannedQuantity), plannedUnit, 0
         );
         var meal = new PlannedMeal(
-                mealId, null, LocalDate.parse("2026-10-13"), null, MealType.LUNCH, "Lunch", 0,
+                mealId, null, LocalDate.parse("2026-10-13"), MealType.LUNCH, "Lunch", 0,
                 List.of(item)
         );
         var plan = WeeklyPlan.create(
-                patient, versionId, mode, LocalDate.parse("2026-10-12"),
+                patient, versionId, mode, LocalDate.parse("2026-10-12"), LocalDate.parse("2026-10-18"),
                 java.time.Instant.parse("2026-10-12T00:00:00Z"), List.of(meal)
         );
         var source = new PrescriptionPlanningSource(
