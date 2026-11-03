@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @Validated
 @RequestMapping("/api/v1/nutritionists/me/summary")
-@SecurityRequirement(name = OpenApiConfiguration.BEARER_AUTH)
+@SecurityRequirement(name = OpenApiConfiguration.COOKIE_AUTH)
 @Tag(name = "Resumo do nutricionista", description = "Indicadores agregados para o início do portal do nutricionista.")
 public class NutritionistSummaryController {
     private final GetNutritionistSummary summary;

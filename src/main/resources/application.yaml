@@ -27,6 +27,11 @@ security:
     access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:PT15M}
     refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:P30D}
     secret: ${JWT_SECRET}
+  session:
+    # Secure cookies are not resent over plain HTTP; turn off only for local development.
+    secure: ${SESSION_COOKIE_SECURE:true}
+    # Origins allowed to perform state-changing requests (CSRF check, ADR 0001).
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:8080,http://localhost:5173,http://localhost:3000}
 
 relationships:
   mail:

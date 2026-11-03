@@ -19,12 +19,17 @@ curl --fail http://localhost:8080/v3/api-docs.yaml --output openapi.yaml
 
 ## Autenticação no Swagger
 
-Use `POST /api/v1/auth/login` para obter um `accessToken`. No Swagger UI,
-selecione **Authorize** e informe somente o token, sem o prefixo `Bearer`.
-O Swagger adiciona o prefixo ao header `Authorization` automaticamente.
+A sessão é um cookie `HttpOnly` (ADR 0001). Faça `POST /api/v1/auth/login` pelo
+próprio Swagger UI (mesma origem da API): o navegador guarda o cookie
+`access_token` e o envia nas chamadas seguintes, sem botão **Authorize**.
+Em HTTP local, defina `SESSION_COOKIE_SECURE=false` em `local.env`; caso
+contrário o navegador descarta o cookie `Secure`. A origem do Swagger
+(`http://localhost:8080`) está em `ALLOWED_ORIGINS` por padrão.
 
-As operações `login` e `refresh` aparecem como públicas. As demais operações
-declaram o esquema `bearerAuth`, de acordo com a autenticação JWT do servidor.
+As operações `login` e `refresh` aparecem como públicas. As demais declaram o
+esquema `cookieAuth` (`apiKey` em cookie `access_token`). O header
+`Authorization: Bearer` não é mais aceito. O contrato para os clientes está em
+[contrato-sessao-cookies.md](contrato-sessao-cookies.md).
 
 O contexto e o registro append-only da tela de alimentação estão descritos em
 [food-log.md](food-log.md); os schemas efetivos permanecem gerados a partir dos

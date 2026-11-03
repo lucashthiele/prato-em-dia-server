@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/identity/useraccounts")
 @Slf4j
-@SecurityRequirement(name = OpenApiConfiguration.BEARER_AUTH)
+@SecurityRequirement(name = OpenApiConfiguration.COOKIE_AUTH)
 @Tag(name = "Contas de usuário", description = "Criação e gerenciamento de contas de acesso.")
 public class UserAccountController {
     private final CreateUserAccount createUserAccountCommand;

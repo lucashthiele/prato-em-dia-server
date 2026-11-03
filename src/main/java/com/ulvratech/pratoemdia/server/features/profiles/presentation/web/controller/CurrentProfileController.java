@@ -25,7 +25,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/me")
-@SecurityRequirement(name = OpenApiConfiguration.BEARER_AUTH)
+@SecurityRequirement(name = OpenApiConfiguration.COOKIE_AUTH)
 @Tag(name = "Perfil", description = "Dados do perfil do usuário autenticado.")
 public class CurrentProfileController {
     private final GetCurrentProfile getCurrentProfile;

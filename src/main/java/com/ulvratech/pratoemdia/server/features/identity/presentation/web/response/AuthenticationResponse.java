@@ -1,9 +1,5 @@
 package com.ulvratech.pratoemdia.server.features.identity.presentation.web.response;
 
-public record AuthenticationResponse(
-        String accessToken,
-        String refreshToken,
-        String tokenType,
-        long expiresIn,
-        boolean passwordChangeRequired) {
+/** Session summary. The tokens themselves travel only in HttpOnly cookies (ADR 0001). */
+public record AuthenticationResponse(long expiresIn, boolean passwordChangeRequired) {
 }

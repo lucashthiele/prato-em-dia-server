@@ -9,7 +9,7 @@ separação entre domínio, aplicação, infraestrutura e apresentação.
 
 ## Funcionalidades
 
-- autenticação stateless com access token JWT e refresh token;
+- autenticação por access token JWT e refresh token em cookies `HttpOnly` (ADR 0001);
 - perfis de nutricionistas e pacientes;
 - vínculo entre nutricionista e paciente, com envio de acesso por e-mail;
 - catálogo de alimentos, porções e informações nutricionais, com busca remota
@@ -85,6 +85,8 @@ de propriedades. Além de `JWT_SECRET`, as principais variáveis opcionais são:
 | `JWT_ISSUER` | `prato-em-dia` | Emissor dos tokens |
 | `JWT_ACCESS_TOKEN_TTL` | `PT15M` | Duração do access token |
 | `JWT_REFRESH_TOKEN_TTL` | `P30D` | Duração do refresh token |
+| `SESSION_COOKIE_SECURE` | `true` | Atributo `Secure` dos cookies de sessão; defina `false` em `local.env` para desenvolver por HTTP |
+| `ALLOWED_ORIGINS` | `http://localhost:8080,http://localhost:5173,http://localhost:3000` | Origens que podem fazer escritas (checagem de `Origin`, ADR 0001) |
 | `MAIL_FROM` | `onboarding@resend.dev` | Remetente dos e-mails; use um domínio verificado no Resend para enviar a outros destinatários |
 | `APP_URL` | `http://localhost:3000` | URL usada nos links enviados por e-mail |
 | `SERVER_PORT` | `8080` | Porta HTTP da aplicação |

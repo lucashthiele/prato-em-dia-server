@@ -64,10 +64,14 @@ Todas as contas usam a mesma senha: `Seed@12345`
 ## Como entrar
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/auth/login \
+curl -c cookies.txt -X POST http://localhost:8080/api/v1/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"patient.carla@seed.pratoemdia.local","password":"Seed@12345"}'
+curl -b cookies.txt http://localhost:8080/api/v1/me
 ```
+
+A sessão vai em cookies `HttpOnly` (ADR 0001). Com `SESSION_COOKIE_SECURE=true` (padrão)
+o `curl` não reenvia o cookie por HTTP: defina `SESSION_COOKIE_SECURE=false` em `local.env`.
 
 Tambem e possivel autenticar pelo Swagger UI em `http://localhost:8080/swagger-ui.html`.
 

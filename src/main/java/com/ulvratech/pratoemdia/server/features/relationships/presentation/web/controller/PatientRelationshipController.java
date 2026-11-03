@@ -20,7 +20,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/patients/me/relationship")
-@SecurityRequirement(name = OpenApiConfiguration.BEARER_AUTH)
+@SecurityRequirement(name = OpenApiConfiguration.COOKIE_AUTH)
 @Tag(name = "Vínculo do paciente", description = "Vínculo profissional do paciente autenticado.")
 public class PatientRelationshipController {
     private final GetPatientRelationship get;

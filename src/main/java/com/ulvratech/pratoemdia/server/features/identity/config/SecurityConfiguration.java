@@ -7,6 +7,8 @@ import com.ulvratech.pratoemdia.server.features.identity.application.port.out.Pa
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.RefreshTokenGenerator;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.RefreshTokenHasher;
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.BcryptPasswordHasher;
+import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.CookieBearerTokenResolver;
+import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.OriginCheckFilter;
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.JwtAccessTokenProvider;
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.JwtAuthenticationConverter;
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.PasswordChangeRequiredFilter;
@@ -41,7 +43,7 @@ import java.time.Clock;
 
 @Configuration
 @EnableWebSecurity
-@EnableConfigurationProperties(JwtConfigurationProperties.class)
+@EnableConfigurationProperties({ JwtConfigurationProperties.class, SessionCookieProperties.class })
 public class SecurityConfiguration {
 
     private static final int BCRYPT_STRENGTH = 8;
@@ -131,7 +133,8 @@ public class SecurityConfiguration {
             HttpSecurity http,
             JwtAuthenticationConverter jwtAuthenticationConverter,
             SecurityErrorResponseHandler securityErrorResponseHandler,
-            PasswordChangeRequiredFilter passwordChangeRequiredFilter
+            PasswordChangeRequiredFilter passwordChangeRequiredFilter,
+            OriginCheckFilter originCheckFilter
     )
             throws Exception {
         return http.csrf(AbstractHttpConfigurer::disable)
@@ -162,12 +165,14 @@ public class SecurityConfiguration {
                 .oauth2ResourceServer(
                         resourceServer -> resourceServer
                                 .authenticationEntryPoint(securityErrorResponseHandler)
+                                .bearerTokenResolver(new CookieBearerTokenResolver())
                                 .jwt(
                                         jwt -> jwt.jwtAuthenticationConverter(
                                                 jwtAuthenticationConverter
                                         )
                                 )
                 )
+                .addFilterBefore(originCheckFilter, BearerTokenAuthenticationFilter.class)
                 .addFilterAfter(passwordChangeRequiredFilter, BearerTokenAuthenticationFilter.class)
                 .build();
     }
