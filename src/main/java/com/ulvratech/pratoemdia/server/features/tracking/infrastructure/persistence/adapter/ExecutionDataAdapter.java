@@ -89,7 +89,7 @@ public class ExecutionDataAdapter implements ExecutionData {
         try {
             model = executions.saveAndFlush(model);
         } catch (DataIntegrityViolationException exception) {
-            throw conflict("Destination or idempotency key is already in use");
+            throw conflict("Idempotency key is already in use");
         }
         var result = mapper.toExecution(model);
         saveCommand(patientId, key, hash, model.getId(), 1, result);
@@ -108,6 +108,14 @@ public class ExecutionDataAdapter implements ExecutionData {
         if (date == null)
             throw invalid("Date is required");
         return executions.findAllByPatientIdAndDateAndDeletedAtIsNullOrderByCreatedAtAscIdAsc(patientId, date)
+                .stream().map(mapper::toExecution).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Execution> list(UUID patientId, LocalDate from, LocalDate to) {
+        return executions
+                .findAllByPatientIdAndDateBetweenAndDeletedAtIsNullOrderByDateAscTimeAscIdAsc(patientId, from, to)
                 .stream().map(mapper::toExecution).toList();
     }
 
@@ -189,7 +197,7 @@ public class ExecutionDataAdapter implements ExecutionData {
             }
             executions.saveAndFlush(model);
         } catch (DataIntegrityViolationException exception) {
-            throw conflict("Destination already has an execution");
+            throw conflict("Execution could not be moved");
         }
         var result = mapper.toExecution(model);
         saveCommand(patientId, key, hash, id, model.getVersion(), result);
@@ -235,7 +243,7 @@ public class ExecutionDataAdapter implements ExecutionData {
         try {
             executions.saveAndFlush(model);
         } catch (DataIntegrityViolationException exception) {
-            throw conflict("Destination already has an execution");
+            throw conflict("Execution could not be restored");
         }
         return mapper.toExecution(model);
     }
@@ -332,8 +340,6 @@ public class ExecutionDataAdapter implements ExecutionData {
                 throw invalid("Substitution requires a planned item");
             portion(item);
         }
-        if (!free && !items.isEmpty() && seen.size() != lookups.plannedItemCount(mealId))
-            throw invalid("Every planned item must be represented");
     }
 
     private CatalogQueryAdapter.Portion portion(ItemInput item) {

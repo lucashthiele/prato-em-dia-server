@@ -23,6 +23,12 @@ public class PlanningQueryAdapter {
     public record PlannedItemRef(UUID foodId, UUID prescribedItemId) {
     }
 
+    public record PlannedMealOn(UUID id, MealType mealType, PlanningMode mode, List<UUID> itemIds) {
+    }
+
+    public record PlannedItemLine(UUID foodId, UUID foodPortionId, String unit, BigDecimal quantity) {
+    }
+
     public record PlanPeriod(UUID planId, UUID versionId, LocalDate start, LocalDate end) {
     }
 
@@ -69,6 +75,36 @@ public class PlanningQueryAdapter {
     public Optional<PlannedItemRef> plannedItem(UUID plannedItemId, UUID plannedMealId) {
         return items.findByIdAndMealId(plannedItemId, plannedMealId)
                 .map(item -> new PlannedItemRef(item.getFoodId(), item.getPrescribedMealItemId()));
+    }
+
+    public List<PlannedMealOn> plannedMealsOn(UUID patientId, LocalDate date) {
+        return meals.findAllByPlanPatientIdAndPlanActiveTrueAndDateAndSupersededAtIsNull(patientId, date).stream()
+                .map(
+                        meal -> new PlannedMealOn(
+                                meal.getId(), meal.getMealType(), meal.getPlan().getPlanningMode(),
+                                meal.getItems().stream().map(item -> item.getId()).toList()
+                        )
+                ).toList();
+    }
+
+    /** Owner of a plan that exists and was not deleted. */
+    public Optional<UUID> activePlanOwner(UUID planId) {
+        return plans.findByIdAndActiveTrue(planId).map(WeeklyPlanModel::getPatientId);
+    }
+
+    /** Same as {@link #activePlanOwner}, taking a row lock until the transaction ends. */
+    public Optional<UUID> lockActivePlanOwner(UUID planId) {
+        return plans.lockActive(planId).map(WeeklyPlanModel::getPatientId);
+    }
+
+    /** Planned items of the plan's meals, in plan order. */
+    public List<PlannedItemLine> plannedItems(UUID planId) {
+        return items.findAllOfPlan(planId).stream()
+                .map(
+                        item -> new PlannedItemLine(
+                                item.getFoodId(), item.getFoodPortionId(), item.getUnit(), item.getQuantity()
+                        )
+                ).toList();
     }
 
     public long plannedItemCount(UUID plannedMealId) {

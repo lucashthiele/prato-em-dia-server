@@ -3,12 +3,14 @@ package com.ulvratech.pratoemdia.server.features.tracking.infrastructure.persist
 import com.ulvratech.pratoemdia.server.features.planning.infrastructure.persistence.adapter.PlanningQueryAdapter;
 import com.ulvratech.pratoemdia.server.features.prescriptions.infrastructure.persistence.adapter.PrescriptionQueryAdapter;
 import com.ulvratech.pratoemdia.server.features.profiles.infrastructure.persistence.adapter.ProfileQueryAdapter;
+import com.ulvratech.pratoemdia.server.features.relationships.infrastructure.persistence.adapter.RelationshipQueryAdapter;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.DiaryTypes.Calendar;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.DiaryTypes.DailySummary;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.DiaryTypes.NutrientTotal;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.DiaryTypes.PlanPeriod;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.DiaryTypes.PrescriptionPeriod;
 import com.ulvratech.pratoemdia.server.features.tracking.application.port.out.DiaryData;
+import com.ulvratech.pratoemdia.server.features.tracking.domain.MealCategories;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -28,15 +30,18 @@ public class DiaryDataAdapter implements DiaryData {
     private static final ZoneId ZONE = ZoneId.of("America/Sao_Paulo");
 
     private final ProfileQueryAdapter profiles;
+    private final RelationshipQueryAdapter relationships;
     private final PlanningQueryAdapter planning;
     private final PrescriptionQueryAdapter prescriptions;
     private final MealExecutionJpaRepository executions;
 
     DiaryDataAdapter(
-            ProfileQueryAdapter profiles, PlanningQueryAdapter planning,
+            ProfileQueryAdapter profiles, RelationshipQueryAdapter relationships,
+            PlanningQueryAdapter planning,
             PrescriptionQueryAdapter prescriptions, MealExecutionJpaRepository executions
     ) {
         this.profiles = profiles;
+        this.relationships = relationships;
         this.planning = planning;
         this.prescriptions = prescriptions;
         this.executions = executions;
@@ -45,6 +50,11 @@ public class DiaryDataAdapter implements DiaryData {
     @Override
     public Optional<UUID> patientId(UUID accountId) {
         return profiles.patientProfileId(accountId);
+    }
+
+    @Override
+    public boolean hasActiveRelationship(UUID nutritionistAccountId, UUID patientId) {
+        return relationships.hasActiveRelationshipForNutritionistAccount(nutritionistAccountId, patientId);
     }
 
     @Override
@@ -92,6 +102,29 @@ public class DiaryDataAdapter implements DiaryData {
                 date, context.planId(), context.versionId(),
                 prescribedFilled, plannedFilled, realizedFilled
         );
+    }
+
+    @Override
+    public MealCategories.DayFacts dayFacts(UUID patientId, LocalDate date) {
+        var planned = planning.plannedMealsOn(patientId, date).stream()
+                .map(
+                        meal -> new MealCategories.PlannedCategory(
+                                meal.id(), meal.mealType(), meal.mode(), meal.itemIds()
+                        )
+                ).toList();
+        var facts = executions.findAllByPatientIdAndDateAndDeletedAtIsNullOrderByCreatedAtAscIdAsc(patientId, date)
+                .stream()
+                .map(
+                        execution -> new MealCategories.ExecutionFact(
+                                execution.getMealType(), execution.getPlannedMealId(),
+                                execution.getItems().stream().map(item -> item.getPlannedItemId())
+                                        .filter(java.util.Objects::nonNull)
+                                        .collect(java.util.stream.Collectors.toSet())
+                        )
+                ).toList();
+        var mode = prescriptions.currentPublishedVersion(patientId)
+                .map(PrescriptionQueryAdapter.Version::planningMode).orElse(null);
+        return new MealCategories.DayFacts(mode, planned, facts);
     }
 
     private Map<String, NutrientTotal> targets(UUID versionId) {

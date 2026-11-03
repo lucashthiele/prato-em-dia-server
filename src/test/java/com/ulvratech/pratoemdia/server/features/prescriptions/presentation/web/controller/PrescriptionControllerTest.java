@@ -31,7 +31,12 @@ class PrescriptionControllerTest {
         var queries = mock(PrescriptionQueries.class);
         when(queries.list(any())).thenReturn(List.of());
         when(queries.listVersions(any())).thenReturn(List.of());
-        var controller = new PrescriptionController(commands, queries);
+        var controller = new PrescriptionController(
+                commands, queries,
+                org.mockito.Mockito.mock(
+                        com.ulvratech.pratoemdia.server.features.prescriptions.application.port.in.PrescriptionSummaryQueries.class
+                )
+        );
         var substitution = new PrescriptionContentRequest.SubstitutionRequest(
                 UUID.randomUUID(), null, BigDecimal.ONE, "g", null
         );

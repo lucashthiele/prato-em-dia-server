@@ -37,10 +37,6 @@ class ExecutionLookups {
         return planning.plannedItem(plannedItemId, plannedMealId);
     }
 
-    long plannedItemCount(UUID plannedMealId) {
-        return planning.plannedItemCount(plannedMealId);
-    }
-
     boolean substitutionAuthorized(
             UUID substitutionId, UUID prescribedItemId, UUID foodId, UUID portionId
     ) {

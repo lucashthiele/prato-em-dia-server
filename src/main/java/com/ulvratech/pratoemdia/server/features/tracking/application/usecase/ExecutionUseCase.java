@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class ExecutionUseCase implements ExecutionOperations {
+    static final long MAX_RANGE_DAYS = 92;
+
     private final DiaryData diary;
     private final ExecutionData data;
 
@@ -40,6 +42,30 @@ public class ExecutionUseCase implements ExecutionOperations {
     @Override
     public Execution get(Actor actor, UUID id) {
         return data.get(patient(actor), id);
+    }
+
+    @Override
+    public Execution get(Actor actor, UUID patientId, UUID id) {
+        return data.get(linkedPatient(actor, patientId), id);
+    }
+
+    @Override
+    public List<Execution> list(Actor actor, UUID patientId, LocalDate from, LocalDate to) {
+        var patient = linkedPatient(actor, patientId);
+        if (from == null || to == null)
+            throw new TrackingException(Kind.INVALID, "From and to are required");
+        if (to.isBefore(from) || from.plusDays(MAX_RANGE_DAYS).isBefore(to))
+            throw new TrackingException(
+                    Kind.INVALID, "Period must be ordered and at most " + MAX_RANGE_DAYS + " days"
+            );
+        return data.list(patient, from, to);
+    }
+
+    private UUID linkedPatient(Actor actor, UUID patientId) {
+        if (actor == null || !"NUTRITIONIST".equals(actor.role()) || patientId == null
+                || !diary.hasActiveRelationship(actor.accountId(), patientId))
+            throw new TrackingException(Kind.FORBIDDEN, "Active relationship with the patient required");
+        return patientId;
     }
 
     @Override

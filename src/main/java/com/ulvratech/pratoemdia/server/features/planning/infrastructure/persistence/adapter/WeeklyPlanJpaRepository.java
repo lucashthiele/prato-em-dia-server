@@ -42,6 +42,10 @@ interface WeeklyPlanJpaRepository extends JpaRepository<WeeklyPlanModel, UUID> {
 
     Optional<WeeklyPlanModel> findByIdAndActiveTrue(UUID id);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from WeeklyPlanModel p where p.id = :planId and p.active = true")
+    Optional<WeeklyPlanModel> lockActive(@org.springframework.data.repository.query.Param("planId") UUID planId);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update WeeklyPlanModel p set p.active = false where p.id = :planId")
     void deactivate(UUID planId);

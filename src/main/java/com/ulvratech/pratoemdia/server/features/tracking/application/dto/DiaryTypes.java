@@ -1,5 +1,7 @@
 package com.ulvratech.pratoemdia.server.features.tracking.application.dto;
 
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.MealType;
+import com.ulvratech.pratoemdia.server.features.tracking.domain.MealCategories;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -24,6 +26,14 @@ public final class DiaryTypes {
     }
 
     public record NutrientTotal(BigDecimal amount, String unit) {
+    }
+
+    public record MealCategory(MealType mealType, MealCategories.State state, boolean canRegister,
+            String blockedReason, UUID plannedMealId, int coveredItemCount, int uncoveredItemCount,
+            List<UUID> coveredPlannedItemIds, List<UUID> uncoveredPlannedItemIds) {
+    }
+
+    public record DailyMealCategories(LocalDate date, List<MealCategory> categories) {
     }
 
     public record DailySummary(LocalDate date, UUID planId, UUID prescriptionVersionId,

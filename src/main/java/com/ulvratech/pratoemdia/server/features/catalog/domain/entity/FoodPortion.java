@@ -1,12 +1,16 @@
 package com.ulvratech.pratoemdia.server.features.catalog.domain.entity;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public class FoodPortion {
+    private static final int FACTOR_SCALE = 12;
+
     private final UUID id;
     private final UUID foodId;
     private final String label;
@@ -85,6 +89,26 @@ public class FoodPortion {
 
     private static String optional(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    /** How many portions {@code quantity} represents (twelve digits of precision). */
+    public BigDecimal scaleFactor(BigDecimal quantity) {
+        return quantity.divide(this.quantity, FACTOR_SCALE, RoundingMode.HALF_UP);
+    }
+
+    /** Nutrient amount for {@code quantity} of this portion; empty if absent or non numeric. */
+    public Optional<BigDecimal> scaledNutrient(String code, BigDecimal quantity) {
+        var nutrient = nutrients.get(code);
+        if (nutrient == null || nutrient.amount() == null)
+            return Optional.empty();
+        return Optional.of(nutrient.amount().multiply(scaleFactor(quantity)).stripTrailingZeros());
+    }
+
+    /** Grams for {@code quantity} of this portion; empty when the portion has no gram equivalent. */
+    public Optional<BigDecimal> scaledGrams(BigDecimal quantity) {
+        if (gramsEquivalent == null)
+            return Optional.empty();
+        return Optional.of(scaleFactor(quantity).multiply(gramsEquivalent).stripTrailingZeros());
     }
 
     public UUID getId() {
