@@ -86,3 +86,21 @@ publicada congela as metas. O planejado é congelado quando os itens do plano
 são gravados; o realizado é congelado quando os itens consumidos são gravados.
 O catálogo mantém uma unidade consistente por código de nutriente, e metas
 devem usar essa unidade quando o código já existe no catálogo.
+
+## Leituras do nutricionista
+
+O nutricionista com vínculo ativo lê o diário do paciente (LUC-28), somente leitura, em
+`/api/v1/nutritionists/me/patients/{patientId}/`. As rotas atuais em `/patients/me/**` exigem o
+papel `PATIENT`, por isso o portal não conseguia usá-las.
+
+| Rota | Resposta |
+| --- | --- |
+| `GET meal-executions?from=&to=` | Execuções ativas no período (inclusive; no máximo 92 dias) |
+| `GET meal-executions/{id}` | Uma execução do paciente, inclusive removida |
+| `GET daily-meal-categories?date=` | Igual a `/patients/me/daily-meal-categories` |
+| `GET daily-nutrition-summary?date=` | Igual a `/patients/me/daily-nutrition-summary` |
+| `GET calendar-periods` | Igual a `/patients/me/calendar-periods` |
+
+Sem vínculo ativo, `403 TRACKING_FORBIDDEN`. Execução de outro paciente: `404`. Período ausente,
+invertido ou maior que 92 dias: `400 TRACKING_INVALID`. Não há rota agregada nova; o portal
+compõe a visão por período.

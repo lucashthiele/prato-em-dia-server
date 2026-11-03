@@ -112,6 +112,14 @@ public class ExecutionDataAdapter implements ExecutionData {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<Execution> list(UUID patientId, LocalDate from, LocalDate to) {
+        return executions
+                .findAllByPatientIdAndDateBetweenAndDeletedAtIsNullOrderByDateAscTimeAscIdAsc(patientId, from, to)
+                .stream().map(mapper::toExecution).toList();
+    }
+
+    @Override
     @Transactional
     public Execution replace(UUID patientId, UUID id, long expectedVersion, String key, Write input) {
         requireKey(key);

@@ -51,4 +51,17 @@ class OpenApiReadContractsIntegrationTest {
                 .andExpect(jsonPath("$.paths['/api/v1/patients/me/daily-meal-categories'].get").exists())
                 .andExpect(jsonPath("$.components.schemas.MealCategory.properties.blockedReason").exists());
     }
+
+    @Test
+    void documentsTheNutritionistReadsOfThePatientDiary() throws Exception {
+        var base = "$.paths['/api/v1/nutritionists/me/patients/{patientId}/";
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath(base + "meal-executions'].get").exists())
+                .andExpect(jsonPath(base + "meal-executions/{id}'].get").exists())
+                .andExpect(jsonPath(base + "daily-meal-categories'].get").exists())
+                .andExpect(jsonPath(base + "daily-nutrition-summary'].get").exists())
+                .andExpect(jsonPath(base + "calendar-periods'].get").exists())
+                .andExpect(jsonPath(base + "meal-executions'].post").doesNotExist());
+    }
 }

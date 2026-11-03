@@ -13,6 +13,7 @@ import com.ulvratech.pratoemdia.server.features.tracking.application.port.in.Dia
 import com.ulvratech.pratoemdia.server.features.tracking.application.port.out.DiaryData;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Service
 public class DiaryUseCase implements DiaryOperations {
@@ -28,17 +29,36 @@ public class DiaryUseCase implements DiaryOperations {
     }
 
     @Override
+    public Calendar calendar(Actor actor, UUID patientId) {
+        return data.calendar(linkedPatient(actor, patientId));
+    }
+
+    @Override
     public DailySummary dailySummary(Actor actor, LocalDate date) {
-        if (date == null)
-            throw new TrackingException(Kind.INVALID, "Date is required");
+        requireDate(date);
         return data.dailySummary(patient(actor), date);
     }
 
     @Override
+    public DailySummary dailySummary(Actor actor, UUID patientId, LocalDate date) {
+        requireDate(date);
+        return data.dailySummary(linkedPatient(actor, patientId), date);
+    }
+
+    @Override
     public DailyMealCategories dailyMealCategories(Actor actor, LocalDate date) {
-        if (date == null)
-            throw new TrackingException(Kind.INVALID, "Date is required");
-        var statuses = MealCategories.derive(data.dayFacts(patient(actor), date));
+        requireDate(date);
+        return categories(patient(actor), date);
+    }
+
+    @Override
+    public DailyMealCategories dailyMealCategories(Actor actor, UUID patientId, LocalDate date) {
+        requireDate(date);
+        return categories(linkedPatient(actor, patientId), date);
+    }
+
+    private DailyMealCategories categories(UUID patientId, LocalDate date) {
+        var statuses = MealCategories.derive(data.dayFacts(patientId, date));
         return new DailyMealCategories(
                 date,
                 statuses.stream().map(
@@ -52,7 +72,19 @@ public class DiaryUseCase implements DiaryOperations {
         );
     }
 
-    private java.util.UUID patient(Actor actor) {
+    private static void requireDate(LocalDate date) {
+        if (date == null)
+            throw new TrackingException(Kind.INVALID, "Date is required");
+    }
+
+    private UUID linkedPatient(Actor actor, UUID patientId) {
+        if (actor == null || !"NUTRITIONIST".equals(actor.role()) || patientId == null
+                || !data.hasActiveRelationship(actor.accountId(), patientId))
+            throw new TrackingException(Kind.FORBIDDEN, "Active relationship with the patient required");
+        return patientId;
+    }
+
+    private UUID patient(Actor actor) {
         if (actor == null || !"PATIENT".equals(actor.role()))
             throw new TrackingException(Kind.FORBIDDEN, "Patient access required");
         return data.patientId(actor.accountId())

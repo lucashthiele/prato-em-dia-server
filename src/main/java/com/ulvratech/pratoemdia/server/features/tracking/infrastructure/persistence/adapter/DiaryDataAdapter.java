@@ -3,6 +3,7 @@ package com.ulvratech.pratoemdia.server.features.tracking.infrastructure.persist
 import com.ulvratech.pratoemdia.server.features.planning.infrastructure.persistence.adapter.PlanningQueryAdapter;
 import com.ulvratech.pratoemdia.server.features.prescriptions.infrastructure.persistence.adapter.PrescriptionQueryAdapter;
 import com.ulvratech.pratoemdia.server.features.profiles.infrastructure.persistence.adapter.ProfileQueryAdapter;
+import com.ulvratech.pratoemdia.server.features.relationships.infrastructure.persistence.adapter.RelationshipQueryAdapter;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.DiaryTypes.Calendar;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.DiaryTypes.DailySummary;
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.DiaryTypes.NutrientTotal;
@@ -29,15 +30,18 @@ public class DiaryDataAdapter implements DiaryData {
     private static final ZoneId ZONE = ZoneId.of("America/Sao_Paulo");
 
     private final ProfileQueryAdapter profiles;
+    private final RelationshipQueryAdapter relationships;
     private final PlanningQueryAdapter planning;
     private final PrescriptionQueryAdapter prescriptions;
     private final MealExecutionJpaRepository executions;
 
     DiaryDataAdapter(
-            ProfileQueryAdapter profiles, PlanningQueryAdapter planning,
+            ProfileQueryAdapter profiles, RelationshipQueryAdapter relationships,
+            PlanningQueryAdapter planning,
             PrescriptionQueryAdapter prescriptions, MealExecutionJpaRepository executions
     ) {
         this.profiles = profiles;
+        this.relationships = relationships;
         this.planning = planning;
         this.prescriptions = prescriptions;
         this.executions = executions;
@@ -46,6 +50,11 @@ public class DiaryDataAdapter implements DiaryData {
     @Override
     public Optional<UUID> patientId(UUID accountId) {
         return profiles.patientProfileId(accountId);
+    }
+
+    @Override
+    public boolean hasActiveRelationship(UUID nutritionistAccountId, UUID patientId) {
+        return relationships.hasActiveRelationshipForNutritionistAccount(nutritionistAccountId, patientId);
     }
 
     @Override

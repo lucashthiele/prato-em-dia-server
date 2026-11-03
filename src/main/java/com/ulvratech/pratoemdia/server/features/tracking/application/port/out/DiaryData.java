@@ -10,6 +10,8 @@ import java.util.UUID;
 public interface DiaryData {
     Optional<UUID> patientId(UUID accountId);
 
+    boolean hasActiveRelationship(UUID nutritionistAccountId, UUID patientId);
+
     Calendar calendar(UUID patientId);
 
     DailySummary dailySummary(UUID patientId, LocalDate date);

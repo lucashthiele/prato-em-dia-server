@@ -13,6 +13,8 @@ public interface ExecutionData {
 
     List<ExecutionTypes.Execution> list(UUID patientId, LocalDate date);
 
+    List<ExecutionTypes.Execution> list(UUID patientId, LocalDate from, LocalDate to);
+
     ExecutionTypes.Execution replace(
             UUID patientId, UUID id, long expectedVersion,
             String key, ExecutionTypes.Write input
