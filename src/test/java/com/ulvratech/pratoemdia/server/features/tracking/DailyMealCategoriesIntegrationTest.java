@@ -2,6 +2,7 @@ package com.ulvratech.pratoemdia.server.features.tracking;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import com.ulvratech.pratoemdia.server.support.TrackingFixture;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,8 +15,8 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import com.ulvratech.pratoemdia.server.features.tracking.application.port.in.ExecutionOperations;
-import static com.ulvratech.pratoemdia.server.features.tracking.TrackingFixture.input;
-import static com.ulvratech.pratoemdia.server.features.tracking.TrackingFixture.write;
+import static com.ulvratech.pratoemdia.server.support.TrackingFixture.input;
+import static com.ulvratech.pratoemdia.server.support.TrackingFixture.write;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;

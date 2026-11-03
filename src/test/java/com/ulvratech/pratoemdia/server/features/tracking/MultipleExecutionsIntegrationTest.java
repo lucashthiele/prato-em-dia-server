@@ -5,6 +5,7 @@ import com.ulvratech.pratoemdia.server.features.tracking.application.exception.T
 import com.ulvratech.pratoemdia.server.features.tracking.application.port.in.ExecutionOperations;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import com.ulvratech.pratoemdia.server.support.TrackingFixture;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -13,8 +14,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
-import static com.ulvratech.pratoemdia.server.features.tracking.TrackingFixture.input;
-import static com.ulvratech.pratoemdia.server.features.tracking.TrackingFixture.write;
+import static com.ulvratech.pratoemdia.server.support.TrackingFixture.input;
+import static com.ulvratech.pratoemdia.server.support.TrackingFixture.write;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 

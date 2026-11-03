@@ -4,8 +4,12 @@ import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.Food;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.FoodPortion;
 import com.ulvratech.pratoemdia.server.features.catalog.infrastructure.persistence.mapper.FoodMapper;
 import com.ulvratech.pratoemdia.server.features.catalog.infrastructure.persistence.mapper.FoodPortionMapper;
+import com.ulvratech.pratoemdia.server.features.catalog.application.port.in.CatalogBatchLookup;
 import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -14,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 /** Read-only view of catalog data for other features, backed by this feature's repositories. */
 @Component
 @Transactional(readOnly = true)
-public class CatalogQueryAdapter {
+public class CatalogQueryAdapter implements CatalogBatchLookup {
     public record Nutrient(String code, BigDecimal amount, String unit) {
     }
 
@@ -43,6 +47,23 @@ public class CatalogQueryAdapter {
 
     public Optional<FoodPortion> findActivePortion(UUID foodId, UUID portionId) {
         return portions.findByIdAndFoodIdAndActiveTrue(portionId, foodId).map(portionMapper::toDomain);
+    }
+
+    @Override
+    public Map<UUID, Food> foodsByIds(Collection<UUID> foodIds) {
+        var result = new HashMap<UUID, Food>();
+        if (!foodIds.isEmpty())
+            foods.findAllById(foodIds).forEach(model -> result.put(model.getId(), foodMapper.toDomain(model)));
+        return result;
+    }
+
+    @Override
+    public Map<UUID, FoodPortion> portionsByIds(Collection<UUID> portionIds) {
+        var result = new HashMap<UUID, FoodPortion>();
+        if (!portionIds.isEmpty())
+            portions.findAllByIdIn(portionIds)
+                    .forEach(model -> result.put(model.getId(), portionMapper.toDomain(model)));
+        return result;
     }
 
     public boolean isActiveFood(UUID foodId) {

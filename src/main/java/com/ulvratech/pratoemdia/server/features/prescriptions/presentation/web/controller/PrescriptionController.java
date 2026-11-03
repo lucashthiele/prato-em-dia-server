@@ -8,6 +8,8 @@ import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.Pr
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionInputs.UpdateVersion;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionInputs.VersionQuery;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionOutput;
+import com.ulvratech.pratoemdia.server.features.prescriptions.application.dto.PrescriptionSummary;
+import com.ulvratech.pratoemdia.server.features.prescriptions.application.port.in.PrescriptionSummaryQueries;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.port.in.PrescriptionCommands;
 import com.ulvratech.pratoemdia.server.features.prescriptions.application.port.in.PrescriptionQueries;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PlanningMode;
@@ -40,10 +42,21 @@ import org.springframework.web.bind.annotation.RestController;
 public class PrescriptionController {
     private final PrescriptionCommands commands;
     private final PrescriptionQueries queries;
+    private final PrescriptionSummaryQueries summaries;
 
-    public PrescriptionController(PrescriptionCommands commands, PrescriptionQueries queries) {
+    public PrescriptionController(
+            PrescriptionCommands commands, PrescriptionQueries queries,
+            PrescriptionSummaryQueries summaries
+    ) {
         this.commands = commands;
         this.queries = queries;
+        this.summaries = summaries;
+    }
+
+    @GetMapping("/nutritionists/me/patients/{patientId}/prescription-summary")
+    @Operation(summary = "Resumo da prescrição do paciente", description = "Somente leitura. Devolve a versão vigente, o rascunho aberto e o histórico de versões, com nomes de alimento e macros (kcal, proteína, carboidrato e lipídeos) por item, refeição e versão. Os totais são de um dia da prescrição e as substituições não entram neles. Sem prescrição, devolve prescriptionId nulo e history vazio.")
+    PrescriptionSummary summary(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID patientId) {
+        return summaries.summary(new PatientQuery(actor(jwt), patientId));
     }
 
     @GetMapping("/nutritionists/me/patients/{patientId}/prescriptions")

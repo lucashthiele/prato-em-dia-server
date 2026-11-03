@@ -1,4 +1,4 @@
-package com.ulvratech.pratoemdia.server.features.tracking;
+package com.ulvratech.pratoemdia.server.support;
 
 import com.ulvratech.pratoemdia.server.features.tracking.application.dto.ExecutionTypes;
 import java.math.BigDecimal;
@@ -13,38 +13,38 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * Builds a patient, a nutritionist, a prescription and a weekly plan directly in the database.
  * Foods have a single 100 g portion with 100 kcal and 10 g of protein.
  */
-final class TrackingFixture {
-    record Food(UUID foodId, UUID portionId) {
+public final class TrackingFixture {
+    public record Food(UUID foodId, UUID portionId) {
     }
 
-    record PrescribedItem(UUID id, Food food) {
+    public record PrescribedItem(UUID id, Food food) {
     }
 
-    record PrescribedMeal(UUID id, String type, List<PrescribedItem> items) {
+    public record PrescribedMeal(UUID id, String type, List<PrescribedItem> items) {
     }
 
-    record PlannedItem(UUID id, UUID prescribedItemId, Food food) {
+    public record PlannedItem(UUID id, UUID prescribedItemId, Food food) {
     }
 
-    record PlannedMeal(UUID id, LocalDate date, String type, List<PlannedItem> items) {
+    public record PlannedMeal(UUID id, LocalDate date, String type, List<PlannedItem> items) {
     }
 
-    static final LocalDate PERIOD_START = LocalDate.parse("2026-10-12");
+    public static final LocalDate PERIOD_START = LocalDate.parse("2026-10-12");
 
-    final JdbcTemplate jdbc;
-    final String mode;
-    final UUID patientAccount = UUID.randomUUID();
-    final UUID patient = UUID.randomUUID();
-    final UUID nutritionistAccount = UUID.randomUUID();
-    final UUID nutritionist = UUID.randomUUID();
-    final UUID prescription = UUID.randomUUID();
-    final UUID version = UUID.randomUUID();
-    final UUID plan = UUID.randomUUID();
+    public final JdbcTemplate jdbc;
+    public final String mode;
+    public final UUID patientAccount = UUID.randomUUID();
+    public final UUID patient = UUID.randomUUID();
+    public final UUID nutritionistAccount = UUID.randomUUID();
+    public final UUID nutritionist = UUID.randomUUID();
+    public final UUID prescription = UUID.randomUUID();
+    public final UUID version = UUID.randomUUID();
+    public final UUID plan = UUID.randomUUID();
     private final List<PrescribedMeal> prescribedMeals = new ArrayList<>();
     private int mealOrder;
     private boolean published;
 
-    TrackingFixture(JdbcTemplate jdbc, String mode) {
+    public TrackingFixture(JdbcTemplate jdbc, String mode) {
         this.jdbc = jdbc;
         this.mode = mode;
         jdbc.update(
@@ -73,18 +73,18 @@ final class TrackingFixture {
         );
     }
 
-    ExecutionTypes.Actor actor() {
+    public ExecutionTypes.Actor actor() {
         return new ExecutionTypes.Actor(patientAccount, "PATIENT");
     }
 
-    void link() {
+    public void link() {
         jdbc.update(
                 "insert into nutritionist_patient_relationship(id,nutritionist_id,patient_id) values (?,?,?)",
                 UUID.randomUUID(), nutritionist, patient
         );
     }
 
-    Food food(String name) {
+    public Food food(String name) {
         var foodId = UUID.randomUUID();
         var portionId = UUID.randomUUID();
         jdbc.update(
@@ -100,14 +100,14 @@ final class TrackingFixture {
         return new Food(foodId, portionId);
     }
 
-    void nutrient(UUID portionId, String code, String amount, String unit) {
+    public void nutrient(UUID portionId, String code, String amount, String unit) {
         jdbc.update(
                 "insert into food_portion_nutrient(id,food_portion_id,nutrient_code,amount,unit,value_status) values (?,?,?,?,?,'VALUE')",
                 UUID.randomUUID(), portionId, code, new BigDecimal(amount), unit
         );
     }
 
-    PrescribedMeal prescribedMeal(String type, Food... foods) {
+    public PrescribedMeal prescribedMeal(String type, Food... foods) {
         var mealId = UUID.randomUUID();
         jdbc.update(
                 "insert into prescribed_meal(id,prescription_version_id,name,meal_order,meal_type) values (?,?,?,?,?::meal_type)",
@@ -127,14 +127,14 @@ final class TrackingFixture {
         return meal;
     }
 
-    void substitution(PrescribedItem item, Food substitute) {
+    public void substitution(PrescribedItem item, Food substitute) {
         jdbc.update(
                 "insert into allowed_substitution(id,prescribed_meal_item_id,substitute_food_id,substitute_food_portion_id,quantity,unit) values (?,?,?,?,100,'g')",
                 UUID.randomUUID(), item.id(), substitute.foodId(), substitute.portionId()
         );
     }
 
-    UUID substitutionId(PrescribedItem item) {
+    public UUID substitutionId(PrescribedItem item) {
         return jdbc.queryForObject(
                 "select id from allowed_substitution where prescribed_meal_item_id=?", UUID.class,
                 item.id()
@@ -142,7 +142,7 @@ final class TrackingFixture {
     }
 
     /** Publishes the version and creates the plan covering the fixed test week. */
-    void publish() {
+    public void publish() {
         if (published)
             return;
         jdbc.update("update prescription_version set status='PUBLISHED',published_at=now() where id=?", version);
@@ -153,7 +153,7 @@ final class TrackingFixture {
         published = true;
     }
 
-    PlannedMeal plannedMeal(LocalDate date, PrescribedMeal prescribed) {
+    public PlannedMeal plannedMeal(LocalDate date, PrescribedMeal prescribed) {
         publish();
         var mealId = UUID.randomUUID();
         jdbc.update(
@@ -172,21 +172,21 @@ final class TrackingFixture {
         return new PlannedMeal(mealId, date, prescribed.type(), items);
     }
 
-    static ExecutionTypes.ItemInput input(PlannedItem item) {
+    public static ExecutionTypes.ItemInput input(PlannedItem item) {
         return new ExecutionTypes.ItemInput(
                 item.food().foodId(), item.food().portionId(), "g", new BigDecimal("100"),
                 BigDecimal.ONE, item.id(), null
         );
     }
 
-    static ExecutionTypes.ItemInput free(Food food) {
+    public static ExecutionTypes.ItemInput free(Food food) {
         return new ExecutionTypes.ItemInput(
                 food.foodId(), food.portionId(), "g", new BigDecimal("100"), BigDecimal.ONE, null,
                 null
         );
     }
 
-    static ExecutionTypes.Write write(PlannedMeal meal, LocalTime time, ExecutionTypes.ItemInput... items) {
+    public static ExecutionTypes.Write write(PlannedMeal meal, LocalTime time, ExecutionTypes.ItemInput... items) {
         return new ExecutionTypes.Write(meal.date(), time, null, meal.id(), List.of(items));
     }
 }
