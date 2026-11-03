@@ -46,6 +46,36 @@ public class SharedErrorCatalogSection implements ErrorCatalogSection {
                         "*"
                 ),
                 error(
+                        "CONSENT_VERSION_MISMATCH", 409,
+                        "O aceite enviado não é da versão vigente dos termos. O cliente deve recarregar os textos.",
+                        "POST /api/v1/me/consents"
+                ),
+                error(
+                        "ORIGIN_NOT_ALLOWED", 403,
+                        "O cabeçalho Origin de uma escrita não está em ALLOWED_ORIGINS.", "*"
+                ),
+                error(
+                        "LOGIN_RATE_LIMITED", 429,
+                        "Muitas tentativas de login falhas para o e-mail ou IP. Respeite o cabeçalho Retry-After.",
+                        "POST /api/v1/auth/login"
+                ),
+                error("USER_ACCOUNT_NOT_FOUND", 404, "A conta pedida não existe.", "/api/v1/admin/users/**"),
+                error(
+                        "ACCESS_EMAIL_NOT_AVAILABLE", 409,
+                        "O reenvio de acesso só vale para nutricionista ativo que ainda usa a senha inicial.",
+                        "POST /api/v1/admin/nutritionists/{id}/access-email"
+                ),
+                error(
+                        "ADMIN_CANNOT_CHANGE_OWN_STATUS", 409,
+                        "Um administrador não pode alterar o próprio status.",
+                        "PATCH /api/v1/admin/users/{id}/status"
+                ),
+                error(
+                        "AUDIT_INVALID_FILTER", 400,
+                        "O período do filtro de auditoria é inválido (início depois do fim).",
+                        "GET /api/v1/admin/audit-events"
+                ),
+                error(
                         "INTERNAL_ERROR", 500,
                         "Falha inesperada. A mensagem é genérica e nenhum detalhe interno é exposto.", "*"
                 )
