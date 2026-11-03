@@ -34,7 +34,15 @@ if [ -z "$API_SHA" ] || [ -z "$PORTAL_SHA" ]; then
   exit 2
 fi
 
-compose() { docker compose -f "$COMPOSE_FILE" --env-file "$STATE_DIR/images.env" "$@"; }
+# O Compose precisa do .env (segredos e DOMAIN) e do images.env (imagem de cada cor).
+compose() {
+  docker compose -f "$COMPOSE_FILE" --env-file "$STATE_DIR/.env" --env-file "$STATE_DIR/images.env" "$@"
+}
+
+# A sessão SSH do deploy não herda o ambiente: lê o webhook do .env da VPS, se existir.
+if [ -z "${DISCORD_WEBHOOK_URL:-}" ] && [ -f "$STATE_DIR/.env" ]; then
+  DISCORD_WEBHOOK_URL="$(grep '^DISCORD_WEBHOOK_URL=' "$STATE_DIR/.env" | cut -d= -f2- || true)"
+fi
 
 notify() {
   [ -n "${DISCORD_WEBHOOK_URL:-}" ] || return 0

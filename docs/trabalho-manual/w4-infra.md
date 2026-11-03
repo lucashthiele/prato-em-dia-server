@@ -5,6 +5,9 @@ Marque cada item ao concluir. As decisões de fundo estão em [infraestrutura.md
 
 Ordem sugerida: LUC-72 (VPS) → LUC-47/46 (`.env`) → LUC-48 (pipeline) → LUC-68 (backup) → LUC-69 (observabilidade) → LUC-50/27 e LUC-49.
 
+> Os comandos `docker compose` abaixo rodam em `/srv/prato`. Para não esquecer as variáveis, use
+> `alias dc='docker compose --env-file .env --env-file images.env'` (o `images.env` guarda a imagem de cada cor).
+
 ## Pré-requisitos (uma vez)
 
 - [ ] VPS da Hostinger com Ubuntu LTS, acesso root inicial por SSH e IP público anotado.
@@ -55,7 +58,7 @@ Arquivos: `.github/workflows/maven.yml` (CI), `.github/workflows/deploy.yml`, `D
 - [ ] Editar `deploy/release.yaml`: trocar `REPLACE_WITH_PORTAL_SHA` pelo SHA real do portal.
 - [ ] Na VPS, preparar o estado inicial (como `deploy`): `mkdir -p /srv/prato /srv/portal/releases`; criar `/srv/prato/upstream.caddy` com `reverse_proxy app-blue:8080` e `echo blue > /srv/prato/active_color`; copiar `deploy/compose.yaml`, `deploy/Caddyfile` e `deploy/scripts/*` para `/srv/prato/` (o primeiro `deploy.yml` também faz isso por rsync).
 - [ ] Primeiro deploy: o `docker login ghcr.io` precisa estar feito na VPS, usando um token `read:packages`, como `deploy` ou o usuário que roda o Compose (ou tornar a imagem pública). Confirmar `docker pull ghcr.io/<dono>/prato-em-dia-server:<sha>` na VPS.
-- [ ] Subir os serviços fixos: `cd /srv/prato && docker compose --env-file images.env up -d caddy postgres` (o `images.env` é criado pelo primeiro `deploy.sh`; crie um vazio antes com `touch images.env`).
+- [ ] Subir os serviços fixos: `cd /srv/prato && docker compose --env-file .env --env-file images.env up -d caddy postgres` (o `images.env` é criado pelo primeiro `deploy.sh`; crie um vazio antes com `touch images.env`).
 - [ ] Rodar o workflow `Deploy` manualmente (**Actions > Deploy > Run workflow**) e conferir: `curl -fsS https://<dominio>/api/v1/auth/login` responde 4xx do envelope (não 502), o portal abre em `https://<dominio>/` e a cor ativa mudou (`cat /srv/prato/active_color`).
 - [ ] Testar o rollback automático: publicar uma imagem que não sobe (por exemplo, `JWT_SECRET` ausente numa cópia) e confirmar que o deploy falha, a cor ativa continua a mesma e o Discord recebe o aviso.
 - [ ] Proteger `main` (**Settings > Branches**): exigir o CI `Build and Test` verde antes do merge.
@@ -91,7 +94,7 @@ Arquivos: `deploy/observability/` (`config.alloy`, `alert-rules.yaml`, `contact-
 - [ ] Provar cada alerta crítico em ambiente controlado: derrubar as duas cores por 2 minutos (`ApiDown`) e conferir o Discord.
 - [ ] **Ligar os contadores no código** (feito na integração, fora do W4): chamar `CriticalEventMetrics.emailOutboxDead()` quando um e-mail virar `DEAD` (LUC-66) e `CriticalEventMetrics.planGenerationFailed()` quando a terceira tentativa de geração falhar (LUC-39). Sem essas chamadas as regras `EmailOutboxDead` e `PlanGenerationFailed` nunca disparam.
 - [ ] Monitor externo de uptime (UptimeRobot ou Better Stack) apontando para `https://<dominio>/` e `https://<dominio>/api/v1/...` (uma rota pública), alerta no Discord. Confirmar os limites do plano gratuito na página oficial.
-- [ ] Alerta de rollback de deploy: já sai direto do `deploy.sh` para o Discord (`DISCORD_WEBHOOK_URL`). Para isso, exportar a variável para a sessão SSH do deploy: adicionar `DISCORD_WEBHOOK_URL` ao ambiente do usuário `deploy` (por exemplo em `/home/deploy/.pam_environment` ou lendo-a do `/srv/prato/.env` no início do `deploy.sh`) e provar com um deploy que falha.
+- [ ] Alerta de rollback de deploy: sai direto do `deploy.sh` para o Discord, que lê `DISCORD_WEBHOOK_URL` do `/srv/prato/.env`. Provar com um deploy que falha (ver LUC-48).
 
 ## LUC-50 e LUC-27: catálogo de erros e contrato OpenAPI
 
