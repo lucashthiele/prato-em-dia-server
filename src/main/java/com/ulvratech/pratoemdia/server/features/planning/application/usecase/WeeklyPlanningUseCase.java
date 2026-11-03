@@ -8,11 +8,13 @@ import com.ulvratech.pratoemdia.server.features.planning.application.dto.Plannin
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PlanningInputs.PlanQuery;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PlanningInputs.PlanUpdate;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PlanningInputs.PreferenceUpdate;
+import com.ulvratech.pratoemdia.server.features.planning.application.dto.PrescriptionPlanningSource;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PrescriptionPlanningSource.MealSource;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.WeeklyPlanOutput;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.WeeklyPlanningPreferenceOutput;
 import com.ulvratech.pratoemdia.server.features.planning.application.exception.InvalidPlanningChangeException;
 import com.ulvratech.pratoemdia.server.features.planning.application.exception.PlanningAccessDeniedException;
+import com.ulvratech.pratoemdia.server.features.planning.application.exception.PlanGenerationConflictException;
 import com.ulvratech.pratoemdia.server.features.planning.application.exception.PlanningConflictException;
 import com.ulvratech.pratoemdia.server.features.planning.application.exception.WeeklyPlanNotFoundException;
 import com.ulvratech.pratoemdia.server.features.planning.application.port.in.PlanningCommands;
@@ -20,6 +22,7 @@ import com.ulvratech.pratoemdia.server.features.planning.application.port.in.Pla
 import com.ulvratech.pratoemdia.server.features.planning.application.port.in.ReconcileWeeklyPlanning;
 import com.ulvratech.pratoemdia.server.features.planning.application.port.out.PlanGeneratedNotifier;
 import com.ulvratech.pratoemdia.server.features.planning.application.port.out.PlanningReferences;
+import com.ulvratech.pratoemdia.server.features.planning.domain.entity.PlanWindow;
 import com.ulvratech.pratoemdia.server.features.planning.domain.entity.PlannedMeal;
 import com.ulvratech.pratoemdia.server.features.planning.domain.entity.PlannedMealItem;
 import com.ulvratech.pratoemdia.server.features.planning.domain.entity.WeeklyPlan;
@@ -41,6 +44,7 @@ import java.util.Objects;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -87,7 +91,7 @@ public class WeeklyPlanningUseCase
     @Override
     public WeeklyPlanOutput generate(Actor actor) {
         UUID patient = requirePatient(actor);
-        var generated = generateFor(patient, LocalDate.now(clock.withZone(ZONE)), true);
+        var generated = regenerate(patient, LocalDate.now(clock.withZone(ZONE)));
         notifyGenerated(generated, false);
         return WeeklyPlanOutput.from(generated.plan());
     }
@@ -156,8 +160,15 @@ public class WeeklyPlanningUseCase
                 .forEach(
                         preference -> {
                             try {
-                                notifyGenerated(generateFor(preference.patientId(), now.toLocalDate(), false), true);
-                            } catch (WeeklyPlanNotFoundException | PlanningConflictException ignored) {
+                                notifyGenerated(generateFor(preference.patientId(), now.toLocalDate()), true);
+                            } catch (WeeklyPlanNotFoundException | PlanGenerationConflictException ignored) {
+                            } catch (InvalidPlanningChangeException | IllegalArgumentException
+                                    | IllegalStateException rejected) {
+                                log.warn(
+                                        "Scheduled plan generation rejected by a prescription rule. patientId={}",
+                                        preference.patientId(), rejected
+                                );
+                                notifyRejected(preference.patientId());
                             }
                         }
                 );
@@ -177,6 +188,14 @@ public class WeeklyPlanningUseCase
                 );
     }
 
+    private void notifyRejected(UUID patientId) {
+        try {
+            notifier.planGenerationRejected(patientId);
+        } catch (RuntimeException error) {
+            log.error("Failed to notify rejected plan generation. patientId={}", patientId, error);
+        }
+    }
+
     private void notifyGenerated(GeneratedPlan generated, boolean automatic) {
         if (!generated.created())
             return;
@@ -187,45 +206,98 @@ public class WeeklyPlanningUseCase
         }
     }
 
-    private GeneratedPlan generateFor(UUID patient, LocalDate generatedOn, boolean conflictWhenExists) {
-        LocalDate start = generatedOn.plusDays(1), end = start.plusDays(6);
-        if (repository.existsForPeriod(patient, start, end)) {
-            if (conflictWhenExists)
-                throw new PlanningConflictException("Weekly plan already exists for this period");
-            return new GeneratedPlan(
-                    repository.findPlans(patient).stream()
-                            .filter(p -> p.getPeriodStart().equals(start))
-                            .findFirst()
-                            .orElseThrow(
-                                    () -> new PlanningConflictException(
-                                            "Weekly plan already exists for this period"
-                                    )
-                            ),
-                    false
-            );
-        }
+    /**
+     * Regeneração manual (LUC-38): cobre de hoje até o próximo dia automático (ou só hoje, no próprio dia
+     * automático). As refeições ativas desses dias, em qualquer plano, viram histórico (ADR 0002).
+     */
+    private GeneratedPlan regenerate(UUID patient, LocalDate today) {
+        var automaticDay = repository
+                .findPreference(patient)
+                .map(WeeklyPlanningPreference::dayOfWeek)
+                .orElse(DayOfWeek.MONDAY);
+        var window = PlanWindow.manual(today, automaticDay);
         var source = references
                 .currentPublishedPrescription(patient)
                 .orElseThrow(WeeklyPlanNotFoundException::new);
-        var meals = new ArrayList<PlannedMeal>();
-        for (int day = 0; day < 7; day++) {
-            LocalDate date = start.plusDays(day);
-            for (var meal : source.meals())
-                meals.add(copy(meal, date));
+        var now = Instant.now(clock);
+        try {
+            for (var older : repository.findPlansWithActiveMeals(patient, window.start(), window.end())) {
+                if (older.supersede(window.start(), window.end(), now) > 0)
+                    repository.savePlan(older);
+            }
+            return new GeneratedPlan(
+                    repository
+                            .savePlan(newPlan(patient, source, window.start(), window.end(), today, mealDates(window))),
+                    true
+            );
+        } catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException exception) {
+            throw new PlanGenerationConflictException();
         }
-        Instant deadline = start.atStartOfDay(ZONE).toInstant();
+    }
+
+    /**
+     * Geração automática: D+1 até o próximo dia automático. Só preenche os dias que ainda não têm refeição
+     * ativa, então repetir a execução (as três tentativas) nunca duplica nem sobrepõe nada.
+     */
+    private GeneratedPlan generateFor(UUID patient, LocalDate generatedOn) {
+        var window = PlanWindow.automatic(generatedOn);
+        var existing = repository.findPlansWithActiveMeals(patient, window.start(), window.end());
+        var missing = missingDays(window, existing);
+        if (missing.isEmpty())
+            return alreadyGenerated(patient, window, existing);
+        var source = references
+                .currentPublishedPrescription(patient)
+                .orElseThrow(WeeklyPlanNotFoundException::new);
         try {
             return new GeneratedPlan(
                     repository.savePlan(
-                            WeeklyPlan.create(
-                                    patient, source.versionId(), source.planningMode(), start, deadline, meals
-                            )
+                            newPlan(patient, source, missing.getFirst(), missing.getLast(), generatedOn, missing)
                     ),
                     true
             );
         } catch (DataIntegrityViolationException exception) {
-            throw new PlanningConflictException("Weekly plan already exists for this period");
+            var winners = repository.findPlansWithActiveMeals(patient, window.start(), window.end());
+            if (missingDays(window, winners).isEmpty())
+                return alreadyGenerated(patient, window, winners);
+            throw new PlanGenerationConflictException();
         }
+    }
+
+    private GeneratedPlan alreadyGenerated(UUID patient, PlanWindow window, List<WeeklyPlan> plans) {
+        return new GeneratedPlan(
+                plans.stream()
+                        .max(java.util.Comparator.comparing(WeeklyPlan::getPeriodStart))
+                        .orElseThrow(PlanGenerationConflictException::new),
+                false
+        );
+    }
+
+    private List<LocalDate> missingDays(PlanWindow window, List<WeeklyPlan> plans) {
+        var covered = plans.stream()
+                .flatMap(plan -> plan.getMeals().stream())
+                .map(PlannedMeal::date)
+                .collect(java.util.stream.Collectors.toSet());
+        return mealDates(window).stream().filter(date -> !covered.contains(date)).toList();
+    }
+
+    private List<LocalDate> mealDates(PlanWindow window) {
+        return window.start().datesUntil(window.end().plusDays(1)).toList();
+    }
+
+    private WeeklyPlan newPlan(
+            UUID patient, PrescriptionPlanningSource source, LocalDate start, LocalDate end, LocalDate createdOn,
+            List<LocalDate> days
+    ) {
+        var meals = new ArrayList<PlannedMeal>();
+        for (LocalDate date : days)
+            for (var meal : source.meals())
+                meals.add(copy(meal, date));
+        // Confirma na virada do dia: o prazo é o início do primeiro dia futuro coberto pelo plano.
+        LocalDate deadlineDay = start.isAfter(createdOn) ? start : createdOn.plusDays(1);
+        return WeeklyPlan.create(
+                patient, source.versionId(), source.planningMode(), start, end,
+                deadlineDay.atStartOfDay(ZONE).toInstant(), meals
+        );
     }
 
     private PlannedMeal copy(MealSource meal, LocalDate date) {
@@ -233,7 +305,6 @@ public class WeeklyPlanningUseCase
                 UUID.randomUUID(),
                 meal.id(),
                 date,
-                meal.time(),
                 meal.mealType(),
                 meal.name(),
                 meal.order(),
@@ -272,7 +343,6 @@ public class WeeklyPlanningUseCase
                                     mealId,
                                     prescribedMealId,
                                     input.date(),
-                                    input.time(),
                                     input.mealType(),
                                     input.name(),
                                     input.order(),

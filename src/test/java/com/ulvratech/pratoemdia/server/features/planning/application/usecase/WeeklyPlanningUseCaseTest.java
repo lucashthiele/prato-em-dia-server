@@ -4,9 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -21,7 +22,9 @@ import com.ulvratech.pratoemdia.server.features.planning.domain.entity.WeeklyPla
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PrescriptionPlanningSource;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PrescriptionPlanningSource.ItemSource;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PrescriptionPlanningSource.MealSource;
-import com.ulvratech.pratoemdia.server.features.planning.application.exception.PlanningConflictException;
+import com.ulvratech.pratoemdia.server.features.planning.application.exception.PlanGenerationConflictException;
+import com.ulvratech.pratoemdia.server.features.planning.domain.entity.PlannedMeal;
+import org.springframework.dao.DataIntegrityViolationException;
 import com.ulvratech.pratoemdia.server.features.planning.application.port.out.PlanGeneratedNotifier;
 import com.ulvratech.pratoemdia.server.features.planning.application.port.out.PlanningReferences;
 import com.ulvratech.pratoemdia.server.features.planning.domain.entity.WeeklyPlanningPreference;
@@ -43,49 +46,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 class WeeklyPlanningUseCaseTest {
-    @Test
-    void manuallyGeneratesSevenFollowingDaysAndSnapshotsMode() {
-        var repository = mock(WeeklyPlanningRepository.class);
-        var references = mock(PlanningReferences.class);
-        var user = UUID.randomUUID();
-        var patient = UUID.randomUUID();
-        var version = UUID.randomUUID();
-        var source = source(version, PlanningMode.SUBSTITUTIONS_ONLY);
-        when(references.patientProfileId(user)).thenReturn(Optional.of(patient));
-        when(references.currentPublishedPrescription(patient)).thenReturn(Optional.of(source));
-        when(repository.savePlan(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        var clock = Clock.fixed(Instant.parse("2026-09-17T12:00:00Z"), ZoneOffset.UTC);
-        var useCase = new WeeklyPlanningUseCase(repository, references, clock, mock(PlanGeneratedNotifier.class));
-
-        var output = useCase.generate(new Actor(user, "PATIENT"));
-
-        assertEquals(LocalDate.of(2026, 9, 18), output.periodStart());
-        assertEquals(LocalDate.of(2026, 9, 24), output.periodEnd());
-        assertEquals(7, output.meals().size());
-        assertEquals(PlanningMode.SUBSTITUTIONS_ONLY, output.planningMode());
-        assertEquals(version, output.prescriptionVersionId());
-    }
-
-    @Test
-    void duplicateManualPeriodIsAConflict() {
-        var repository = mock(WeeklyPlanningRepository.class);
-        var references = mock(PlanningReferences.class);
-        var user = UUID.randomUUID();
-        var patient = UUID.randomUUID();
-        when(references.patientProfileId(user)).thenReturn(Optional.of(patient));
-        when(repository.existsForPeriod(eq(patient), any(), any())).thenReturn(true);
-        var useCase = new WeeklyPlanningUseCase(
-                repository,
-                references,
-                Clock.fixed(Instant.parse("2026-09-17T12:00:00Z"), ZoneOffset.UTC),
-                mock(PlanGeneratedNotifier.class)
-        );
-        assertThrows(
-                PlanningConflictException.class, () -> useCase.generate(new Actor(user, "PATIENT"))
-        );
-        verify(references, never()).currentPublishedPrescription(any());
-    }
-
     private static final Clock THURSDAY_9AM = Clock.fixed(Instant.parse("2026-09-17T12:00:00Z"), ZoneOffset.UTC);
 
     @Test
@@ -107,27 +67,185 @@ class WeeklyPlanningUseCaseTest {
         verify(notifier, times(1)).planGenerated(notice.capture());
         assertEquals(patient, notice.getValue().patientId());
         assertFalse(notice.getValue().automatic());
-        assertEquals(7, notice.getValue().mealCount());
+        assertEquals(5, notice.getValue().mealCount());
         assertEquals(1, notice.getValue().mealsPerDay());
         assertEquals(List.of(MealType.LUNCH), notice.getValue().dailyMealTypes());
-        assertEquals(LocalDate.of(2026, 9, 18), notice.getValue().periodStart());
-        assertEquals(LocalDate.of(2026, 9, 24), notice.getValue().periodEnd());
+        assertEquals(LocalDate.of(2026, 9, 17), notice.getValue().periodStart());
+        assertEquals(LocalDate.of(2026, 9, 21), notice.getValue().periodEnd());
     }
 
     @Test
-    void conflictingManualGenerationDoesNotNotify() {
+    void manualRegenerationWithoutPreferenceCoversTodayUpToTheDefaultMonday() {
+        var fixture = manualFixture();
+
+        var output = fixture.useCase.generate(fixture.actor);
+
+        assertEquals(LocalDate.of(2026, 9, 17), output.periodStart());
+        assertEquals(LocalDate.of(2026, 9, 21), output.periodEnd());
+        assertEquals(5, output.meals().size());
+        assertEquals(PlanningMode.SUBSTITUTIONS_ONLY, output.planningMode());
+        assertEquals(fixture.version, output.prescriptionVersionId());
+        assertEquals(Instant.parse("2026-09-18T03:00:00Z"), output.confirmationDeadline());
+    }
+
+    @Test
+    void manualRegenerationOnTheAutomaticDayCoversOnlyThatDay() {
+        var fixture = manualFixture();
+        when(fixture.repository.findPreference(fixture.patient))
+                .thenReturn(Optional.of(new WeeklyPlanningPreference(fixture.patient, DayOfWeek.THURSDAY, true)));
+
+        var output = fixture.useCase.generate(fixture.actor);
+
+        assertEquals(LocalDate.of(2026, 9, 17), output.periodStart());
+        assertEquals(LocalDate.of(2026, 9, 17), output.periodEnd());
+        assertEquals(1, output.meals().size());
+    }
+
+    @Test
+    void manualRegenerationSupersedesOnlyTheCoveredDaysOfTheOlderPlanBeforeSavingTheNewOne() {
+        var fixture = manualFixture();
+        var older = olderPlan(fixture.patient, LocalDate.of(2026, 9, 15), 10);
+        when(
+                fixture.repository.findPlansWithActiveMeals(
+                        fixture.patient, LocalDate.of(2026, 9, 17), LocalDate.of(2026, 9, 21)
+                )
+        ).thenReturn(List.of(older));
+
+        var output = fixture.useCase.generate(fixture.actor);
+
+        assertEquals(
+                List.of(
+                        LocalDate.of(2026, 9, 15), LocalDate.of(2026, 9, 16), LocalDate.of(2026, 9, 22),
+                        LocalDate.of(2026, 9, 23), LocalDate.of(2026, 9, 24)
+                ),
+                older.getMeals().stream().map(meal -> meal.date()).sorted().toList()
+        );
+        var order = inOrder(fixture.repository);
+        order.verify(fixture.repository).savePlan(older);
+        order.verify(fixture.repository).savePlan(argThat(plan -> plan.getId().equals(output.id())));
+    }
+
+    @Test
+    void concurrentManualGenerationLosingTheRaceGetsACodedConflictAndNoNotification() {
+        var fixture = manualFixture();
+        when(fixture.repository.savePlan(any()))
+                .thenThrow(new DataIntegrityViolationException("ux_planned_meal_active_slot"));
+
+        var error = assertThrows(PlanGenerationConflictException.class, () -> fixture.useCase.generate(fixture.actor));
+
+        assertEquals("WEEKLY_PLAN_GENERATION_CONFLICT", error.getCode());
+        verify(fixture.notifier, never()).planGenerated(any());
+    }
+
+    @Test
+    void automaticGenerationCoversTheNextSevenDaysAndNotifiesOnce() {
+        var fixture = automaticFixture();
+
+        fixture.useCase.generateDuePlans();
+
+        var saved = ArgumentCaptor.forClass(WeeklyPlan.class);
+        verify(fixture.repository).savePlan(saved.capture());
+        assertEquals(LocalDate.of(2026, 9, 18), saved.getValue().getPeriodStart());
+        assertEquals(LocalDate.of(2026, 9, 24), saved.getValue().getPeriodEnd());
+        assertEquals(7, saved.getValue().getMeals().size());
+        verify(fixture.notifier, times(1)).planGenerated(any());
+    }
+
+    @Test
+    void automaticGenerationFillsOnlyTheDaysWithoutActiveMeals() {
+        var fixture = automaticFixture();
+        var existing = olderPlan(fixture.patient, LocalDate.of(2026, 9, 18), 3);
+        when(
+                fixture.repository.findPlansWithActiveMeals(
+                        fixture.patient, LocalDate.of(2026, 9, 18), LocalDate.of(2026, 9, 24)
+                )
+        ).thenReturn(List.of(existing));
+
+        fixture.useCase.generateDuePlans();
+
+        var saved = ArgumentCaptor.forClass(WeeklyPlan.class);
+        verify(fixture.repository).savePlan(saved.capture());
+        assertEquals(LocalDate.of(2026, 9, 21), saved.getValue().getPeriodStart());
+        assertEquals(LocalDate.of(2026, 9, 24), saved.getValue().getPeriodEnd());
+        assertEquals(4, saved.getValue().getMeals().size());
+        assertEquals(3, existing.getMeals().size());
+    }
+
+    @Test
+    void automaticGenerationIsIdempotentWhenEveryDayAlreadyHasActiveMeals() {
+        var fixture = automaticFixture();
+        var existing = olderPlan(fixture.patient, LocalDate.of(2026, 9, 18), 7);
+        when(
+                fixture.repository.findPlansWithActiveMeals(
+                        fixture.patient, LocalDate.of(2026, 9, 18), LocalDate.of(2026, 9, 24)
+                )
+        ).thenReturn(List.of(existing));
+
+        fixture.useCase.generateDuePlans();
+        fixture.useCase.generateDuePlans();
+
+        verify(fixture.repository, never()).savePlan(any());
+        verify(fixture.notifier, never()).planGenerated(any());
+    }
+
+    @Test
+    void automaticGenerationLosingTheRaceReturnsThePlanAlreadyGeneratedWithoutNotifying() {
+        var fixture = automaticFixture();
+        var winner = olderPlan(fixture.patient, LocalDate.of(2026, 9, 18), 7);
+        when(
+                fixture.repository.findPlansWithActiveMeals(
+                        fixture.patient, LocalDate.of(2026, 9, 18), LocalDate.of(2026, 9, 24)
+                )
+        ).thenReturn(List.of(), List.of(winner));
+        when(fixture.repository.savePlan(any()))
+                .thenThrow(new DataIntegrityViolationException("ux_planned_meal_active_slot"));
+
+        fixture.useCase.generateDuePlans();
+
+        verify(fixture.notifier, never()).planGenerated(any());
+    }
+
+    private record Fixture(
+            WeeklyPlanningRepository repository,
+            PlanGeneratedNotifier notifier,
+            WeeklyPlanningUseCase useCase,
+            Actor actor,
+            UUID patient,
+            UUID version) {
+    }
+
+    private Fixture manualFixture() {
         var repository = mock(WeeklyPlanningRepository.class);
         var references = mock(PlanningReferences.class);
         var notifier = mock(PlanGeneratedNotifier.class);
         var user = UUID.randomUUID();
         var patient = UUID.randomUUID();
+        var version = UUID.randomUUID();
         when(references.patientProfileId(user)).thenReturn(Optional.of(patient));
-        when(repository.existsForPeriod(eq(patient), any(), any())).thenReturn(true);
+        when(references.currentPublishedPrescription(patient))
+                .thenReturn(Optional.of(source(version, PlanningMode.SUBSTITUTIONS_ONLY)));
+        when(repository.savePlan(any())).thenAnswer(invocation -> invocation.getArgument(0));
         var useCase = new WeeklyPlanningUseCase(repository, references, THURSDAY_9AM, notifier);
+        return new Fixture(repository, notifier, useCase, new Actor(user, "PATIENT"), patient, version);
+    }
 
-        assertThrows(PlanningConflictException.class, () -> useCase.generate(new Actor(user, "PATIENT")));
+    private Fixture automaticFixture() {
+        var fixture = manualFixture();
+        when(fixture.repository.findEnabledPreferences(DayOfWeek.THURSDAY))
+                .thenReturn(List.of(new WeeklyPlanningPreference(fixture.patient, DayOfWeek.THURSDAY, true)));
+        return fixture;
+    }
 
-        verify(notifier, never()).planGenerated(any());
+    private WeeklyPlan olderPlan(UUID patient, LocalDate start, int days) {
+        var meals = new java.util.ArrayList<PlannedMeal>();
+        for (int day = 0; day < days; day++)
+            meals.add(
+                    new PlannedMeal(UUID.randomUUID(), null, start.plusDays(day), MealType.LUNCH, "Lunch", 0, List.of())
+            );
+        return WeeklyPlan.create(
+                patient, UUID.randomUUID(), PlanningMode.FREE, start, start.plusDays(days - 1),
+                start.atStartOfDay(WeeklyPlanningUseCase.ZONE).toInstant(), meals
+        );
     }
 
     @Test
@@ -152,28 +270,43 @@ class WeeklyPlanningUseCaseTest {
     }
 
     @Test
-    void scheduledGenerationDoesNotNotifyWhenPlanAlreadyExists() {
+    void scheduledGenerationDoesNothingBefore0800() {
+        var repository = mock(WeeklyPlanningRepository.class);
+        var notifier = mock(PlanGeneratedNotifier.class);
+        var earlyClock = Clock.fixed(Instant.parse("2026-09-17T10:59:00Z"), ZoneOffset.UTC);
+        var useCase = new WeeklyPlanningUseCase(
+                repository, mock(PlanningReferences.class), earlyClock, notifier
+        );
+
+        useCase.generateDuePlans();
+
+        verify(repository, never()).findEnabledPreferences(any());
+    }
+
+    @Test
+    void scheduledGenerationRejectedByValidationIsNotRepeatedAndEmailsThePatient() {
         var repository = mock(WeeklyPlanningRepository.class);
         var references = mock(PlanningReferences.class);
         var notifier = mock(PlanGeneratedNotifier.class);
-        var patient = UUID.randomUUID();
-        var existing = WeeklyPlan.create(
-                patient,
-                UUID.randomUUID(),
-                PlanningMode.FREE,
-                LocalDate.of(2026, 9, 18),
-                Instant.parse("2026-09-18T03:00:00Z"),
-                List.of()
-        );
+        var rejected = UUID.randomUUID();
+        var fine = UUID.randomUUID();
         when(repository.findEnabledPreferences(DayOfWeek.THURSDAY))
-                .thenReturn(List.of(new WeeklyPlanningPreference(patient, DayOfWeek.THURSDAY, true)));
-        when(repository.existsForPeriod(eq(patient), any(), any())).thenReturn(true);
-        when(repository.findPlans(patient)).thenReturn(List.of(existing));
+                .thenReturn(
+                        List.of(
+                                new WeeklyPlanningPreference(rejected, DayOfWeek.THURSDAY, true),
+                                new WeeklyPlanningPreference(fine, DayOfWeek.THURSDAY, true)
+                        )
+                );
+        when(references.currentPublishedPrescription(rejected)).thenThrow(new IllegalStateException("rule"));
+        when(references.currentPublishedPrescription(fine))
+                .thenReturn(Optional.of(source(UUID.randomUUID(), PlanningMode.FREE)));
+        when(repository.savePlan(any())).thenAnswer(invocation -> invocation.getArgument(0));
         var useCase = new WeeklyPlanningUseCase(repository, references, THURSDAY_9AM, notifier);
 
         useCase.generateDuePlans();
 
-        verify(notifier, never()).planGenerated(any());
+        verify(notifier).planGenerationRejected(rejected);
+        verify(notifier, times(1)).planGenerated(any());
     }
 
     @Test
@@ -192,7 +325,7 @@ class WeeklyPlanningUseCaseTest {
 
         var output = useCase.generate(new Actor(user, "PATIENT"));
 
-        assertEquals(7, output.meals().size());
+        assertEquals(5, output.meals().size());
     }
 
     @Test
@@ -236,6 +369,7 @@ class WeeklyPlanningUseCaseTest {
                 UUID.randomUUID(),
                 PlanningMode.FREE,
                 LocalDate.of(2026, 9, 18),
+                LocalDate.of(2026, 9, 24),
                 Instant.parse("2026-09-18T03:00:00Z"),
                 List.of()
         );

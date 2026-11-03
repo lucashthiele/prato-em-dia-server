@@ -10,7 +10,6 @@ import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.Plann
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
@@ -32,6 +31,82 @@ class WeeklyPlanTest {
     }
 
     @Test
+    void supersedingDaysKeepsThemAsHistoryAndHidesThemFromTheActiveMeals() {
+        var plan = planWithDays(3);
+        var superseded = plan.supersede(START.plusDays(1), START.plusDays(2), DURING);
+
+        assertEquals(2, superseded);
+        assertEquals(List.of(START), plan.getMeals().stream().map(PlannedMeal::date).toList());
+        assertEquals(3, plan.getAllMeals().size());
+        assertEquals(
+                2, plan.getAllMeals().stream().filter(meal -> meal.supersededAt() != null).count()
+        );
+    }
+
+    @Test
+    void supersedingOutsideThePlanDoesNothing() {
+        var plan = planWithDays(2);
+
+        assertEquals(0, plan.supersede(START.plusDays(5), START.plusDays(6), DURING));
+        assertEquals(2, plan.getMeals().size());
+    }
+
+    @Test
+    void replacingMealsKeepsSupersededHistoryAndRejectsTheirDays() {
+        var plan = planWithDays(2);
+        plan.supersede(START.plusDays(1), START.plusDays(1), DURING);
+        var active = plan.getMeals().getFirst();
+
+        assertDoesNotThrow(() -> plan.replaceMeals(List.of(active), DURING));
+        assertEquals(2, plan.getAllMeals().size());
+        var onSupersededDay = new PlannedMeal(
+                active.id(), active.prescribedMealId(), START.plusDays(1), active.mealType(), active.name(),
+                active.order(), List.of()
+        );
+        assertThrows(IllegalStateException.class, () -> plan.replaceMeals(List.of(onSupersededDay), DURING));
+    }
+
+    @Test
+    void planWithoutActiveMealsIsHistory() {
+        var plan = planWithDays(1);
+        assertEquals(false, plan.isHistory());
+        plan.supersede(START, START, DURING);
+        assertEquals(true, plan.isHistory());
+    }
+
+    private WeeklyPlan planWithDays(int days) {
+        var meals = new java.util.ArrayList<PlannedMeal>();
+        for (int day = 0; day < days; day++)
+            meals.add(
+                    new PlannedMeal(
+                            UUID.randomUUID(), UUID.randomUUID(), START.plusDays(day), MealType.LUNCH, "Lunch", 0,
+                            List.of()
+                    )
+            );
+        return WeeklyPlan.create(
+                UUID.randomUUID(), UUID.randomUUID(), PlanningMode.FREE, START, START.plusDays(days - 1),
+                Instant.parse("2026-09-18T03:00:00Z"), meals
+        );
+    }
+
+    @Test
+    void periodMayHaveAnyLengthFromOneDay() {
+        var oneDay = new WeeklyPlan(
+                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), PlanningMode.FREE, START, START,
+                Instant.parse("2026-09-18T03:00:00Z"), WeeklyPlanStatus.PENDING, null, null, null, 0, List.of()
+        );
+        assertEquals(START, oneDay.getPeriodEnd());
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new WeeklyPlan(
+                        UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), PlanningMode.FREE, START,
+                        START.minusDays(1), Instant.parse("2026-09-18T03:00:00Z"), WeeklyPlanStatus.PENDING, null,
+                        null, null, 0, List.of()
+                )
+        );
+    }
+
+    @Test
     void freeAllowsScheduleAndItemChangesOnlyBeforeConfirmation() {
         var plan = plan(PlanningMode.FREE);
         var changed = meal(plan, START.plusDays(1), UUID.randomUUID());
@@ -45,7 +120,6 @@ class WeeklyPlanTest {
                 changed.id(),
                 changed.prescribedMealId(),
                 changed.date(),
-                changed.time(),
                 changed.mealType(),
                 changed.name(),
                 changed.order(),
@@ -73,7 +147,6 @@ class WeeklyPlanTest {
                 original.id(),
                 original.prescribedMealId(),
                 original.date(),
-                original.time(),
                 original.mealType(),
                 original.name(),
                 original.order(),
@@ -101,7 +174,6 @@ class WeeklyPlanTest {
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 START,
-                LocalTime.NOON,
                 MealType.LUNCH,
                 "Lunch",
                 0,
@@ -123,6 +195,7 @@ class WeeklyPlanTest {
                 UUID.randomUUID(),
                 mode,
                 START,
+                START.plusDays(6),
                 START.atStartOfDay(ZoneId.of("America/Sao_Paulo")).toInstant(),
                 List.of(meal)
         );
@@ -134,7 +207,6 @@ class WeeklyPlanTest {
                 old.id(),
                 old.prescribedMealId(),
                 date,
-                old.time(),
                 old.mealType(),
                 old.name(),
                 old.order(),

@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/patients/me")
-@SecurityRequirement(name = OpenApiConfiguration.BEARER_AUTH)
+@SecurityRequirement(name = OpenApiConfiguration.COOKIE_AUTH)
 @Tag(name = "Diário alimentar")
 public class DiaryController {
     private final DiaryOperations diary;
@@ -53,6 +53,15 @@ public class DiaryController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
         return diary.dailySummary(actor(jwt), date);
+    }
+
+    @GetMapping("/daily-meal-categories")
+    @Operation(summary = "Estado e permissão das categorias do dia", description = "Devolve sempre as quatro categorias, com estado derivado (NOT_LOGGED, PARTIAL, LOGGED), permissão de registro e itens planejados cobertos e não cobertos.")
+    public DiaryTypes.DailyMealCategories dailyMealCategories(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    ) {
+        return diary.dailyMealCategories(actor(jwt), date);
     }
 
     @PostMapping("/meal-executions")

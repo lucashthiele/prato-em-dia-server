@@ -6,6 +6,7 @@ import com.ulvratech.pratoemdia.server.features.identity.application.exception.I
 import com.ulvratech.pratoemdia.server.features.identity.application.exception.InvalidCredentialsException;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.in.AuthenticateUser;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.AccessTokenProvider;
+import com.ulvratech.pratoemdia.server.features.identity.application.port.out.LoginAttemptLimiter;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.PasswordHasher;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.RefreshTokenGenerator;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.RefreshTokenHasher;
@@ -32,6 +33,7 @@ public class AuthenticateUserUseCase implements AuthenticateUser {
     private final AccessTokenProvider accessTokenProvider;
     private final RefreshTokenGenerator refreshTokenGenerator;
     private final RefreshTokenHasher refreshTokenHasher;
+    private final LoginAttemptLimiter loginAttemptLimiter;
     private final Clock clock;
 
     public AuthenticateUserUseCase(
@@ -41,6 +43,7 @@ public class AuthenticateUserUseCase implements AuthenticateUser {
             AccessTokenProvider accessTokenProvider,
             RefreshTokenGenerator refreshTokenGenerator,
             RefreshTokenHasher refreshTokenHasher,
+            LoginAttemptLimiter loginAttemptLimiter,
             Clock clock
     ) {
         this.userAccountRepository = userAccountRepository;
@@ -49,19 +52,21 @@ public class AuthenticateUserUseCase implements AuthenticateUser {
         this.accessTokenProvider = accessTokenProvider;
         this.refreshTokenGenerator = refreshTokenGenerator;
         this.refreshTokenHasher = refreshTokenHasher;
+        this.loginAttemptLimiter = loginAttemptLimiter;
         this.clock = clock;
     }
 
     @Override
     public AuthenticateUserOutput execute(AuthenticateUserInput input) {
         var normalizedEmail = input.email().strip().toLowerCase(Locale.ROOT);
-        var userAccount = userAccountRepository
-                .findByEmailIgnoreCase(normalizedEmail)
-                .orElseThrow(InvalidCredentialsException::new);
+        loginAttemptLimiter.checkAllowed(normalizedEmail, input.ip());
+        var userAccount = userAccountRepository.findByEmailIgnoreCase(normalizedEmail).orElse(null);
 
-        if (!passwordHasher.matches(input.rawPassword(), userAccount.getPasswordHash())) {
+        if (userAccount == null || !passwordHasher.matches(input.rawPassword(), userAccount.getPasswordHash())) {
+            loginAttemptLimiter.recordFailure(normalizedEmail, input.ip());
             throw new InvalidCredentialsException();
         }
+        loginAttemptLimiter.recordSuccess(normalizedEmail);
         if (userAccount.getStatus() != UserAccountStatus.ACTIVE) {
             throw new InactiveUserAccountException();
         }

@@ -6,6 +6,7 @@ import com.ulvratech.pratoemdia.server.features.identity.application.dto.Generat
 import com.ulvratech.pratoemdia.server.features.identity.application.exception.InactiveUserAccountException;
 import com.ulvratech.pratoemdia.server.features.identity.application.exception.InvalidCredentialsException;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.AccessTokenProvider;
+import com.ulvratech.pratoemdia.server.features.identity.application.port.out.LoginAttemptLimiter;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.PasswordHasher;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.RefreshTokenGenerator;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.RefreshTokenHasher;
@@ -43,6 +44,7 @@ class AuthenticateUserUseCaseTest {
     private AccessTokenProvider accessTokenProvider;
     private RefreshTokenGenerator refreshTokenGenerator;
     private RefreshTokenHasher refreshTokenHasher;
+    private LoginAttemptLimiter limiter;
     private AuthenticateUserUseCase useCase;
 
     @BeforeEach
@@ -53,6 +55,7 @@ class AuthenticateUserUseCaseTest {
         accessTokenProvider = mock(AccessTokenProvider.class);
         refreshTokenGenerator = mock(RefreshTokenGenerator.class);
         refreshTokenHasher = mock(RefreshTokenHasher.class);
+        limiter = mock(LoginAttemptLimiter.class);
         useCase = new AuthenticateUserUseCase(
                 userAccounts,
                 refreshTokens,
@@ -60,6 +63,7 @@ class AuthenticateUserUseCaseTest {
                 accessTokenProvider,
                 refreshTokenGenerator,
                 refreshTokenHasher,
+                limiter,
                 Clock.fixed(NOW, ZoneOffset.UTC)
         );
     }
@@ -147,5 +151,56 @@ class AuthenticateUserUseCaseTest {
                 UserAccountRole.PATIENT,
                 status
         );
+    }
+
+    @Test
+    void aBlockedEmailOrIpIsRejectedBeforeAnyLookup() {
+        org.mockito.Mockito.doThrow(
+                new com.ulvratech.pratoemdia.server.features.identity.application.exception.TooManyLoginAttemptsException(
+                        60
+                )
+        ).when(limiter).checkAllowed("patient@example.com", "1.2.3.4");
+
+        assertThrows(
+                com.ulvratech.pratoemdia.server.features.identity.application.exception.TooManyLoginAttemptsException.class,
+                () -> useCase.execute(new AuthenticateUserInput(" Patient@Example.com ", "whatever", "1.2.3.4"))
+        );
+        org.mockito.Mockito.verifyNoInteractions(userAccounts, passwordHasher);
+    }
+
+    @Test
+    void wrongPasswordAndUnknownEmailBothCountAsFailures() {
+        when(userAccounts.findByEmailIgnoreCase("patient@example.com"))
+                .thenReturn(Optional.of(user(UserAccountStatus.ACTIVE)));
+        when(passwordHasher.matches("wrong", "password-hash")).thenReturn(false);
+        when(userAccounts.findByEmailIgnoreCase("ghost@example.com")).thenReturn(Optional.empty());
+
+        assertThrows(
+                InvalidCredentialsException.class,
+                () -> useCase.execute(new AuthenticateUserInput("patient@example.com", "wrong", "1.2.3.4"))
+        );
+        assertThrows(
+                InvalidCredentialsException.class,
+                () -> useCase.execute(new AuthenticateUserInput("ghost@example.com", "x", "1.2.3.4"))
+        );
+
+        verify(limiter).recordFailure("patient@example.com", "1.2.3.4");
+        verify(limiter).recordFailure("ghost@example.com", "1.2.3.4");
+        verify(limiter, never()).recordSuccess(any());
+    }
+
+    @Test
+    void successForgetsTheEmailFailures() {
+        var user = user(UserAccountStatus.ACTIVE);
+        when(userAccounts.findByEmailIgnoreCase("patient@example.com")).thenReturn(Optional.of(user));
+        when(passwordHasher.matches("right", "password-hash")).thenReturn(true);
+        when(accessTokenProvider.generate(user)).thenReturn(new GeneratedAccessToken("a", NOW.plusSeconds(900)));
+        when(refreshTokenGenerator.generate()).thenReturn(new GeneratedRefreshToken("r", NOW.plusSeconds(3600)));
+        when(refreshTokenHasher.hash("r")).thenReturn("h");
+
+        useCase.execute(new AuthenticateUserInput("patient@example.com", "right", "1.2.3.4"));
+
+        verify(limiter).recordSuccess("patient@example.com");
+        verify(limiter, never()).recordFailure(any(), any());
     }
 }

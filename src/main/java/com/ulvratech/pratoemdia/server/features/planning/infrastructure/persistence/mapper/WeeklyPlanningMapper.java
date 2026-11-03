@@ -44,7 +44,7 @@ public class WeeklyPlanningMapper {
                 .version(value.getPersistenceVersion())
                 .build();
         root.setMeals(
-                value.getMeals().stream()
+                value.getAllMeals().stream()
                         .map(m -> toModel(root, m))
                         .collect(java.util.stream.Collectors.toCollection(ArrayList::new))
         );
@@ -55,9 +55,10 @@ public class WeeklyPlanningMapper {
         var meal = PlannedMealModel.builder()
                 .id(value.id())
                 .plan(plan)
+                .patientId(plan.getPatientId())
+                .supersededAt(value.supersededAt())
                 .prescribedMealId(value.prescribedMealId())
                 .date(value.date())
-                .time(value.time())
                 .mealType(value.mealType())
                 .name(value.name())
                 .order(value.order())
@@ -102,7 +103,6 @@ public class WeeklyPlanningMapper {
                                         m.getId(),
                                         m.getPrescribedMealId(),
                                         m.getDate(),
-                                        m.getTime(),
                                         m.getMealType(),
                                         m.getName(),
                                         m.getOrder(),
@@ -119,7 +119,8 @@ public class WeeklyPlanningMapper {
                                                                 i.getOrder()
                                                         )
                                                 )
-                                                .toList()
+                                                .toList(),
+                                        m.getSupersededAt()
                                 )
                         )
                         .toList()

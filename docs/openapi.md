@@ -11,6 +11,9 @@ Com a aplicação em execução, estão disponíveis sem autenticação:
 - OpenAPI em JSON: `http://localhost:8080/v3/api-docs`
 - OpenAPI em YAML: `http://localhost:8080/v3/api-docs.yaml`
 
+Em produção o Swagger UI fica desligado (`springdoc.swagger-ui.enabled=false` no
+perfil `prod`); o JSON da especificação continua disponível.
+
 Para salvar uma cópia da especificação gerada:
 
 ```shell
@@ -19,13 +22,54 @@ curl --fail http://localhost:8080/v3/api-docs.yaml --output openapi.yaml
 
 ## Autenticação no Swagger
 
-Use `POST /api/v1/auth/login` para obter um `accessToken`. No Swagger UI,
-selecione **Authorize** e informe somente o token, sem o prefixo `Bearer`.
-O Swagger adiciona o prefixo ao header `Authorization` automaticamente.
+A sessão é um cookie `HttpOnly` (ADR 0001). Faça `POST /api/v1/auth/login` pelo
+próprio Swagger UI (mesma origem da API): o navegador guarda o cookie
+`access_token` e o envia nas chamadas seguintes, sem botão **Authorize**.
+Em HTTP local, defina `SESSION_COOKIE_SECURE=false` em `local.env`; caso
+contrário o navegador descarta o cookie `Secure`. A origem do Swagger
+(`http://localhost:8080`) está em `ALLOWED_ORIGINS` por padrão.
 
-As operações `login` e `refresh` aparecem como públicas. As demais operações
-declaram o esquema `bearerAuth`, de acordo com a autenticação JWT do servidor.
+As operações `login` e `refresh` aparecem como públicas. As demais declaram o
+esquema `cookieAuth` (`apiKey` em cookie `access_token`). O header
+`Authorization: Bearer` não é mais aceito. O contrato para os clientes está em
+[contrato-sessao-cookies.md](contrato-sessao-cookies.md).
 
-O contexto e o registro append-only da tela de alimentação estão descritos em
+Para chamar rotas protegidas no Swagger UI:
+
+1. Abra `POST /api/v1/auth/login`, escolha **Try it out**, informe e-mail e senha
+   e execute. O navegador guarda os cookies `access_token` e `refresh_token`.
+2. Chame qualquer rota protegida. O Swagger UI é servido na mesma origem da API
+   e, por isso, o navegador reenvia o cookie sozinho.
+3. Para encerrar, use `POST /api/v1/auth/logout`.
+
+Pelo `curl`, use um cookie jar:
+
+```shell
+curl -c jar.txt -H 'Content-Type: application/json' \
+  -d '{"email":"...","password":"..."}' http://localhost:8080/api/v1/auth/login
+curl -b jar.txt http://localhost:8080/api/v1/me
+```
+
+No perfil `local` o atributo `Secure` dos cookies é desligado, porque o navegador
+não reenvia cookie `Secure` por HTTP.
+
+> Enquanto a migração para cookies (LUC-54) não estiver integrada ao branch, o
+> servidor ainda aceita o fluxo antigo por Bearer. Este documento descreve o
+> estado final decidido no ADR 0001.
+
+## Erros
+
+Toda resposta de erro usa o envelope `{status, code, message, errors[]}`, descrito
+em [erros.md](erros.md). O schema `ApiErrorResponse` e as respostas `4XX` e `5XX`
+de cada operação aparecem na especificação, e o **catálogo de códigos** (código,
+status HTTP, significado e rotas) está na descrição da API (`info.description`)
+e, em formato estruturado, em `info.x-error-catalog`.
+
+## Busca e paginação do catálogo
+
+`GET /api/v1/foods` aceita `q` (busca por nome), `page` (padrão `0`) e `size`
+(padrão `20`, máximo `100`).
+
+O contexto e o registro do diário alimentar (execuções mutáveis) estão descritos em
 [food-log.md](food-log.md); os schemas efetivos permanecem gerados a partir dos
 DTOs do controller.

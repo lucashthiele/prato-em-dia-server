@@ -4,7 +4,6 @@ import com.ulvratech.pratoemdia.server.features.planning.domain.enums.WeeklyPlan
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PlanningMode;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
@@ -47,8 +46,8 @@ public class WeeklyPlan {
         this.periodStart = Objects.requireNonNull(periodStart);
         this.periodEnd = Objects.requireNonNull(periodEnd);
         this.confirmationDeadline = Objects.requireNonNull(confirmationDeadline);
-        if (!periodEnd.equals(periodStart.plusDays(6)))
-            throw new IllegalArgumentException("A weekly plan must span seven days");
+        if (periodEnd.isBefore(periodStart))
+            throw new IllegalArgumentException("Plan period cannot end before it starts");
         this.status = Objects.requireNonNull(status);
         this.confirmedAt = confirmedAt;
         if ((status == WeeklyPlanStatus.CONFIRMED) != (confirmedAt != null))
@@ -64,6 +63,7 @@ public class WeeklyPlan {
             UUID versionId,
             PlanningMode mode,
             LocalDate start,
+            LocalDate end,
             Instant deadline,
             List<PlannedMeal> meals
     ) {
@@ -73,7 +73,7 @@ public class WeeklyPlan {
                 versionId,
                 mode,
                 start,
-                start.plusDays(6),
+                end,
                 deadline,
                 WeeklyPlanStatus.PENDING,
                 null,
@@ -104,7 +104,6 @@ public class WeeklyPlan {
                                 PlannedMeal::id,
                                 m -> List.of(
                                         m.date(),
-                                        m.time() == null ? LocalTime.MIDNIGHT : m.time(),
                                         m.mealType(),
                                         m.name(),
                                         m.order()
@@ -119,7 +118,6 @@ public class WeeklyPlan {
                                         .equals(
                                                 List.of(
                                                         m.date(),
-                                                        m.time() == null ? LocalTime.MIDNIGHT : m.time(),
                                                         m.mealType(),
                                                         m.name(),
                                                         m.order()
@@ -139,6 +137,27 @@ public class WeeklyPlan {
         return copy;
     }
 
+    /** Marca como substituídas as refeições ativas dos dias de [from, to]; devolve quantas foram. */
+    public int supersede(LocalDate from, LocalDate to, Instant now) {
+        int count = 0;
+        var updated = new java.util.ArrayList<PlannedMeal>();
+        for (var meal : meals) {
+            if (meal.isActive() && !meal.date().isBefore(from) && !meal.date().isAfter(to)) {
+                updated.add(meal.supersededAt(Objects.requireNonNull(now)));
+                count++;
+            } else {
+                updated.add(meal);
+            }
+        }
+        meals = List.copyOf(updated);
+        return count;
+    }
+
+    /** Um plano sem nenhuma refeição ativa virou histórico. */
+    public boolean isHistory() {
+        return meals.stream().noneMatch(PlannedMeal::isActive);
+    }
+
     public void confirm(Instant now) {
         if (status == WeeklyPlanStatus.CONFIRMED)
             return;
@@ -154,14 +173,18 @@ public class WeeklyPlan {
         if (planningMode == PlanningMode.RESTRICTED)
             throw new IllegalStateException("This plan is restricted");
         var replacement = validatedMeals(desired);
+        var history = meals.stream().filter(meal -> !meal.isActive()).toList();
+        var activeBefore = meals.stream().filter(PlannedMeal::isActive).toList();
+        if (replacement.stream().anyMatch(meal -> history.stream().anyMatch(old -> old.date().equals(meal.date()))))
+            throw new IllegalStateException("Meal date was replaced by a newer plan");
         if (replacement.stream()
                 .anyMatch(meal -> meal.date().isBefore(periodStart) || meal.date().isAfter(periodEnd)))
             throw new IllegalStateException("Meal date is outside the plan period");
-        if (planningMode == PlanningMode.SUBSTITUTIONS_ONLY && !sameStructure(meals, replacement))
+        if (planningMode == PlanningMode.SUBSTITUTIONS_ONLY && !sameStructure(activeBefore, replacement))
             throw new IllegalStateException("Only authorized substitutions are allowed");
-        if (status == WeeklyPlanStatus.CONFIRMED && !sameSchedule(meals, replacement))
+        if (status == WeeklyPlanStatus.CONFIRMED && !sameSchedule(activeBefore, replacement))
             throw new IllegalStateException("Confirmed plan schedule cannot be changed");
-        meals = replacement;
+        meals = java.util.stream.Stream.concat(history.stream(), replacement.stream()).toList();
     }
 
     public UUID getId() {
@@ -212,7 +235,13 @@ public class WeeklyPlan {
         return persistenceVersion;
     }
 
+    /** Refeições ativas do plano (as substituídas ficam só no histórico). */
     public List<PlannedMeal> getMeals() {
+        return meals.stream().filter(PlannedMeal::isActive).toList();
+    }
+
+    /** Refeições ativas e substituídas, para persistência. */
+    public List<PlannedMeal> getAllMeals() {
         return List.copyOf(meals);
     }
 }

@@ -1,0 +1,103 @@
+# Produção na VPS (docs/infraestrutura.md). Só o caddy publica portas.
+# As imagens de cada cor vêm de images.env, atualizado por deploy/scripts/deploy.sh.
+name: prato
+
+x-app: &app
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    SPRING_PROFILES_ACTIVE: prod
+    DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-pratoemdia}
+    DATABASE_USERNAME: ${POSTGRES_USER:-pratoemdia}
+    DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+    JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=60
+  depends_on:
+    postgres:
+      condition: service_healthy
+  networks: [internal]
+  healthcheck:
+    test: ["CMD", "wget", "-qO-", "http://localhost:8081/actuator/health/readiness"]
+    interval: 15s
+    timeout: 5s
+    retries: 10
+    start_period: 120s
+
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?defina DOMAIN no .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./upstream.caddy:/etc/caddy/upstream.caddy:ro
+      - /srv/portal:/srv/portal:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [internal]
+
+  app-blue:
+    <<: *app
+    image: ${APP_BLUE_IMAGE:-ghcr.io/lucashthiele/prato-em-dia-server:latest}
+
+  app-green:
+    <<: *app
+    image: ${APP_GREEN_IMAGE:-ghcr.io/lucashthiele/prato-em-dia-server:latest}
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pratoemdia}
+      POSTGRES_USER: ${POSTGRES_USER:-pratoemdia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pratoemdia} -d ${POSTGRES_DB:-pratoemdia}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Backup diário às 03:00 BRT (deploy/backup). Só a chave pública do age fica aqui.
+  backup:
+    build: ./backup
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PGHOST: postgres
+      PGDATABASE: ${POSTGRES_DB:-pratoemdia}
+      PGUSER: ${POSTGRES_USER:-pratoemdia}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal]
+
+  # Grafana Alloy: métricas e logs para o Grafana Cloud (deploy/observability).
+  alloy:
+    image: grafana/alloy:v1.10.2
+    restart: unless-stopped
+    command: ["run", "--server.http.listen-addr=127.0.0.1:12345", "--storage.path=/var/lib/alloy/data", "/etc/alloy/config.alloy"]
+    env_file: .env
+    environment:
+      GOMEMLIMIT: 256MiB
+    mem_limit: 384m
+    volumes:
+      - ./observability/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy_data:/var/lib/alloy/data
+    networks: [internal]
+
+networks:
+  internal: {}
+
+volumes:
+  alloy_data: {}
+  caddy_data: {}
+  caddy_config: {}
+  postgres_data: {}

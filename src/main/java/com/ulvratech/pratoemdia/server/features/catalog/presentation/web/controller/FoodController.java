@@ -50,7 +50,7 @@ import java.util.UUID;
 @RestController
 @Validated
 @RequestMapping("/api/v1/foods")
-@SecurityRequirement(name = OpenApiConfiguration.BEARER_AUTH)
+@SecurityRequirement(name = OpenApiConfiguration.COOKIE_AUTH)
 @Tag(name = "Alimentos", description = "Consulta e manutenção do catálogo de alimentos.")
 public class FoodController {
     private final CreateFood createFood;

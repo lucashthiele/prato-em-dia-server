@@ -1,0 +1,14 @@
+# Perfil de produção (VPS). Segredos e endereço do banco chegam por variáveis de
+# ambiente do .env da VPS; nada disso entra na imagem nem no repositório.
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+  docker:
+    compose:
+      enabled: false
+
+springdoc:
+  swagger-ui:
+    enabled: false

@@ -60,15 +60,64 @@ class OpenApiIntegrationTest {
     }
 
     @Test
-    void describesBearerAuthenticationOnlyOnProtectedOperations() throws Exception {
+    void documentsTheSharedErrorEnvelopeOnEveryOperation() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"))
-                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
+                .andExpect(jsonPath("$.components.schemas.ApiErrorResponse.properties.status").exists())
+                .andExpect(jsonPath("$.components.schemas.ApiErrorResponse.properties.code").exists())
+                .andExpect(jsonPath("$.components.schemas.ApiErrorResponse.properties.message").exists())
+                .andExpect(jsonPath("$.components.schemas.ApiErrorResponse.properties.errors").exists())
+                .andExpect(
+                        jsonPath(
+                                "$.paths['/api/v1/foods'].get.responses['4XX'].content['application/json'].schema['$ref']"
+                        )
+                                .value("#/components/schemas/ApiErrorResponse")
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.paths['/api/v1/me'].get.responses['5XX'].content['application/json'].schema['$ref']"
+                        )
+                                .value("#/components/schemas/ApiErrorResponse")
+                );
+    }
+
+    @Test
+    void publishesTheErrorCatalogInTheSpecification() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.info.description").value(org.hamcrest.Matchers.containsString("CLIENT_OUTDATED"))
+                )
+                .andExpect(jsonPath("$.info['x-error-catalog'][?(@.code=='CLIENT_OUTDATED')].status").value(426))
+                .andExpect(jsonPath("$.info['x-error-catalog'][?(@.code=='CONSENT_REQUIRED')]").isNotEmpty())
+                .andExpect(jsonPath("$.info['x-error-catalog'][?(@.code=='NO_ALLOWED_FOODS')].kind").value("REASON"))
+                .andExpect(
+                        jsonPath("$.info['x-error-catalog'][?(@.code=='WEEKLY_PLAN_GENERATION_CONFLICT')].status")
+                                .value(409)
+                );
+    }
+
+    @Test
+    void documentsFoodSearchPagination() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/v1/foods'].get.parameters[?(@.name=='q')]").isNotEmpty())
+                .andExpect(jsonPath("$.paths['/api/v1/foods'].get.parameters[?(@.name=='page')]").isNotEmpty())
+                .andExpect(jsonPath("$.paths['/api/v1/foods'].get.parameters[?(@.name=='size')]").isNotEmpty());
+    }
+
+    @Test
+    void describesCookieAuthenticationOnlyOnProtectedOperations() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.components.securitySchemes.cookieAuth.type").value("apiKey"))
+                .andExpect(jsonPath("$.components.securitySchemes.cookieAuth.in").value("cookie"))
+                .andExpect(jsonPath("$.components.securitySchemes.cookieAuth.name").value("access_token"))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth").doesNotExist())
                 .andExpect(jsonPath("$.paths['/api/v1/auth/login'].post.security").doesNotExist())
                 .andExpect(jsonPath("$.paths['/api/v1/auth/refresh'].post.security").doesNotExist())
-                .andExpect(jsonPath("$.paths['/api/v1/auth/logout'].post.security[0].bearerAuth").isArray())
-                .andExpect(jsonPath("$.paths['/api/v1/me'].get.security[0].bearerAuth").isArray());
+                .andExpect(jsonPath("$.paths['/api/v1/auth/logout'].post.security[0].cookieAuth").isArray())
+                .andExpect(jsonPath("$.paths['/api/v1/me'].get.security[0].cookieAuth").isArray());
     }
 
     @Test

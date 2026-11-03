@@ -18,6 +18,19 @@ faz parte desta API.
   `amount` e `unit`. Quando há plano, códigos ausentes em um dos três mapas são
   preenchidos com zero. Sem plano, somente o realizado é retornado.
 
+- `GET /api/v1/patients/me/daily-meal-categories?date=YYYY-MM-DD` devolve sempre as quatro
+  categorias (`BREAKFAST`, `LUNCH`, `SNACK`, `DINNER`, nessa ordem), cada uma com `mealType`,
+  `state`, `canRegister`, `blockedReason`, `plannedMealId` (opcional), `coveredItemCount`,
+  `uncoveredItemCount` e as listas `coveredPlannedItemIds` e `uncoveredPlannedItemIds`.
+  O cálculo é todo do servidor (LUC-36, LUC-41, LUC-71):
+  - `state`: `NOT_LOGGED` sem execução ativa; em `RESTRICTED` e `SUBSTITUTIONS_ONLY`, `PARTIAL`
+    enquanto algum item planejado não estiver coberto (direta ou por substituição autorizada) e
+    `LOGGED` quando todos estiverem cobertos; em `FREE` não existe `PARTIAL`. Categoria sem itens
+    planejados ou dia sem plano: qualquer execução ativa é `LOGGED`.
+  - `canRegister`: `true` em `FREE`; em `RESTRICTED` e `SUBSTITUTIONS_ONLY` só quando há itens
+    planejados na categoria. Caso contrário `false` com `blockedReason = NO_ALLOWED_FOODS`.
+    Em dia sem plano vale o modo da prescrição publicada; sem prescrição publicada, bloqueado.
+
 ## Execuções
 
 As rotas abaixo começam em `/api/v1/patients/me/meal-executions`:
@@ -53,8 +66,10 @@ prescrição publicada atual estiver em `FREE`. Sua versão é salva na execuç�
 
 Criação, substituição, realocação e remoção exigem `Idempotency-Key`. As três
 últimas também exigem `If-Match` com a versão da execução. Repetir o mesmo
-comando e chave devolve a resposta original. Versão, destino ocupado ou chave
-conflitante retornam `409`. A realocação valida o destino antes de gravar;
+comando e chave devolve a resposta original. Versão desatualizada ou chave
+conflitante retornam `409`. Uma refeição planejada pode ter várias execuções no mesmo dia
+(LUC-35): destino com execuções existentes é aceito, e uma execução pode cobrir só parte dos
+itens planejados. A cobertura é a união das execuções ativas. A realocação valida o destino antes de gravar;
 `items` pode ser enviado para vincular os itens à nova refeição. Sem `items`,
 os itens consumidos são preservados, e vínculos com planejados são removidos
 ao mover para uma data livre.
@@ -71,3 +86,21 @@ publicada congela as metas. O planejado é congelado quando os itens do plano
 são gravados; o realizado é congelado quando os itens consumidos são gravados.
 O catálogo mantém uma unidade consistente por código de nutriente, e metas
 devem usar essa unidade quando o código já existe no catálogo.
+
+## Leituras do nutricionista
+
+O nutricionista com vínculo ativo lê o diário do paciente (LUC-28), somente leitura, em
+`/api/v1/nutritionists/me/patients/{patientId}/`. As rotas atuais em `/patients/me/**` exigem o
+papel `PATIENT`, por isso o portal não conseguia usá-las.
+
+| Rota | Resposta |
+| --- | --- |
+| `GET meal-executions?from=&to=` | Execuções ativas no período (inclusive; no máximo 92 dias) |
+| `GET meal-executions/{id}` | Uma execução do paciente, inclusive removida |
+| `GET daily-meal-categories?date=` | Igual a `/patients/me/daily-meal-categories` |
+| `GET daily-nutrition-summary?date=` | Igual a `/patients/me/daily-nutrition-summary` |
+| `GET calendar-periods` | Igual a `/patients/me/calendar-periods` |
+
+Sem vínculo ativo, `403 TRACKING_FORBIDDEN`. Execução de outro paciente: `404`. Período ausente,
+invertido ou maior que 92 dias: `400 TRACKING_INVALID`. Não há rota agregada nova; o portal
+compõe a visão por período.

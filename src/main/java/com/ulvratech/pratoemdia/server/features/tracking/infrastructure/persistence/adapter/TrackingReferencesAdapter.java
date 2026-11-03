@@ -2,6 +2,7 @@ package com.ulvratech.pratoemdia.server.features.tracking.infrastructure.persist
 
 import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.Food;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.FoodPortion;
+import com.ulvratech.pratoemdia.server.features.catalog.application.port.in.CatalogBatchLookup;
 import com.ulvratech.pratoemdia.server.features.catalog.infrastructure.persistence.adapter.CatalogQueryAdapter;
 import com.ulvratech.pratoemdia.server.features.planning.application.dto.PrescriptionPlanningSource;
 import com.ulvratech.pratoemdia.server.features.planning.application.port.out.PlanningReferences;
@@ -9,6 +10,9 @@ import com.ulvratech.pratoemdia.server.features.planning.domain.entity.WeeklyPla
 import com.ulvratech.pratoemdia.server.features.planning.infrastructure.persistence.adapter.PlanningQueryAdapter;
 import com.ulvratech.pratoemdia.server.features.relationships.infrastructure.persistence.adapter.RelationshipQueryAdapter;
 import com.ulvratech.pratoemdia.server.features.tracking.application.port.out.TrackingReferences;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -19,15 +23,18 @@ public class TrackingReferencesAdapter implements TrackingReferences {
     private final PlanningReferences prescriptions;
     private final RelationshipQueryAdapter relationships;
     private final CatalogQueryAdapter catalog;
+    private final CatalogBatchLookup lookup;
 
     public TrackingReferencesAdapter(
             PlanningQueryAdapter planning, PlanningReferences prescriptions,
-            RelationshipQueryAdapter relationships, CatalogQueryAdapter catalog
+            RelationshipQueryAdapter relationships, CatalogQueryAdapter catalog,
+            CatalogBatchLookup lookup
     ) {
         this.planning = planning;
         this.prescriptions = prescriptions;
         this.relationships = relationships;
         this.catalog = catalog;
+        this.lookup = lookup;
     }
 
     @Override
@@ -61,7 +68,12 @@ public class TrackingReferencesAdapter implements TrackingReferences {
     }
 
     @Override
-    public Optional<FoodPortion> activePortion(UUID foodId, UUID portionId) {
-        return catalog.findActivePortion(foodId, portionId);
+    public Map<UUID, FoodPortion> activePortions(Collection<UUID> portionIds) {
+        var result = new HashMap<UUID, FoodPortion>();
+        lookup.portionsByIds(portionIds).forEach((id, portion) -> {
+            if (portion.isActive())
+                result.put(id, portion);
+        });
+        return result;
     }
 }

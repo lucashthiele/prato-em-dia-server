@@ -13,6 +13,12 @@ public interface ExecutionOperations {
 
     Execution get(Actor actor, UUID id);
 
+    /** Read of a linked patient's execution, for the nutritionist {@code actor}. */
+    Execution get(Actor actor, UUID patientId, UUID id);
+
+    /** Active executions of a linked patient between {@code from} and {@code to}, inclusive. */
+    List<Execution> list(Actor actor, UUID patientId, LocalDate from, LocalDate to);
+
     List<Execution> list(Actor actor, LocalDate date);
 
     Execution replace(Actor actor, UUID id, long expectedVersion, String key, Write input);

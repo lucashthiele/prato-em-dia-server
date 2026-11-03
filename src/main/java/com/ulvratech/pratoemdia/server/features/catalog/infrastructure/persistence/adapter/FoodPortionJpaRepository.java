@@ -18,6 +18,9 @@ public interface FoodPortionJpaRepository extends JpaRepository<FoodPortionModel
     @EntityGraph(attributePaths = "nutrients")
     Optional<FoodPortionModel> findByIdAndFoodIdAndActiveTrue(UUID id, UUID foodId);
 
+    @EntityGraph(attributePaths = "nutrients")
+    List<FoodPortionModel> findAllByIdIn(java.util.Collection<UUID> ids);
+
     boolean existsByIdAndFoodIdAndActiveTrue(UUID id, UUID foodId);
 
     void deleteAllByFoodIdInAndSourceTypeIsNotNull(List<UUID> foodIds);

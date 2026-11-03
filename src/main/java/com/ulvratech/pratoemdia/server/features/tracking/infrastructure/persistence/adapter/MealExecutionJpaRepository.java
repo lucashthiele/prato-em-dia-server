@@ -33,6 +33,10 @@ interface MealExecutionJpaRepository extends JpaRepository<MealExecutionModel, U
             UUID patientId, LocalDate date
     );
 
+    List<MealExecutionModel> findAllByPatientIdAndDateBetweenAndDeletedAtIsNullOrderByDateAscTimeAscIdAsc(
+            UUID patientId, LocalDate from, LocalDate to
+    );
+
     @Query("""
             select distinct e.date from MealExecutionModel e
             where e.patientId = :patientId and e.plannedMealId is null and e.deletedAt is null

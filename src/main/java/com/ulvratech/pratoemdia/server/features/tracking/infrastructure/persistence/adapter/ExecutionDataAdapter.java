@@ -61,7 +61,7 @@ public class ExecutionDataAdapter implements ExecutionData {
     }
 
     private record Context(UUID planId, UUID versionId, PlanningMode mode, LocalDate mealDate,
-            LocalTime mealTime, MealType mealType) {
+            MealType mealType) {
     }
 
     private record Slot(LocalTime time, MealType type) {
@@ -89,7 +89,7 @@ public class ExecutionDataAdapter implements ExecutionData {
         try {
             model = executions.saveAndFlush(model);
         } catch (DataIntegrityViolationException exception) {
-            throw conflict("Destination or idempotency key is already in use");
+            throw conflict("Idempotency key is already in use");
         }
         var result = mapper.toExecution(model);
         saveCommand(patientId, key, hash, model.getId(), 1, result);
@@ -108,6 +108,14 @@ public class ExecutionDataAdapter implements ExecutionData {
         if (date == null)
             throw invalid("Date is required");
         return executions.findAllByPatientIdAndDateAndDeletedAtIsNullOrderByCreatedAtAscIdAsc(patientId, date)
+                .stream().map(mapper::toExecution).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Execution> list(UUID patientId, LocalDate from, LocalDate to) {
+        return executions
+                .findAllByPatientIdAndDateBetweenAndDeletedAtIsNullOrderByDateAscTimeAscIdAsc(patientId, from, to)
                 .stream().map(mapper::toExecution).toList();
     }
 
@@ -189,7 +197,7 @@ public class ExecutionDataAdapter implements ExecutionData {
             }
             executions.saveAndFlush(model);
         } catch (DataIntegrityViolationException exception) {
-            throw conflict("Destination already has an execution");
+            throw conflict("Execution could not be moved");
         }
         var result = mapper.toExecution(model);
         saveCommand(patientId, key, hash, id, model.getVersion(), result);
@@ -235,7 +243,7 @@ public class ExecutionDataAdapter implements ExecutionData {
         try {
             executions.saveAndFlush(model);
         } catch (DataIntegrityViolationException exception) {
-            throw conflict("Destination already has an execution");
+            throw conflict("Execution could not be restored");
         }
         return mapper.toExecution(model);
     }
@@ -267,14 +275,14 @@ public class ExecutionDataAdapter implements ExecutionData {
     private Context context(UUID patientId, LocalDate date, UUID plannedMealId) {
         if (plannedMealId == null) {
             return lookups.publishedFreeVersion(patientId)
-                    .map(version -> new Context(null, version, PlanningMode.FREE, null, null, null))
+                    .map(version -> new Context(null, version, PlanningMode.FREE, null, null))
                     .orElseThrow(() -> invalid("A current published FREE prescription is required"));
         }
         var found = lookups.planSlot(plannedMealId, patientId)
                 .map(
                         slot -> new Context(
                                 slot.planId(), slot.versionId(), slot.mode(), slot.mealDate(),
-                                slot.mealTime(), slot.mealType()
+                                slot.mealType()
                         )
                 )
                 .orElseThrow(() -> new TrackingException(Kind.NOT_FOUND, "Planned meal was not found"));
@@ -294,7 +302,7 @@ public class ExecutionDataAdapter implements ExecutionData {
         }
         var time = input.time();
         if (time == null)
-            time = context.mealTime() != null ? context.mealTime() : previousTime;
+            time = previousTime;
         if (type == null || time == null)
             throw invalid("Meal time and meal type are required");
         return new Slot(time, type);
@@ -332,8 +340,6 @@ public class ExecutionDataAdapter implements ExecutionData {
                 throw invalid("Substitution requires a planned item");
             portion(item);
         }
-        if (!free && !items.isEmpty() && seen.size() != lookups.plannedItemCount(mealId))
-            throw invalid("Every planned item must be represented");
     }
 
     private CatalogQueryAdapter.Portion portion(ItemInput item) {
