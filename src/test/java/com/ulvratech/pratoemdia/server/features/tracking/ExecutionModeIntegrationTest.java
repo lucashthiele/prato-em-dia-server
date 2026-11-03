@@ -116,8 +116,8 @@ class ExecutionModeIntegrationTest {
                 plan, patient, version
         );
         jdbc.update(
-                "insert into planned_meal(id,weekly_plan_id,prescribed_meal_id,meal_date,meal_type,name,meal_order) values (?,?,?,?,'LUNCH','Lunch',0)",
-                meal, plan, prescribedMeal, date
+                "insert into planned_meal(id,weekly_plan_id,patient_id,prescribed_meal_id,meal_date,meal_type,name,meal_order) values (?,?,(select patient_id from weekly_plan where id = ?),?,?,'LUNCH','Lunch',0)",
+                meal, plan, plan, prescribedMeal, date
         );
         jdbc.update(
                 "insert into planned_meal_item(id,planned_meal_id,prescribed_meal_item_id,food_id,food_portion_id,quantity,unit,item_order) values (?,?,?,?,?,100,'g',0)",
@@ -154,8 +154,8 @@ class ExecutionModeIntegrationTest {
         var restrictedItem = UUID.randomUUID();
         jdbc.update("update weekly_plan set planning_mode='RESTRICTED' where id=?", plan);
         jdbc.update(
-                "insert into planned_meal(id,weekly_plan_id,prescribed_meal_id,meal_date,meal_type,name,meal_order) values (?,?,?,?,'LUNCH','Lunch',0)",
-                restrictedMeal, plan, prescribedMeal, restrictedDate
+                "insert into planned_meal(id,weekly_plan_id,patient_id,prescribed_meal_id,meal_date,meal_type,name,meal_order) values (?,?,(select patient_id from weekly_plan where id = ?),?,?,'LUNCH','Lunch',0)",
+                restrictedMeal, plan, plan, prescribedMeal, restrictedDate
         );
         jdbc.update(
                 "insert into planned_meal_item(id,planned_meal_id,prescribed_meal_item_id,food_id,food_portion_id,quantity,unit,item_order) values (?,?,?,?,?,100,'g',0)",

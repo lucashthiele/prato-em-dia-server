@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +39,12 @@ public class PlannedMealModel {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "weekly_plan_id")
     private WeeklyPlanModel plan;
+
+    @Column(name = "patient_id", nullable = false)
+    private UUID patientId;
+
+    @Column(name = "superseded_at")
+    private Instant supersededAt;
 
     @Column(name = "prescribed_meal_id")
     private UUID prescribedMealId;

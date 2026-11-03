@@ -59,15 +59,15 @@ public class WeeklyPlanningRepositoryAdapter implements WeeklyPlanningRepository
     @Override
     @Transactional(readOnly = true)
     public List<WeeklyPlan> findPlans(UUID patientId) {
-        return plans.findAllByPatientIdAndActiveTrueOrderByPeriodStartDesc(patientId).stream()
+        return plans.findAllWithActiveMeals(patientId).stream()
                 .map(mapper::toDomain)
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public boolean existsForPeriod(UUID patientId, LocalDate start, LocalDate end) {
-        return plans.existsByPatientIdAndPeriodStartAndPeriodEndAndActiveTrue(patientId, start, end);
+    public List<WeeklyPlan> findPlansWithActiveMeals(UUID patientId, LocalDate from, LocalDate to) {
+        return plans.findWithActiveMealsBetween(patientId, from, to).stream().map(mapper::toDomain).toList();
     }
 
     @Override
@@ -78,6 +78,7 @@ public class WeeklyPlanningRepositoryAdapter implements WeeklyPlanningRepository
     @Override
     public void deactivatePlan(UUID planId) {
         plans.deactivate(planId);
+        plans.supersedeMeals(planId, Instant.now());
     }
 
     @Override

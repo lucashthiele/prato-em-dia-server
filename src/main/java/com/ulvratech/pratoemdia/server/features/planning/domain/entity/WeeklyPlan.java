@@ -137,6 +137,27 @@ public class WeeklyPlan {
         return copy;
     }
 
+    /** Marca como substituídas as refeições ativas dos dias de [from, to]; devolve quantas foram. */
+    public int supersede(LocalDate from, LocalDate to, Instant now) {
+        int count = 0;
+        var updated = new java.util.ArrayList<PlannedMeal>();
+        for (var meal : meals) {
+            if (meal.isActive() && !meal.date().isBefore(from) && !meal.date().isAfter(to)) {
+                updated.add(meal.supersededAt(Objects.requireNonNull(now)));
+                count++;
+            } else {
+                updated.add(meal);
+            }
+        }
+        meals = List.copyOf(updated);
+        return count;
+    }
+
+    /** Um plano sem nenhuma refeição ativa virou histórico. */
+    public boolean isHistory() {
+        return meals.stream().noneMatch(PlannedMeal::isActive);
+    }
+
     public void confirm(Instant now) {
         if (status == WeeklyPlanStatus.CONFIRMED)
             return;
@@ -152,14 +173,18 @@ public class WeeklyPlan {
         if (planningMode == PlanningMode.RESTRICTED)
             throw new IllegalStateException("This plan is restricted");
         var replacement = validatedMeals(desired);
+        var history = meals.stream().filter(meal -> !meal.isActive()).toList();
+        var activeBefore = meals.stream().filter(PlannedMeal::isActive).toList();
+        if (replacement.stream().anyMatch(meal -> history.stream().anyMatch(old -> old.date().equals(meal.date()))))
+            throw new IllegalStateException("Meal date was replaced by a newer plan");
         if (replacement.stream()
                 .anyMatch(meal -> meal.date().isBefore(periodStart) || meal.date().isAfter(periodEnd)))
             throw new IllegalStateException("Meal date is outside the plan period");
-        if (planningMode == PlanningMode.SUBSTITUTIONS_ONLY && !sameStructure(meals, replacement))
+        if (planningMode == PlanningMode.SUBSTITUTIONS_ONLY && !sameStructure(activeBefore, replacement))
             throw new IllegalStateException("Only authorized substitutions are allowed");
-        if (status == WeeklyPlanStatus.CONFIRMED && !sameSchedule(meals, replacement))
+        if (status == WeeklyPlanStatus.CONFIRMED && !sameSchedule(activeBefore, replacement))
             throw new IllegalStateException("Confirmed plan schedule cannot be changed");
-        meals = replacement;
+        meals = java.util.stream.Stream.concat(history.stream(), replacement.stream()).toList();
     }
 
     public UUID getId() {
@@ -210,7 +235,13 @@ public class WeeklyPlan {
         return persistenceVersion;
     }
 
+    /** Refeições ativas do plano (as substituídas ficam só no histórico). */
     public List<PlannedMeal> getMeals() {
+        return meals.stream().filter(PlannedMeal::isActive).toList();
+    }
+
+    /** Refeições ativas e substituídas, para persistência. */
+    public List<PlannedMeal> getAllMeals() {
         return List.copyOf(meals);
     }
 }
