@@ -14,7 +14,6 @@ import com.ulvratech.pratoemdia.server.features.tracking.application.exception.T
 import com.ulvratech.pratoemdia.server.features.tracking.application.port.in.FoodLogOperations;
 import com.ulvratech.pratoemdia.server.features.tracking.application.port.out.TrackingReferences;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -70,16 +69,12 @@ public class FoodLogUseCase implements FoodLogOperations {
     ) {
         FoodPortion portion = portionId == null ? null
                 : references.activePortion(foodId, portionId).orElse(null);
-        BigDecimal factor = portion == null ? null
-                : quantity.divide(portion.getQuantity(), 12, RoundingMode.HALF_UP);
-        BigDecimal grams = portion != null && portion.getGramsEquivalent() != null
-                ? factor.multiply(portion.getGramsEquivalent()).stripTrailingZeros()
-                : "g".equalsIgnoreCase(unit) ? quantity : null;
-        BigDecimal kcal = portion == null || factor == null
-                || portion.getNutrients().get("energy_kcal") == null
-                || portion.getNutrients().get("energy_kcal").amount() == null ? null
-                        : portion.getNutrients().get("energy_kcal").amount().multiply(factor)
-                                .stripTrailingZeros();
+        BigDecimal grams = portion == null ? null
+                : portion.scaledGrams(quantity).orElse(null);
+        if (grams == null && "g".equalsIgnoreCase(unit))
+            grams = quantity;
+        BigDecimal kcal = portion == null ? null
+                : portion.scaledNutrient("energy_kcal", quantity).orElse(null);
         return new Item(
                 plannedItemId, foodId, portionId, unit, quantity, BigDecimal.ONE,
                 grams == null ? null : new CanonicalConversion(grams), kcal, substitutionId,
