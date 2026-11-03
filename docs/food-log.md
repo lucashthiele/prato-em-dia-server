@@ -53,8 +53,10 @@ prescrição publicada atual estiver em `FREE`. Sua versão é salva na execuç�
 
 Criação, substituição, realocação e remoção exigem `Idempotency-Key`. As três
 últimas também exigem `If-Match` com a versão da execução. Repetir o mesmo
-comando e chave devolve a resposta original. Versão, destino ocupado ou chave
-conflitante retornam `409`. A realocação valida o destino antes de gravar;
+comando e chave devolve a resposta original. Versão desatualizada ou chave
+conflitante retornam `409`. Uma refeição planejada pode ter várias execuções no mesmo dia
+(LUC-35): destino com execuções existentes é aceito, e uma execução pode cobrir só parte dos
+itens planejados. A cobertura é a união das execuções ativas. A realocação valida o destino antes de gravar;
 `items` pode ser enviado para vincular os itens à nova refeição. Sem `items`,
 os itens consumidos são preservados, e vínculos com planejados são removidos
 ao mover para uma data livre.
