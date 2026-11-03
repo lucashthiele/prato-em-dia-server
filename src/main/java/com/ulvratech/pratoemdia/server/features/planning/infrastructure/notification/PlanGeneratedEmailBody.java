@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 final class PlanGeneratedEmailBody {
     static final String SUBJECT = "Seu plano semanal está pronto";
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("dd/MM");
-    private static final DateTimeFormatter DEADLINE = DateTimeFormatter.ofPattern("dd/MM 'às' HH:mm");
 
     private PlanGeneratedEmailBody() {
     }
@@ -19,7 +18,7 @@ final class PlanGeneratedEmailBody {
         var origin = notice.automatic()
                 ? "Geramos seu plano semanal automaticamente."
                 : "Seu plano semanal foi regenerado a seu pedido.";
-        var deadline = notice.confirmationDeadline().atZone(WeeklyPlanningUseCase.ZONE).format(DEADLINE);
+        var deadline = notice.confirmationDeadline().atZone(WeeklyPlanningUseCase.ZONE).format(DAY);
         return "Olá, " + patientName + ".\n\n"
                 + origin + "\n\n"
                 + "Período: " + notice.periodStart().format(DAY) + " a " + notice.periodEnd().format(DAY) + "\n"
@@ -29,8 +28,8 @@ final class PlanGeneratedEmailBody {
                         .map(PlanGeneratedEmailBody::label)
                         .collect(Collectors.joining(", "))
                 + "\n\n"
-                + "Você pode ajustar as refeições no app até " + deadline
-                + ". Depois desse prazo, o plano é confirmado automaticamente.";
+                + "Você pode ajustar as refeições no app até a virada do dia " + deadline
+                + ". Na virada do dia, o plano é confirmado automaticamente.";
     }
 
     private static String label(MealType type) {

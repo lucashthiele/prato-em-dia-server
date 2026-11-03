@@ -46,8 +46,8 @@ public class WeeklyPlan {
         this.periodStart = Objects.requireNonNull(periodStart);
         this.periodEnd = Objects.requireNonNull(periodEnd);
         this.confirmationDeadline = Objects.requireNonNull(confirmationDeadline);
-        if (!periodEnd.equals(periodStart.plusDays(6)))
-            throw new IllegalArgumentException("A weekly plan must span seven days");
+        if (periodEnd.isBefore(periodStart))
+            throw new IllegalArgumentException("Plan period cannot end before it starts");
         this.status = Objects.requireNonNull(status);
         this.confirmedAt = confirmedAt;
         if ((status == WeeklyPlanStatus.CONFIRMED) != (confirmedAt != null))
@@ -63,6 +63,7 @@ public class WeeklyPlan {
             UUID versionId,
             PlanningMode mode,
             LocalDate start,
+            LocalDate end,
             Instant deadline,
             List<PlannedMeal> meals
     ) {
@@ -72,7 +73,7 @@ public class WeeklyPlan {
                 versionId,
                 mode,
                 start,
-                start.plusDays(6),
+                end,
                 deadline,
                 WeeklyPlanStatus.PENDING,
                 null,

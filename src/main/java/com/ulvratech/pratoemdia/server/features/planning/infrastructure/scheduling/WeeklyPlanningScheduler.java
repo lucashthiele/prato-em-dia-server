@@ -14,12 +14,12 @@ public class WeeklyPlanningScheduler {
         this.reconciliation = reconciliation;
     }
 
-    @Scheduled(cron = "0 */15 8-23 * * *", zone = "America/Sao_Paulo")
+    @Scheduled(cron = "0 0,10,20 8 * * *", zone = "America/Sao_Paulo")
     public void generate() {
         reconciliation.generateDuePlans();
     }
 
-    @Scheduled(cron = "0 */5 * * * *", zone = "America/Sao_Paulo")
+    @Scheduled(cron = "0 5 0 * * *", zone = "America/Sao_Paulo")
     public void confirm() {
         reconciliation.confirmDuePlans();
     }

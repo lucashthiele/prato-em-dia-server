@@ -218,7 +218,7 @@ public class WeeklyPlanningUseCase
             return new GeneratedPlan(
                     repository.savePlan(
                             WeeklyPlan.create(
-                                    patient, source.versionId(), source.planningMode(), start, deadline, meals
+                                    patient, source.versionId(), source.planningMode(), start, end, deadline, meals
                             )
                     ),
                     true

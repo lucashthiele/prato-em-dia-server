@@ -103,7 +103,8 @@ class EmailPlanGeneratedNotifierTest {
         assertTrue(body.contains("Refeições no plano: 14"));
         assertTrue(body.contains("Refeições por dia: 2"));
         assertTrue(body.contains("Tipos de refeição: Café da manhã, Jantar"));
-        assertTrue(body.contains("até 20/10 às 00:00"));
+        assertTrue(body.contains("até a virada do dia 20/10"));
+        assertFalse(body.contains("00:00"));
         assertFalse(body.contains("http"));
     }
 

@@ -31,6 +31,23 @@ class WeeklyPlanTest {
     }
 
     @Test
+    void periodMayHaveAnyLengthFromOneDay() {
+        var oneDay = new WeeklyPlan(
+                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), PlanningMode.FREE, START, START,
+                Instant.parse("2026-09-18T03:00:00Z"), WeeklyPlanStatus.PENDING, null, null, null, 0, List.of()
+        );
+        assertEquals(START, oneDay.getPeriodEnd());
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new WeeklyPlan(
+                        UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), PlanningMode.FREE, START,
+                        START.minusDays(1), Instant.parse("2026-09-18T03:00:00Z"), WeeklyPlanStatus.PENDING, null,
+                        null, null, 0, List.of()
+                )
+        );
+    }
+
+    @Test
     void freeAllowsScheduleAndItemChangesOnlyBeforeConfirmation() {
         var plan = plan(PlanningMode.FREE);
         var changed = meal(plan, START.plusDays(1), UUID.randomUUID());
@@ -119,6 +136,7 @@ class WeeklyPlanTest {
                 UUID.randomUUID(),
                 mode,
                 START,
+                START.plusDays(6),
                 START.atStartOfDay(ZoneId.of("America/Sao_Paulo")).toInstant(),
                 List.of(meal)
         );

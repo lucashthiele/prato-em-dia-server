@@ -162,6 +162,7 @@ class WeeklyPlanningUseCaseTest {
                 UUID.randomUUID(),
                 PlanningMode.FREE,
                 LocalDate.of(2026, 9, 18),
+                LocalDate.of(2026, 9, 24),
                 Instant.parse("2026-09-18T03:00:00Z"),
                 List.of()
         );
@@ -174,6 +175,45 @@ class WeeklyPlanningUseCaseTest {
         useCase.generateDuePlans();
 
         verify(notifier, never()).planGenerated(any());
+    }
+
+    @Test
+    void scheduledGenerationDoesNothingBefore0800() {
+        var repository = mock(WeeklyPlanningRepository.class);
+        var notifier = mock(PlanGeneratedNotifier.class);
+        var earlyClock = Clock.fixed(Instant.parse("2026-09-17T10:59:00Z"), ZoneOffset.UTC);
+        var useCase = new WeeklyPlanningUseCase(
+                repository, mock(PlanningReferences.class), earlyClock, notifier
+        );
+
+        useCase.generateDuePlans();
+
+        verify(repository, never()).findEnabledPreferences(any());
+    }
+
+    @Test
+    void secondAndThirdAttemptsAfterSuccessfulGenerationDoNotDuplicateOrNotify() {
+        var repository = mock(WeeklyPlanningRepository.class);
+        var references = mock(PlanningReferences.class);
+        var notifier = mock(PlanGeneratedNotifier.class);
+        var patient = UUID.randomUUID();
+        when(repository.findEnabledPreferences(DayOfWeek.THURSDAY))
+                .thenReturn(List.of(new WeeklyPlanningPreference(patient, DayOfWeek.THURSDAY, true)));
+        when(references.currentPublishedPrescription(patient))
+                .thenReturn(Optional.of(source(UUID.randomUUID(), PlanningMode.FREE)));
+        when(repository.savePlan(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        var useCase = new WeeklyPlanningUseCase(repository, references, THURSDAY_9AM, notifier);
+
+        useCase.generateDuePlans();
+        var created = ArgumentCaptor.forClass(WeeklyPlan.class);
+        verify(repository).savePlan(created.capture());
+        when(repository.existsForPeriod(eq(patient), any(), any())).thenReturn(true);
+        when(repository.findPlans(patient)).thenReturn(List.of(created.getValue()));
+        useCase.generateDuePlans();
+        useCase.generateDuePlans();
+
+        verify(repository, times(1)).savePlan(any());
+        verify(notifier, times(1)).planGenerated(any());
     }
 
     @Test
@@ -236,6 +276,7 @@ class WeeklyPlanningUseCaseTest {
                 UUID.randomUUID(),
                 PlanningMode.FREE,
                 LocalDate.of(2026, 9, 18),
+                LocalDate.of(2026, 9, 24),
                 Instant.parse("2026-09-18T03:00:00Z"),
                 List.of()
         );
