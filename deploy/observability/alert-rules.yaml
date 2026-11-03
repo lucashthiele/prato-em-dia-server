@@ -1,0 +1,62 @@
+# Regras de alerta no formato Prometheus. Carregar no Grafana Cloud com:
+#   mimirtool rules load --address=$GRAFANA_CLOUD_RULER_URL --id=$GRAFANA_CLOUD_PROMETHEUS_USER \
+#     --key=$GRAFANA_CLOUD_API_KEY deploy/observability/alert-rules.yaml
+# A entrega vai para o Discord pelo contact point de contact-point-discord.yaml.
+groups:
+  - name: prato-api
+    rules:
+      - alert: ApiDown
+        # As duas cores são raspadas; a ociosa pode estar parada, então só alerta se NENHUMA responde.
+        expr: sum(up{job="prato-api"}) == 0 or absent(up{job="prato-api"})
+        for: 2m
+        labels: {severity: critical}
+        annotations:
+          summary: "API fora do ar"
+          description: "Nenhuma cor (blue/green) da API respondeu ao scrape por 2 minutos."
+
+      - alert: High5xxRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{job="prato-api",status=~"5.."}[5m]))
+            / clamp_min(sum(rate(http_server_requests_seconds_count{job="prato-api"}[5m])), 1) > 0.05
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: "Mais de 5% das respostas são 5xx"
+          description: "Taxa de erro 5xx acima de 5% por 5 minutos."
+
+      - alert: JvmHeapHigh
+        expr: max by (color) (jvm_memory_used_bytes{job="prato-api",area="heap"} / jvm_memory_max_bytes{job="prato-api",area="heap"}) > 0.9
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Heap da JVM acima de 90%"
+          description: "A cor {{ $labels.color }} usa mais de 90% do heap há 10 minutos."
+
+      - alert: DatabasePoolExhausted
+        expr: max(hikaricp_connections_pending{job="prato-api"}) > 0
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: "Requisições esperando conexão do banco"
+          description: "O pool do Hikari tem requisições pendentes há 5 minutos."
+
+  - name: prato-critical-events
+    rules:
+      - alert: EmailOutboxDead
+        # Contador de CriticalEventMetrics.emailOutboxDead().
+        expr: sum(increase(prato_email_outbox_dead_total{job="prato-api"}[10m])) > 0
+        labels: {severity: critical}
+        annotations:
+          summary: "E-mail em DEAD no outbox"
+          description: "Um e-mail esgotou as tentativas de envio e precisa de atenção."
+
+      - alert: PlanGenerationFailed
+        # Contador de CriticalEventMetrics.planGenerationFailed() (três tentativas falharam).
+        expr: sum(increase(prato_plan_generation_failed_total{job="prato-api"}[10m])) > 0
+        labels: {severity: critical}
+        annotations:
+          summary: "Geração de plano semanal falhou nas três tentativas"
+          description: "Pacientes podem ter ficado sem plano na virada do dia."
+
+# Backup: a falha alerta direto no Discord (deploy/backup/backup.sh) e a AUSÊNCIA de execução é
+# detectada pelo monitor externo de heartbeat, não por regra aqui (docs/infraestrutura.md).

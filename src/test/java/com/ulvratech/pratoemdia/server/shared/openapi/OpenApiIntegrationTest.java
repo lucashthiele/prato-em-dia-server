@@ -60,6 +60,53 @@ class OpenApiIntegrationTest {
     }
 
     @Test
+    void documentsTheSharedErrorEnvelopeOnEveryOperation() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.components.schemas.ApiErrorResponse.properties.status").exists())
+                .andExpect(jsonPath("$.components.schemas.ApiErrorResponse.properties.code").exists())
+                .andExpect(jsonPath("$.components.schemas.ApiErrorResponse.properties.message").exists())
+                .andExpect(jsonPath("$.components.schemas.ApiErrorResponse.properties.errors").exists())
+                .andExpect(
+                        jsonPath(
+                                "$.paths['/api/v1/foods'].get.responses['4XX'].content['application/json'].schema['$ref']"
+                        )
+                                .value("#/components/schemas/ApiErrorResponse")
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.paths['/api/v1/me'].get.responses['5XX'].content['application/json'].schema['$ref']"
+                        )
+                                .value("#/components/schemas/ApiErrorResponse")
+                );
+    }
+
+    @Test
+    void publishesTheErrorCatalogInTheSpecification() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.info.description").value(org.hamcrest.Matchers.containsString("CLIENT_OUTDATED"))
+                )
+                .andExpect(jsonPath("$.info['x-error-catalog'][?(@.code=='CLIENT_OUTDATED')].status").value(426))
+                .andExpect(jsonPath("$.info['x-error-catalog'][?(@.code=='CONSENT_REQUIRED')]").isNotEmpty())
+                .andExpect(jsonPath("$.info['x-error-catalog'][?(@.code=='NO_ALLOWED_FOODS')].kind").value("REASON"))
+                .andExpect(
+                        jsonPath("$.info['x-error-catalog'][?(@.code=='PLAN_GENERATION_IN_PROGRESS')].status")
+                                .value(409)
+                );
+    }
+
+    @Test
+    void documentsFoodSearchPagination() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/v1/foods'].get.parameters[?(@.name=='q')]").isNotEmpty())
+                .andExpect(jsonPath("$.paths['/api/v1/foods'].get.parameters[?(@.name=='page')]").isNotEmpty())
+                .andExpect(jsonPath("$.paths['/api/v1/foods'].get.parameters[?(@.name=='size')]").isNotEmpty());
+    }
+
+    @Test
     void describesBearerAuthenticationOnlyOnProtectedOperations() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())

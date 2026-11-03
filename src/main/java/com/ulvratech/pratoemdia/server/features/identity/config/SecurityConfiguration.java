@@ -15,6 +15,7 @@ import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.Sha256RefreshTokenHasher;
 import com.ulvratech.pratoemdia.server.features.identity.presentation.exception.SecurityErrorResponseHandler;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -108,6 +109,19 @@ public class SecurityConfiguration {
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         return new JwtAuthenticationConverter();
+    }
+
+    /**
+     * Actuator só é servido na porta de gerenciamento, que nunca é publicada (docs/infraestrutura.md).
+     * Por isso a cadeia libera os endpoints expostos (health e prometheus) sem autenticação.
+     */
+    @Bean
+    @Order(0)
+    SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http) throws Exception {
+        return http.securityMatcher(EndpointRequest.toAnyEndpoint())
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .build();
     }
 
     @Bean

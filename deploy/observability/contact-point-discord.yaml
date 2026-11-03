@@ -1,0 +1,20 @@
+# Contact point e política de notificação do Grafana Cloud (formato de provisionamento).
+# O webhook do Discord NÃO fica no repositório: substitua o placeholder ao importar
+# (veja docs/trabalho-manual/w4-infra.md).
+apiVersion: 1
+contactPoints:
+  - orgId: 1
+    name: discord-prato
+    receivers:
+      - uid: discord-prato
+        type: discord
+        settings:
+          url: ${DISCORD_WEBHOOK_URL}
+          use_discord_username: true
+policies:
+  - orgId: 1
+    receiver: discord-prato
+    group_by: ["alertname"]
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 4h
