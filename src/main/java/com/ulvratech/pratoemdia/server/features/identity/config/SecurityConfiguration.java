@@ -152,6 +152,8 @@ public class SecurityConfiguration {
                                 "/api/v1/auth/refresh"
                         )
                                 .permitAll()
+                                .requestMatchers("/api/v1/admin/**")
+                                .hasRole("ADMIN")
                                 .requestMatchers("/api/v1/nutritionists/**")
                                 .hasRole("NUTRITIONIST")
                                 .requestMatchers("/api/v1/patients/**")
