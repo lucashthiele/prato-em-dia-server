@@ -40,6 +40,16 @@ class FoodLogUseCaseTest {
     final UUID prescribedItemId = UUID.randomUUID();
     final UUID foodId = UUID.randomUUID();
     final UUID portionId = UUID.randomUUID();
+    final Map<UUID, FoodPortion> available = new java.util.HashMap<>();
+
+    {
+        when(references.activePortions(org.mockito.ArgumentMatchers.anyCollection())).thenAnswer(invocation -> {
+            java.util.Collection<UUID> ids = invocation.getArgument(0);
+            var found = new java.util.HashMap<UUID, FoodPortion>();
+            ids.stream().filter(available::containsKey).forEach(id -> found.put(id, available.get(id)));
+            return found;
+        });
+    }
 
     FoodPortion portion(
             UUID food, UUID id, String quantity, String unit, String grams, String kcal
@@ -94,8 +104,7 @@ class FoodLogUseCaseTest {
 
     @Test
     void scalesKcalAndGramsByQuantityOverPortionQuantity() {
-        when(references.activePortion(foodId, portionId))
-                .thenReturn(Optional.of(portion(foodId, portionId, "3", "g", "30", "100")));
+        available.put(portionId, portion(foodId, portionId, "3", "g", "30", "100"));
 
         var item = log(PlanningMode.RESTRICTED, "1", "g", portionId, List.of()).items().getFirst();
 
@@ -107,8 +116,7 @@ class FoodLogUseCaseTest {
 
     @Test
     void exactRatioKeepsTheTrimmedValues() {
-        when(references.activePortion(foodId, portionId))
-                .thenReturn(Optional.of(portion(foodId, portionId, "100", "g", "100", "130")));
+        available.put(portionId, portion(foodId, portionId, "100", "g", "100", "130"));
 
         var item = log(PlanningMode.RESTRICTED, "250", "g", portionId, List.of()).items().getFirst();
 
@@ -118,8 +126,7 @@ class FoodLogUseCaseTest {
 
     @Test
     void usesTheQuantityAsGramsWhenThePortionHasNoGramEquivalent() {
-        when(references.activePortion(foodId, portionId))
-                .thenReturn(Optional.of(portion(foodId, portionId, "100", "g", null, null)));
+        available.put(portionId, portion(foodId, portionId, "100", "g", null, null));
 
         var item = log(PlanningMode.RESTRICTED, "80", "g", portionId, List.of()).items().getFirst();
 
@@ -143,10 +150,8 @@ class FoodLogUseCaseTest {
         var substituteFood = UUID.randomUUID();
         var substitutePortion = UUID.randomUUID();
         var substitutionId = UUID.randomUUID();
-        when(references.activePortion(foodId, portionId))
-                .thenReturn(Optional.of(portion(foodId, portionId, "100", "g", "100", "100")));
-        when(references.activePortion(substituteFood, substitutePortion))
-                .thenReturn(Optional.of(portion(substituteFood, substitutePortion, "7", "g", "21", "50")));
+        available.put(portionId, portion(foodId, portionId, "100", "g", "100", "100"));
+        available.put(substitutePortion, portion(substituteFood, substitutePortion, "7", "g", "21", "50"));
         var substitution = new SubstitutionSource(
                 substitutionId, substituteFood, substitutePortion, new BigDecimal("2"), "g"
         );
