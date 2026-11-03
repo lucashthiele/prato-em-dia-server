@@ -90,6 +90,7 @@ jobs:
           target="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
           rsync -e "ssh $ssh_opts" -a deploy/compose.yaml deploy/Caddyfile deploy/scripts/ "$target:/srv/prato/"
           rsync -e "ssh $ssh_opts" -a --delete deploy/backup/ "$target:/srv/prato/backup/"
+          rsync -e "ssh $ssh_opts" -a --delete deploy/observability/ "$target:/srv/prato/observability/"
           scp $ssh_opts portal.tar.gz "$target:/srv/prato/portal.tar.gz"
 
       - name: Run deploy script
