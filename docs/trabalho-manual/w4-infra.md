@@ -100,7 +100,7 @@ Arquivos: `deploy/observability/` (`config.alloy`, `alert-rules.yaml`, `contact-
 
 - [ ] **Decisões de produto/clientes** (conferir antes de integrar):
   - `CONSENT_REQUIRED` está catalogado como **403** (mesmo padrão do `PASSWORD_CHANGE_REQUIRED`); confirmar com quem implementa o LUC-65.
-  - O `409` de geração concorrente usa o código `PLAN_GENERATION_IN_PROGRESS`; quem implementa o LUC-39 deve usar exatamente esse código.
+  - O `409` de geração concorrente usa o código `WEEKLY_PLAN_GENERATION_CONFLICT`; quem implementa o LUC-39 deve usar exatamente esse código.
   - `NO_ALLOWED_FOODS` é um **motivo** (`blockedReason`), não um erro HTTP.
 - [ ] Na integração, cada worker que criar `CodedApplicationException` adiciona seu código na `*ErrorCatalogSection` da feature (o `ErrorCatalogTest` falha se faltar).
 - [ ] Depois do LUC-54 (cookies), conferir no Swagger UI de um ambiente real que o esquema `bearerAuth` virou esquema de cookie e que o login pelo "Try it out" funciona; atualizar `OpenApiIntegrationTest` se o nome do esquema mudar.

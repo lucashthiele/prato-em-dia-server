@@ -25,7 +25,7 @@ public class PlanningErrorCatalogSection implements ErrorCatalogSection {
                         "/api/v1/patients/me/weekly-plans/**"
                 ),
                 error(
-                        "PLAN_GENERATION_IN_PROGRESS", 409,
+                        "WEEKLY_PLAN_GENERATION_CONFLICT", 409,
                         "Outra geração do plano para o mesmo período está em andamento. "
                                 + "O cliente deve consultar o plano em instantes em vez de gerar de novo.",
                         "POST /api/v1/patients/me/weekly-plans/generate"

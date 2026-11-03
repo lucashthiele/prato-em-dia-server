@@ -74,7 +74,7 @@ class ErrorCatalogTest {
                 ErrorCatalogEntry.Kind.REASON,
                 catalog.find("NO_ALLOWED_FOODS").orElseThrow().kind()
         );
-        assertEquals(409, catalog.find("PLAN_GENERATION_IN_PROGRESS").orElseThrow().status());
+        assertEquals(409, catalog.find("WEEKLY_PLAN_GENERATION_CONFLICT").orElseThrow().status());
     }
 
     @Test

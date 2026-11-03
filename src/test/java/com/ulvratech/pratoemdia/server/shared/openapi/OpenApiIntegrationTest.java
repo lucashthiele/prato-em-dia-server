@@ -92,7 +92,7 @@ class OpenApiIntegrationTest {
                 .andExpect(jsonPath("$.info['x-error-catalog'][?(@.code=='CONSENT_REQUIRED')]").isNotEmpty())
                 .andExpect(jsonPath("$.info['x-error-catalog'][?(@.code=='NO_ALLOWED_FOODS')].kind").value("REASON"))
                 .andExpect(
-                        jsonPath("$.info['x-error-catalog'][?(@.code=='PLAN_GENERATION_IN_PROGRESS')].status")
+                        jsonPath("$.info['x-error-catalog'][?(@.code=='WEEKLY_PLAN_GENERATION_CONFLICT')].status")
                                 .value(409)
                 );
     }
