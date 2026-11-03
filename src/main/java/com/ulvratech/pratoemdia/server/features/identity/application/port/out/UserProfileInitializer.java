@@ -5,5 +5,10 @@ import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccoun
 import java.util.UUID;
 
 public interface UserProfileInitializer {
-    void initialize(UUID userAccountId, UserAccountRole role, String fullName);
+    default void initialize(UUID userAccountId, UserAccountRole role, String fullName) {
+        initialize(userAccountId, role, fullName, null);
+    }
+
+    /** {@code registrationNumber} (professional registry) only applies to nutritionists and may be null. */
+    void initialize(UUID userAccountId, UserAccountRole role, String fullName, String registrationNumber);
 }

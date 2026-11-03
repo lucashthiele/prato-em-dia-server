@@ -7,6 +7,7 @@ import com.ulvratech.pratoemdia.server.features.identity.application.exception.I
 import com.ulvratech.pratoemdia.server.features.identity.application.exception.InvalidRefreshTokenException;
 import com.ulvratech.pratoemdia.server.features.identity.application.exception.PatientAccountConflictException;
 import com.ulvratech.pratoemdia.server.features.identity.application.exception.UserAccountAlreadyExistsException;
+import com.ulvratech.pratoemdia.server.features.identity.application.exception.UserAccountNotFoundException;
 import com.ulvratech.pratoemdia.server.features.identity.presentation.exception.dto.ApiErrorResponse;
 import com.ulvratech.pratoemdia.server.features.identity.presentation.exception.dto.ApiFieldError;
 import com.ulvratech.pratoemdia.server.shared.application.exception.CodedApplicationException;
@@ -38,6 +39,11 @@ public class IdentityExceptionHandler {
                 exception.getCode(),
                 "Já existe uma conta cadastrada com este e-mail."
         );
+    }
+
+    @ExceptionHandler(UserAccountNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleUserAccountNotFound(UserAccountNotFoundException exception) {
+        return response(HttpStatus.NOT_FOUND, exception.getCode(), "A conta informada não foi encontrada.");
     }
 
     @ExceptionHandler({

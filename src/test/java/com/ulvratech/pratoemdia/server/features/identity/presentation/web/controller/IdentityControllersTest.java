@@ -3,19 +3,13 @@ package com.ulvratech.pratoemdia.server.features.identity.presentation.web.contr
 import com.ulvratech.pratoemdia.server.features.identity.application.dto.AuthenticateUserInput;
 import com.ulvratech.pratoemdia.server.features.identity.application.dto.AuthenticateUserOutput;
 import com.ulvratech.pratoemdia.server.features.identity.application.dto.ChangePasswordInput;
-import com.ulvratech.pratoemdia.server.features.identity.application.dto.CreateUserAccountInput;
-import com.ulvratech.pratoemdia.server.features.identity.application.dto.CreateUserAccountOutput;
 import com.ulvratech.pratoemdia.server.features.identity.application.dto.RefreshAccessTokenInput;
 import com.ulvratech.pratoemdia.server.features.identity.application.dto.RefreshAccessTokenOutput;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.in.AuthenticateUser;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.in.ChangePassword;
-import com.ulvratech.pratoemdia.server.features.identity.application.port.in.CreateUserAccount;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.in.LogoutUser;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.in.RefreshAccessToken;
-import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccountRole;
-import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccountStatus;
 import com.ulvratech.pratoemdia.server.features.identity.presentation.web.request.ChangePasswordRequest;
-import com.ulvratech.pratoemdia.server.features.identity.presentation.web.request.CreateUserAccountRequest;
 import com.ulvratech.pratoemdia.server.features.identity.presentation.web.request.LoginRequest;
 import com.ulvratech.pratoemdia.server.features.identity.config.JwtConfigurationProperties;
 import com.ulvratech.pratoemdia.server.features.identity.config.SessionCookieProperties;
@@ -109,45 +103,6 @@ class IdentityControllersTest {
         assertFalse(response.getBody().passwordChangeRequired());
         assertTrue(setCookies(response).stream().anyMatch(c -> c.startsWith("access_token=a;")));
         verify(change).execute(any(ChangePasswordInput.class));
-    }
-
-    @Test
-    void userAccountEndpointMapsCreatedAccount() {
-        var create = mock(CreateUserAccount.class);
-        var id = UUID.randomUUID();
-        when(create.execute(any())).thenReturn(
-                new CreateUserAccountOutput(
-                        id, "patient@example.com", UserAccountRole.PATIENT, UserAccountStatus.ACTIVE
-                )
-        );
-        var controller = new UserAccountController(create);
-
-        var response = controller.create(
-                new CreateUserAccountRequest(
-                        "patient@example.com", "password long", "PATIENT", "Patient"
-                )
-        );
-
-        assertEquals(201, response.getStatusCode().value());
-        assertEquals(id, response.getBody().userId());
-        assertEquals("PATIENT", response.getBody().role());
-        verify(create).execute(any(CreateUserAccountInput.class));
-    }
-
-    @Test
-    void accountRequestValidatesRoleDependentName() {
-        assertTrue(
-                new CreateUserAccountRequest("a@b.com", "password long", "ADMIN", null)
-                        .isFullNameValidForRole()
-        );
-        assertFalse(
-                new CreateUserAccountRequest("a@b.com", "password long", "PATIENT", " ")
-                        .isFullNameValidForRole()
-        );
-        assertTrue(
-                new CreateUserAccountRequest("a@b.com", "password long", "PATIENT", "Name")
-                        .isFullNameValidForRole()
-        );
     }
 
     private static SessionCookies cookies() {

@@ -70,6 +70,16 @@ class ClientErrorContractTest {
     }
 
     @Test
+    void unknownAccountsAre404WithAStableCode() {
+        var response = new IdentityExceptionHandler().handleUserAccountNotFound(
+                new com.ulvratech.pratoemdia.server.features.identity.application.exception.UserAccountNotFoundException()
+        );
+
+        assertEquals(404, response.getStatusCode().value());
+        assertEquals("USER_ACCOUNT_NOT_FOUND", response.getBody().code());
+    }
+
+    @Test
     void mapsIdentityConflictsAndEveryAuthenticationFailure() {
         var handler = new IdentityExceptionHandler();
 

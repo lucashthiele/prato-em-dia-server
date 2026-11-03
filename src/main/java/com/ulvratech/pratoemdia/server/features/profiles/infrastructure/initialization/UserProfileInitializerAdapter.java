@@ -18,16 +18,16 @@ public class UserProfileInitializerAdapter implements UserProfileInitializer {
     }
 
     @Override
-    public void initialize(UUID userAccountId, UserAccountRole role, String fullName) {
+    public void initialize(
+            UUID userAccountId, UserAccountRole role, String fullName, String registrationNumber
+    ) {
         if (role == UserAccountRole.ADMIN) {
             return;
         }
-        repository.save(
-                UserProfile.create(
-                        userAccountId,
-                        ProfileType.valueOf(role.name()),
-                        fullName
-                )
-        );
+        var profile = UserProfile.create(userAccountId, ProfileType.valueOf(role.name()), fullName);
+        if (registrationNumber != null && role == UserAccountRole.NUTRITIONIST) {
+            profile.replaceNutritionist(registrationNumber, null);
+        }
+        repository.save(profile);
     }
 }
