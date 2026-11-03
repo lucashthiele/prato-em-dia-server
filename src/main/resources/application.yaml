@@ -40,6 +40,14 @@ client:
     android: ${CLIENT_MIN_VERSION_ANDROID:0.0.0}
     ios: ${CLIENT_MIN_VERSION_IOS:0.0.0}
 
+consent:
+  enforced: ${CONSENT_ENFORCED:true}
+  # Current version of each legal document. Bumping a version asks every patient and nutritionist to accept again.
+  # PLACEHOLDER: set the real versions when the legal texts are approved (docs/trabalho-manual/w3-acesso-admin.md).
+  current-versions:
+    TERMS_OF_USE: ${CONSENT_TERMS_VERSION:placeholder-1}
+    PRIVACY_POLICY: ${CONSENT_PRIVACY_VERSION:placeholder-1}
+
 relationships:
   mail:
     resend-api-key: ${RESEND_API_KEY}

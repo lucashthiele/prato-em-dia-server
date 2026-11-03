@@ -50,7 +50,7 @@ class SessionCookieIntegrationTest {
     private String createUser() {
         var email = "u" + UUID.randomUUID() + "@example.com";
         accounts.save(
-                new UserAccount(email, hasher.hash("password-long"), UserAccountRole.PATIENT, UserAccountStatus.ACTIVE)
+                new UserAccount(email, hasher.hash("password-long"), UserAccountRole.ADMIN, UserAccountStatus.ACTIVE)
         );
         return email;
     }

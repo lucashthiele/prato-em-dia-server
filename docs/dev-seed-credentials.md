@@ -73,6 +73,9 @@ curl -b cookies.txt http://localhost:8080/api/v1/me
 A sessão vai em cookies `HttpOnly` (ADR 0001). Com `SESSION_COOKIE_SECURE=true` (padrão)
 o `curl` não reenvia o cookie por HTTP: defina `SESSION_COOKIE_SECURE=false` em `local.env`.
 
+Pacientes e nutricionistas do seed ainda nao aceitaram os termos (LUC-65): a API responde `403 CONSENT_REQUIRED` ate
+`POST /api/v1/me/consents` (um por documento) ou use `CONSENT_ENFORCED=false` em `local.env` para desenvolver sem o bloqueio.
+
 Tambem e possivel autenticar pelo Swagger UI em `http://localhost:8080/swagger-ui.html`.
 
 ## Dados criados
