@@ -1,0 +1,9 @@
+# Manifesto de release: o repositório do servidor é dono do deploy em bloco (API + portal).
+# Rollback manual = reverter este arquivo para o commit anterior e deixar o pipeline rodar.
+api:
+  # "head" usa a imagem construída para o commit que disparou o deploy.
+  # Um SHA explícito fixa a versão (por exemplo, num rollback manual).
+  sha: head
+portal:
+  # SHA do build do portal publicado pelo repositório do portal (artefato portal-<sha>.tar.gz).
+  sha: "REPLACE_WITH_PORTAL_SHA"

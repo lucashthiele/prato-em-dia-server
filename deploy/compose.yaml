@@ -1,0 +1,72 @@
+# Produção na VPS (docs/infraestrutura.md). Só o caddy publica portas.
+# As imagens de cada cor vêm de images.env, atualizado por deploy/scripts/deploy.sh.
+name: prato
+
+x-app: &app
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    SPRING_PROFILES_ACTIVE: prod
+    DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-pratoemdia}
+    DATABASE_USERNAME: ${POSTGRES_USER:-pratoemdia}
+    DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+    JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=60
+  depends_on:
+    postgres:
+      condition: service_healthy
+  networks: [internal]
+  healthcheck:
+    test: ["CMD", "wget", "-qO-", "http://localhost:8081/actuator/health/readiness"]
+    interval: 15s
+    timeout: 5s
+    retries: 10
+    start_period: 120s
+
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?defina DOMAIN no .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./upstream.caddy:/etc/caddy/upstream.caddy:ro
+      - /srv/portal:/srv/portal:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [internal]
+
+  app-blue:
+    <<: *app
+    image: ${APP_BLUE_IMAGE:-ghcr.io/lucashthiele/prato-em-dia-server:latest}
+
+  app-green:
+    <<: *app
+    image: ${APP_GREEN_IMAGE:-ghcr.io/lucashthiele/prato-em-dia-server:latest}
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pratoemdia}
+      POSTGRES_USER: ${POSTGRES_USER:-pratoemdia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pratoemdia} -d ${POSTGRES_DB:-pratoemdia}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+networks:
+  internal: {}
+
+volumes:
+  caddy_data: {}
+  caddy_config: {}
+  postgres_data: {}
