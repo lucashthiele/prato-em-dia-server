@@ -31,6 +31,7 @@ class SeedReset {
         setTriggers("DISABLE");
         jdbc.update("DELETE FROM meal_execution_command WHERE patient_id IN " + PATIENTS);
         jdbc.update("DELETE FROM meal_execution WHERE patient_id IN " + PATIENTS);
+        jdbc.update("DELETE FROM shopping_list WHERE patient_id IN " + PATIENTS);
         jdbc.update("DELETE FROM weekly_plan WHERE patient_id IN " + PATIENTS);
         jdbc.update("DELETE FROM weekly_planning_preference WHERE patient_id IN " + PATIENTS);
         jdbc.update(

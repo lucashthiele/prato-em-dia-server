@@ -20,7 +20,7 @@ public final class TrackingFixture {
     public record PrescribedItem(UUID id, Food food) {
     }
 
-    public record PrescribedMeal(UUID id, String type, List<PrescribedItem> items) {
+    public record PrescribedMeal(UUID id, String type, int order, List<PrescribedItem> items) {
     }
 
     public record PlannedItem(UUID id, UUID prescribedItemId, Food food) {
@@ -109,9 +109,10 @@ public final class TrackingFixture {
 
     public PrescribedMeal prescribedMeal(String type, Food... foods) {
         var mealId = UUID.randomUUID();
+        var order = mealOrder++;
         jdbc.update(
                 "insert into prescribed_meal(id,prescription_version_id,name,meal_order,meal_type) values (?,?,?,?,?::meal_type)",
-                mealId, version, type, mealOrder++, type
+                mealId, version, type, order, type
         );
         var items = new ArrayList<PrescribedItem>();
         for (var food : foods) {
@@ -122,7 +123,7 @@ public final class TrackingFixture {
             );
             items.add(new PrescribedItem(itemId, food));
         }
-        var meal = new PrescribedMeal(mealId, type, items);
+        var meal = new PrescribedMeal(mealId, type, order, items);
         prescribedMeals.add(meal);
         return meal;
     }
@@ -157,8 +158,8 @@ public final class TrackingFixture {
         publish();
         var mealId = UUID.randomUUID();
         jdbc.update(
-                "insert into planned_meal(id,weekly_plan_id,prescribed_meal_id,meal_date,meal_type,name,meal_order) values (?,?,?,?,?::meal_type,?,0)",
-                mealId, plan, prescribed.id(), date, prescribed.type(), prescribed.type()
+                "insert into planned_meal(id,weekly_plan_id,prescribed_meal_id,meal_date,meal_type,name,meal_order) values (?,?,?,?,?::meal_type,?,?)",
+                mealId, plan, prescribed.id(), date, prescribed.type(), prescribed.type(), prescribed.order()
         );
         var items = new ArrayList<PlannedItem>();
         for (var item : prescribed.items()) {

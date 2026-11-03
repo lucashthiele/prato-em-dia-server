@@ -64,4 +64,14 @@ class OpenApiReadContractsIntegrationTest {
                 .andExpect(jsonPath(base + "calendar-periods'].get").exists())
                 .andExpect(jsonPath(base + "meal-executions'].post").doesNotExist());
     }
+
+    @Test
+    void documentsTheShoppingList() throws Exception {
+        var path = "$.paths['/api/v1/patients/me/weekly-plans/{planId}/shopping-list']";
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath(path + ".post").exists())
+                .andExpect(jsonPath(path + ".get").exists())
+                .andExpect(jsonPath("$.components.schemas.ShoppingListOutput.properties.items").exists());
+    }
 }

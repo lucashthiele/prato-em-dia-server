@@ -9,4 +9,14 @@ interface PlannedMealItemJpaRepository extends JpaRepository<PlannedMealItemMode
     Optional<PlannedMealItemModel> findByIdAndMealId(UUID id, UUID mealId);
 
     long countByMealId(UUID mealId);
+
+    /** Items of the plan in plan order: meal date, meal order, item order. */
+    @org.springframework.data.jpa.repository.Query("""
+            select i from PlannedMealItemModel i join i.meal m
+            where m.plan.id = :planId
+            order by m.date, m.order, i.order
+            """)
+    java.util.List<PlannedMealItemModel> findAllOfPlan(
+            @org.springframework.data.repository.query.Param("planId") UUID planId
+    );
 }
