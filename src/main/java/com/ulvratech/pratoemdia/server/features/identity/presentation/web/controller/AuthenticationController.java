@@ -14,6 +14,7 @@ import com.ulvratech.pratoemdia.server.shared.openapi.OpenApiConfiguration;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -49,9 +50,13 @@ public class AuthenticationController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Autenticar usuário", description = "Valida e-mail e senha e inicia a sessão: o access token e o refresh token são entregues em cookies HttpOnly, nunca no corpo.")
-    public ResponseEntity<AuthenticationResponse> login(@Valid @RequestBody LoginRequest request) {
-        var output = authenticateUser.execute(new AuthenticateUserInput(request.email(), request.password()));
+    @Operation(summary = "Autenticar usuário", description = "Valida e-mail e senha e inicia a sessão (após tentativas falhas demais por e-mail ou IP, responde 429 LOGIN_RATE_LIMITED com Retry-After): o access token e o refresh token são entregues em cookies HttpOnly, nunca no corpo.")
+    public ResponseEntity<AuthenticationResponse> login(
+            @Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest
+    ) {
+        var output = authenticateUser.execute(
+                new AuthenticateUserInput(request.email(), request.password(), httpRequest.getRemoteAddr())
+        );
         return session(
                 output.accessToken(), output.refreshToken(), output.expiresIn(), output.passwordChangeRequired()
         );

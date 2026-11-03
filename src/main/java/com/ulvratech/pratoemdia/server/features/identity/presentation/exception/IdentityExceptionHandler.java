@@ -7,12 +7,14 @@ import com.ulvratech.pratoemdia.server.features.identity.application.exception.I
 import com.ulvratech.pratoemdia.server.features.identity.application.exception.InvalidRefreshTokenException;
 import com.ulvratech.pratoemdia.server.features.identity.application.exception.PatientAccountConflictException;
 import com.ulvratech.pratoemdia.server.features.identity.application.exception.UserAccountAlreadyExistsException;
+import com.ulvratech.pratoemdia.server.features.identity.application.exception.TooManyLoginAttemptsException;
 import com.ulvratech.pratoemdia.server.features.identity.application.exception.UserAccountNotFoundException;
 import com.ulvratech.pratoemdia.server.features.identity.presentation.exception.dto.ApiErrorResponse;
 import com.ulvratech.pratoemdia.server.features.identity.presentation.exception.dto.ApiFieldError;
 import com.ulvratech.pratoemdia.server.shared.application.exception.CodedApplicationException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -39,6 +41,18 @@ public class IdentityExceptionHandler {
                 exception.getCode(),
                 "Já existe uma conta cadastrada com este e-mail."
         );
+    }
+
+    @ExceptionHandler(TooManyLoginAttemptsException.class)
+    public ResponseEntity<ApiErrorResponse> handleTooManyLoginAttempts(TooManyLoginAttemptsException exception) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(exception.getRetryAfterSeconds()))
+                .body(
+                        new ApiErrorResponse(
+                                HttpStatus.TOO_MANY_REQUESTS.value(), exception.getCode(),
+                                "Muitas tentativas de login. Tente novamente em alguns minutos."
+                        )
+                );
     }
 
     @ExceptionHandler(UserAccountNotFoundException.class)

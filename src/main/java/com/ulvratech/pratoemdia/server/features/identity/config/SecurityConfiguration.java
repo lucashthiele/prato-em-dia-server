@@ -3,12 +3,14 @@ package com.ulvratech.pratoemdia.server.features.identity.config;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.AccessTokenProvider;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.InitialPasswordGenerator;
+import com.ulvratech.pratoemdia.server.features.identity.application.port.out.LoginAttemptLimiter;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.PasswordHasher;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.RefreshTokenGenerator;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.RefreshTokenHasher;
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.BcryptPasswordHasher;
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.CookieBearerTokenResolver;
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.OriginCheckFilter;
+import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.InMemoryLoginAttemptLimiter;
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.JwtAccessTokenProvider;
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.JwtAuthenticationConverter;
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.PasswordChangeRequiredFilter;
@@ -46,7 +48,7 @@ import java.time.Clock;
 @Configuration
 @EnableWebSecurity
 @EnableConfigurationProperties({ JwtConfigurationProperties.class, SessionCookieProperties.class,
-        ClientVersionProperties.class })
+        ClientVersionProperties.class, LoginRateLimitProperties.class })
 public class SecurityConfiguration {
 
     private static final int BCRYPT_STRENGTH = 8;
@@ -66,6 +68,11 @@ public class SecurityConfiguration {
             Clock clock, JwtConfigurationProperties properties
     ) {
         return new SecureRefreshTokenGenerator(new SecureRandom(), clock, properties);
+    }
+
+    @Bean
+    public LoginAttemptLimiter loginAttemptLimiter(LoginRateLimitProperties properties, Clock clock) {
+        return new InMemoryLoginAttemptLimiter(properties, clock);
     }
 
     @Bean

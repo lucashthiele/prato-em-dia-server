@@ -4,6 +4,8 @@ spring:
   config:
     import: optional:file:./local.env[.properties]
 server:
+  # Behind Caddy (the only published service) the client IP comes from X-Forwarded-For.
+  forward-headers-strategy: native
   error:
     include-binding-errors: never
     include-exception: false
@@ -27,6 +29,11 @@ security:
     access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:PT15M}
     refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:P30D}
     secret: ${JWT_SECRET}
+  login-rate-limit:
+    enabled: ${LOGIN_RATE_LIMIT_ENABLED:true}
+    max-attempts-per-email: ${LOGIN_RATE_LIMIT_MAX_PER_EMAIL:5}
+    max-attempts-per-ip: ${LOGIN_RATE_LIMIT_MAX_PER_IP:30}
+    window: ${LOGIN_RATE_LIMIT_WINDOW:PT15M}
   session:
     # Secure cookies are not resent over plain HTTP; turn off only for local development.
     secure: ${SESSION_COOKIE_SECURE:true}

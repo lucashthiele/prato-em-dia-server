@@ -43,7 +43,10 @@ class IdentityControllersTest {
         );
         var controller = new AuthenticationController(authenticate, refresh, logout, cookies());
 
-        var login = controller.login(new LoginRequest("user@example.com", "password"));
+        var login = controller.login(
+                new LoginRequest("user@example.com", "password"),
+                new org.springframework.mock.web.MockHttpServletRequest()
+        );
         var refreshed = controller.refresh("old");
         var loggedOut = controller.logout(jwt(UUID.randomUUID(), "PATIENT"), "refresh");
 
@@ -55,7 +58,7 @@ class IdentityControllersTest {
         assertEquals(204, loggedOut.getStatusCode().value());
         assertEquals(2, setCookies(loggedOut).size());
         assertTrue(setCookies(loggedOut).stream().allMatch(c -> c.contains("Max-Age=0")));
-        verify(authenticate).execute(new AuthenticateUserInput("user@example.com", "password"));
+        verify(authenticate).execute(new AuthenticateUserInput("user@example.com", "password", "127.0.0.1"));
         verify(refresh).execute(new RefreshAccessTokenInput("old"));
         verify(logout).execute(any());
     }
