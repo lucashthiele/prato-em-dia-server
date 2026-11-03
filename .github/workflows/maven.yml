@@ -33,6 +33,7 @@ jobs:
         run: |
           scripts/tests/check_migrations_test.sh
           deploy/tests/deploy_test.sh
+          deploy/tests/backup_test.sh
 
       # `verify` roda o spotless:check, os testes (que migram um Postgres limpo e validam o schema
       # com ddl-auto=validate) e o JaCoCo.

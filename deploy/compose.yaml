@@ -63,6 +63,21 @@ services:
       timeout: 5s
       retries: 10
 
+  # Backup diário às 03:00 BRT (deploy/backup). Só a chave pública do age fica aqui.
+  backup:
+    build: ./backup
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PGHOST: postgres
+      PGDATABASE: ${POSTGRES_DB:-pratoemdia}
+      PGUSER: ${POSTGRES_USER:-pratoemdia}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal]
+
 networks:
   internal: {}
 
