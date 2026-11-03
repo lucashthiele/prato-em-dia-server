@@ -107,15 +107,17 @@ class OpenApiIntegrationTest {
     }
 
     @Test
-    void describesBearerAuthenticationOnlyOnProtectedOperations() throws Exception {
+    void describesCookieAuthenticationOnlyOnProtectedOperations() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"))
-                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
+                .andExpect(jsonPath("$.components.securitySchemes.cookieAuth.type").value("apiKey"))
+                .andExpect(jsonPath("$.components.securitySchemes.cookieAuth.in").value("cookie"))
+                .andExpect(jsonPath("$.components.securitySchemes.cookieAuth.name").value("access_token"))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth").doesNotExist())
                 .andExpect(jsonPath("$.paths['/api/v1/auth/login'].post.security").doesNotExist())
                 .andExpect(jsonPath("$.paths['/api/v1/auth/refresh'].post.security").doesNotExist())
-                .andExpect(jsonPath("$.paths['/api/v1/auth/logout'].post.security[0].bearerAuth").isArray())
-                .andExpect(jsonPath("$.paths['/api/v1/me'].get.security[0].bearerAuth").isArray());
+                .andExpect(jsonPath("$.paths['/api/v1/auth/logout'].post.security[0].cookieAuth").isArray())
+                .andExpect(jsonPath("$.paths['/api/v1/me'].get.security[0].cookieAuth").isArray());
     }
 
     @Test

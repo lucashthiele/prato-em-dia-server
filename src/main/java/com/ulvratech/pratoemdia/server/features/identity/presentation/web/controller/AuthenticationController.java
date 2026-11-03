@@ -7,16 +7,20 @@ import com.ulvratech.pratoemdia.server.features.identity.application.port.in.Aut
 import com.ulvratech.pratoemdia.server.features.identity.application.port.in.LogoutUser;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.in.RefreshAccessToken;
 import com.ulvratech.pratoemdia.server.features.identity.presentation.web.request.LoginRequest;
-import com.ulvratech.pratoemdia.server.features.identity.presentation.web.request.RefreshTokenRequest;
+import com.ulvratech.pratoemdia.server.features.identity.application.exception.InvalidRefreshTokenException;
+import com.ulvratech.pratoemdia.server.features.identity.presentation.web.session.SessionCookies;
 import com.ulvratech.pratoemdia.server.features.identity.presentation.web.response.AuthenticationResponse;
 import com.ulvratech.pratoemdia.server.shared.openapi.OpenApiConfiguration;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,61 +30,73 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
-@Tag(name = "Autenticação", description = "Login, renovação e encerramento de sessões.")
+@Tag(name = "Autenticação", description = "Login, renovação e encerramento de sessões por cookies HttpOnly.")
 public class AuthenticationController {
     private final AuthenticateUser authenticateUser;
     private final RefreshAccessToken refreshAccessToken;
     private final LogoutUser logoutUser;
+    private final SessionCookies sessionCookies;
 
     public AuthenticationController(
             AuthenticateUser authenticateUser,
             RefreshAccessToken refreshAccessToken,
-            LogoutUser logoutUser
+            LogoutUser logoutUser,
+            SessionCookies sessionCookies
     ) {
         this.authenticateUser = authenticateUser;
         this.refreshAccessToken = refreshAccessToken;
         this.logoutUser = logoutUser;
+        this.sessionCookies = sessionCookies;
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Autenticar usuário", description = "Valida e-mail e senha e retorna os tokens de acesso e renovação.")
-    public ResponseEntity<AuthenticationResponse> login(@Valid @RequestBody LoginRequest request) {
-        var output = authenticateUser.execute(new AuthenticateUserInput(request.email(), request.password()));
-        return ResponseEntity.ok(
-                new AuthenticationResponse(
-                        output.accessToken(),
-                        output.refreshToken(),
-                        output.tokenType(),
-                        output.expiresIn(),
-                        output.passwordChangeRequired()
-                )
+    @Operation(summary = "Autenticar usuário", description = "Valida e-mail e senha e inicia a sessão (após tentativas falhas demais por e-mail ou IP, responde 429 LOGIN_RATE_LIMITED com Retry-After): o access token e o refresh token são entregues em cookies HttpOnly, nunca no corpo.")
+    public ResponseEntity<AuthenticationResponse> login(
+            @Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest
+    ) {
+        var output = authenticateUser.execute(
+                new AuthenticateUserInput(request.email(), request.password(), httpRequest.getRemoteAddr())
+        );
+        return session(
+                output.accessToken(), output.refreshToken(), output.expiresIn(), output.passwordChangeRequired()
         );
     }
 
     @PostMapping("/refresh")
-    @Operation(summary = "Renovar token de acesso", description = "Emite um novo par de tokens a partir de um refresh token válido.")
+    @Operation(summary = "Renovar sessão", description = "Lê o cookie refresh_token (enviado somente para esta rota) e emite novos cookies de sessão. O refresh token é de uso único.")
     public ResponseEntity<AuthenticationResponse> refresh(
-            @Valid @RequestBody RefreshTokenRequest request
+            @CookieValue(name = SessionCookies.REFRESH_COOKIE, required = false) String refreshToken
     ) {
-        var output = refreshAccessToken.execute(new RefreshAccessTokenInput(request.refreshToken()));
-        return ResponseEntity.ok(
-                new AuthenticationResponse(
-                        output.accessToken(),
-                        output.refreshToken(),
-                        output.tokenType(),
-                        output.expiresIn(),
-                        output.passwordChangeRequired()
-                )
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new InvalidRefreshTokenException();
+        }
+        var output = refreshAccessToken.execute(new RefreshAccessTokenInput(refreshToken));
+        return session(
+                output.accessToken(), output.refreshToken(), output.expiresIn(), output.passwordChangeRequired()
         );
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "Encerrar sessão", description = "Revoga o refresh token informado para encerrar a sessão atual.")
-    @SecurityRequirement(name = OpenApiConfiguration.BEARER_AUTH)
+    @Operation(summary = "Encerrar sessão", description = "Revoga o refresh token do cookie e limpa os cookies de sessão.")
+    @SecurityRequirement(name = OpenApiConfiguration.COOKIE_AUTH)
     public ResponseEntity<Void> logout(
-            @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody RefreshTokenRequest request
+            @AuthenticationPrincipal Jwt jwt,
+            @CookieValue(name = SessionCookies.REFRESH_COOKIE, required = false) String refreshToken
     ) {
-        logoutUser.execute(new LogoutInput(UUID.fromString(jwt.getSubject()), request.refreshToken()));
-        return ResponseEntity.noContent().build();
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            logoutUser.execute(new LogoutInput(UUID.fromString(jwt.getSubject()), refreshToken));
+        }
+        var response = ResponseEntity.noContent();
+        sessionCookies.clear().forEach(cookie -> response.header(HttpHeaders.SET_COOKIE, cookie.toString()));
+        return response.build();
+    }
+
+    private ResponseEntity<AuthenticationResponse> session(
+            String accessToken, String refreshToken, long expiresIn, boolean passwordChangeRequired
+    ) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, sessionCookies.access(accessToken, expiresIn).toString())
+                .header(HttpHeaders.SET_COOKIE, sessionCookies.refresh(refreshToken).toString())
+                .body(new AuthenticationResponse(expiresIn, passwordChangeRequired));
     }
 }

@@ -22,10 +22,17 @@ curl --fail http://localhost:8080/v3/api-docs.yaml --output openapi.yaml
 
 ## Autenticação no Swagger
 
-A sessão usa cookies `HttpOnly` (ADR [0001](adr/0001-sessao-por-cookies-httponly.md)).
-O servidor não devolve tokens no corpo de `POST /api/v1/auth/login` nem aceita
-`Authorization: Bearer`. **Não existe o botão Authorize com token**: o fluxo
-antigo (copiar o `accessToken` e colá-lo no Authorize) deixou de funcionar.
+A sessão é um cookie `HttpOnly` (ADR 0001). Faça `POST /api/v1/auth/login` pelo
+próprio Swagger UI (mesma origem da API): o navegador guarda o cookie
+`access_token` e o envia nas chamadas seguintes, sem botão **Authorize**.
+Em HTTP local, defina `SESSION_COOKIE_SECURE=false` em `local.env`; caso
+contrário o navegador descarta o cookie `Secure`. A origem do Swagger
+(`http://localhost:8080`) está em `ALLOWED_ORIGINS` por padrão.
+
+As operações `login` e `refresh` aparecem como públicas. As demais declaram o
+esquema `cookieAuth` (`apiKey` em cookie `access_token`). O header
+`Authorization: Bearer` não é mais aceito. O contrato para os clientes está em
+[contrato-sessao-cookies.md](contrato-sessao-cookies.md).
 
 Para chamar rotas protegidas no Swagger UI:
 

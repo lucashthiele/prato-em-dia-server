@@ -3,10 +3,14 @@ package com.ulvratech.pratoemdia.server.features.identity.config;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.AccessTokenProvider;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.InitialPasswordGenerator;
+import com.ulvratech.pratoemdia.server.features.identity.application.port.out.LoginAttemptLimiter;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.PasswordHasher;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.RefreshTokenGenerator;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.RefreshTokenHasher;
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.BcryptPasswordHasher;
+import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.CookieBearerTokenResolver;
+import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.OriginCheckFilter;
+import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.InMemoryLoginAttemptLimiter;
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.JwtAccessTokenProvider;
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.JwtAuthenticationConverter;
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.PasswordChangeRequiredFilter;
@@ -14,6 +18,8 @@ import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.SecureRefreshTokenGenerator;
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.Sha256RefreshTokenHasher;
 import com.ulvratech.pratoemdia.server.features.identity.presentation.exception.SecurityErrorResponseHandler;
+import com.ulvratech.pratoemdia.server.shared.clientversion.ClientVersionFilter;
+import com.ulvratech.pratoemdia.server.shared.clientversion.ClientVersionProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
@@ -42,7 +48,8 @@ import java.time.Clock;
 
 @Configuration
 @EnableWebSecurity
-@EnableConfigurationProperties(JwtConfigurationProperties.class)
+@EnableConfigurationProperties({ JwtConfigurationProperties.class, SessionCookieProperties.class,
+        ClientVersionProperties.class, LoginRateLimitProperties.class })
 public class SecurityConfiguration {
 
     private static final int BCRYPT_STRENGTH = 8;
@@ -62,6 +69,11 @@ public class SecurityConfiguration {
             Clock clock, JwtConfigurationProperties properties
     ) {
         return new SecureRefreshTokenGenerator(new SecureRandom(), clock, properties);
+    }
+
+    @Bean
+    public LoginAttemptLimiter loginAttemptLimiter(LoginRateLimitProperties properties, Clock clock) {
+        return new InMemoryLoginAttemptLimiter(properties, clock);
     }
 
     @Bean
@@ -145,7 +157,9 @@ public class SecurityConfiguration {
             HttpSecurity http,
             JwtAuthenticationConverter jwtAuthenticationConverter,
             SecurityErrorResponseHandler securityErrorResponseHandler,
-            PasswordChangeRequiredFilter passwordChangeRequiredFilter
+            PasswordChangeRequiredFilter passwordChangeRequiredFilter,
+            OriginCheckFilter originCheckFilter,
+            ClientVersionFilter clientVersionFilter
     )
             throws Exception {
         return http.csrf(AbstractHttpConfigurer::disable)
@@ -159,6 +173,8 @@ public class SecurityConfiguration {
                                 "/api/v1/auth/refresh"
                         )
                                 .permitAll()
+                                .requestMatchers("/api/v1/admin/**")
+                                .hasRole("ADMIN")
                                 .requestMatchers("/api/v1/nutritionists/**")
                                 .hasRole("NUTRITIONIST")
                                 .requestMatchers("/api/v1/patients/**")
@@ -176,12 +192,15 @@ public class SecurityConfiguration {
                 .oauth2ResourceServer(
                         resourceServer -> resourceServer
                                 .authenticationEntryPoint(securityErrorResponseHandler)
+                                .bearerTokenResolver(new CookieBearerTokenResolver())
                                 .jwt(
                                         jwt -> jwt.jwtAuthenticationConverter(
                                                 jwtAuthenticationConverter
                                         )
                                 )
                 )
+                .addFilterBefore(clientVersionFilter, BearerTokenAuthenticationFilter.class)
+                .addFilterBefore(originCheckFilter, BearerTokenAuthenticationFilter.class)
                 .addFilterAfter(passwordChangeRequiredFilter, BearerTokenAuthenticationFilter.class)
                 .build();
     }

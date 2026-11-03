@@ -42,7 +42,7 @@ import java.util.UUID;
 @RestController
 @Validated
 @RequestMapping("/api/v1/nutritionists/me/patients")
-@SecurityRequirement(name = OpenApiConfiguration.BEARER_AUTH)
+@SecurityRequirement(name = OpenApiConfiguration.COOKIE_AUTH)
 @Tag(name = "Pacientes do nutricionista", description = "Gerenciamento dos vínculos entre o nutricionista autenticado e seus pacientes.")
 public class NutritionistPatientsController {
     private final CreateRelationship create;

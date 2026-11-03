@@ -284,6 +284,32 @@ class WeeklyPlanningUseCaseTest {
     }
 
     @Test
+    void scheduledGenerationRejectedByValidationIsNotRepeatedAndEmailsThePatient() {
+        var repository = mock(WeeklyPlanningRepository.class);
+        var references = mock(PlanningReferences.class);
+        var notifier = mock(PlanGeneratedNotifier.class);
+        var rejected = UUID.randomUUID();
+        var fine = UUID.randomUUID();
+        when(repository.findEnabledPreferences(DayOfWeek.THURSDAY))
+                .thenReturn(
+                        List.of(
+                                new WeeklyPlanningPreference(rejected, DayOfWeek.THURSDAY, true),
+                                new WeeklyPlanningPreference(fine, DayOfWeek.THURSDAY, true)
+                        )
+                );
+        when(references.currentPublishedPrescription(rejected)).thenThrow(new IllegalStateException("rule"));
+        when(references.currentPublishedPrescription(fine))
+                .thenReturn(Optional.of(source(UUID.randomUUID(), PlanningMode.FREE)));
+        when(repository.savePlan(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        var useCase = new WeeklyPlanningUseCase(repository, references, THURSDAY_9AM, notifier);
+
+        useCase.generateDuePlans();
+
+        verify(notifier).planGenerationRejected(rejected);
+        verify(notifier, times(1)).planGenerated(any());
+    }
+
+    @Test
     void notifierFailureDoesNotFailGeneration() {
         var repository = mock(WeeklyPlanningRepository.class);
         var references = mock(PlanningReferences.class);

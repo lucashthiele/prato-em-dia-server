@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -15,64 +14,38 @@ import com.ulvratech.pratoemdia.server.features.planning.application.dto.PlanGen
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.MealType;
 import com.ulvratech.pratoemdia.server.features.profiles.infrastructure.persistence.adapter.ProfileQueryAdapter;
 import com.ulvratech.pratoemdia.server.features.profiles.infrastructure.persistence.adapter.ProfileQueryAdapter.PatientContact;
-import com.ulvratech.pratoemdia.server.features.relationships.application.port.out.NotificationEmailSender;
+import com.ulvratech.pratoemdia.server.features.email.application.dto.EnqueuePlanEmailInput;
+import com.ulvratech.pratoemdia.server.features.email.application.port.in.EnqueuePlanEmail;
+import com.ulvratech.pratoemdia.server.features.email.domain.enums.EmailType;
+import org.mockito.ArgumentCaptor;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 class EmailPlanGeneratedNotifierTest {
     private final ProfileQueryAdapter profiles = mock(ProfileQueryAdapter.class);
     private final UserAccountQueryAdapter accounts = mock(UserAccountQueryAdapter.class);
-    private final NotificationEmailSender sender = mock(NotificationEmailSender.class);
-    private final EmailPlanGeneratedNotifier notifier = new EmailPlanGeneratedNotifier(profiles, accounts, sender);
+    private final EnqueuePlanEmail outbox = mock(EnqueuePlanEmail.class);
+    private final EmailPlanGeneratedNotifier notifier = new EmailPlanGeneratedNotifier(profiles, accounts, outbox);
     private final UUID patient = UUID.randomUUID();
     private final UUID account = UUID.randomUUID();
 
-    @AfterEach
-    void clearSynchronization() {
-        if (TransactionSynchronizationManager.isSynchronizationActive())
-            TransactionSynchronizationManager.clearSynchronization();
-    }
-
     @Test
-    void sendsImmediatelyWithoutTransaction() {
+    void enqueuesThePlanEmailWithItsBodyInTheCallersTransaction() {
         stubContact();
 
         notifier.planGenerated(notice(true));
 
-        var body = ArgumentCaptor.forClass(String.class);
-        verify(sender).send(eq("maria@example.com"), eq("Seu plano semanal está pronto"), body.capture());
-        assertTrue(body.getValue().contains("Olá, Maria."));
-    }
-
-    @Test
-    void sendsOnlyAfterCommitInsideTransaction() {
-        stubContact();
-        TransactionSynchronizationManager.initSynchronization();
-
-        notifier.planGenerated(notice(false));
-
-        verify(sender, never()).send(any(), any(), any());
-        TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
-        verify(sender).send(eq("maria@example.com"), any(), any());
-    }
-
-    @Test
-    void doesNotSendWhenTransactionNeverCommits() {
-        stubContact();
-        TransactionSynchronizationManager.initSynchronization();
-
-        notifier.planGenerated(notice(false));
-
-        verify(sender, never()).send(any(), any(), any());
+        var input = ArgumentCaptor.forClass(EnqueuePlanEmailInput.class);
+        verify(outbox).execute(input.capture());
+        assertEquals(EmailType.PLAN_GENERATED, input.getValue().type());
+        assertEquals("maria@example.com", input.getValue().recipient());
+        assertEquals("Seu plano semanal está pronto", input.getValue().subject());
+        assertTrue(input.getValue().body().contains("Olá, Maria."));
     }
 
     @Test
@@ -81,17 +54,21 @@ class EmailPlanGeneratedNotifierTest {
 
         notifier.planGenerated(notice(true));
 
-        verify(sender, never()).send(any(), any(), any());
+        verify(outbox, never()).execute(any());
     }
 
     @Test
-    void senderFailureIsSwallowed() {
+    void rejectedGenerationEmailsThePatientToContactTheNutritionist() {
         stubContact();
-        when(sender.send(any(), any(), any())).thenReturn(CompletableFuture.failedFuture(new IllegalStateException()));
 
-        notifier.planGenerated(notice(true));
+        notifier.planGenerationRejected(patient);
 
-        verify(sender).send(any(), any(), any());
+        var input = ArgumentCaptor.forClass(EnqueuePlanEmailInput.class);
+        verify(outbox).execute(input.capture());
+        assertEquals(EmailType.PLAN_GENERATION_REJECTED, input.getValue().type());
+        assertEquals("maria@example.com", input.getValue().recipient());
+        assertTrue(input.getValue().body().contains("Olá, Maria."));
+        assertTrue(input.getValue().body().contains("nutricionista"));
     }
 
     @Test
@@ -119,7 +96,6 @@ class EmailPlanGeneratedNotifierTest {
     private void stubContact() {
         when(profiles.patientContact(patient)).thenReturn(Optional.of(new PatientContact("Maria", account)));
         when(accounts.email(account)).thenReturn("maria@example.com");
-        when(sender.send(any(), any(), any())).thenReturn(CompletableFuture.completedFuture(null));
     }
 
     private PlanGeneratedNotice notice(boolean automatic) {

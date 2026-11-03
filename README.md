@@ -9,7 +9,7 @@ separação entre domínio, aplicação, infraestrutura e apresentação.
 
 ## Funcionalidades
 
-- autenticação com access token JWT e refresh token (ver [OpenAPI](docs/openapi.md) e o ADR 0001);
+- autenticação por access token JWT e refresh token em cookies `HttpOnly` (ADR 0001);
 - perfis de nutricionistas e pacientes;
 - vínculo entre nutricionista e paciente, com envio de acesso por e-mail;
 - catálogo de alimentos, porções e informações nutricionais, com busca remota
@@ -85,12 +85,21 @@ de propriedades. Além de `JWT_SECRET`, as principais variáveis opcionais são:
 | `JWT_ISSUER` | `prato-em-dia` | Emissor dos tokens |
 | `JWT_ACCESS_TOKEN_TTL` | `PT15M` | Duração do access token |
 | `JWT_REFRESH_TOKEN_TTL` | `P30D` | Duração do refresh token |
+| `SESSION_COOKIE_SECURE` | `true` | Atributo `Secure` dos cookies de sessão; defina `false` em `local.env` para desenvolver por HTTP |
+| `ALLOWED_ORIGINS` | `http://localhost:8080,http://localhost:5173,http://localhost:3000` | Origens que podem fazer escritas (checagem de `Origin`, ADR 0001) |
+| `CLIENT_MIN_VERSION_WEB` / `_ANDROID` / `_IOS` | `0.0.0` | Versão mínima do cliente por plataforma (`426 CLIENT_OUTDATED`, ver `docs/contrato-versao-cliente.md`) |
+| `CONSENT_TERMS_VERSION` / `CONSENT_PRIVACY_VERSION` | `placeholder-1` | Versão vigente dos termos e da política (ver `docs/contrato-aceite-de-termos.md`) |
+| `CONSENT_ENFORCED` | `true` | Liga o bloqueio `CONSENT_REQUIRED` |
+| `LOGIN_RATE_LIMIT_ENABLED` / `_MAX_PER_EMAIL` / `_MAX_PER_IP` / `_WINDOW` | `true` / `5` / `30` / `PT15M` | Limite de tentativas de login (ver `docs/limitacao-de-tentativas-de-login.md`) |
 | `MAIL_FROM` | `onboarding@resend.dev` | Remetente dos e-mails; use um domínio verificado no Resend para enviar a outros destinatários |
 | `APP_URL` | `http://localhost:3000` | URL usada nos links enviados por e-mail |
 | `SERVER_PORT` | `8080` | Porta HTTP da aplicação |
 
-`RESEND_API_KEY` é obrigatória. O envio de e-mails é agendado após a criação do
-vínculo ou a solicitação de reenvio. O status começa como `PENDING` e passa a
+`RESEND_API_KEY` é obrigatória. Os e-mails de plano e de acesso do nutricionista passam
+pela outbox (`email_outbox`): um job por minuto envia, reagenda falhas de servidor em 10 minutos
+até 3 tentativas (depois `DEAD`) e manda erros 4xx do Resend direto para `FAILED`. O módulo
+admin está descrito em `docs/admin.md`. O e-mail de acesso do paciente é agendado após a
+criação do vínculo ou a solicitação de reenvio. O status começa como `PENDING` e passa a
 `SENT` ou `FAILED` quando a chamada ao Resend termina. `SENT` indica que o
 Resend aceitou a mensagem, não que ela foi entregue à caixa de entrada.
 
