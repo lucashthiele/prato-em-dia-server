@@ -158,6 +158,13 @@ public class WeeklyPlanningUseCase
                             try {
                                 notifyGenerated(generateFor(preference.patientId(), now.toLocalDate(), false), true);
                             } catch (WeeklyPlanNotFoundException | PlanningConflictException ignored) {
+                            } catch (InvalidPlanningChangeException | IllegalArgumentException
+                                    | IllegalStateException rejected) {
+                                log.warn(
+                                        "Scheduled plan generation rejected by a prescription rule. patientId={}",
+                                        preference.patientId(), rejected
+                                );
+                                notifyRejected(preference.patientId());
                             }
                         }
                 );
@@ -175,6 +182,14 @@ public class WeeklyPlanningUseCase
                             repository.savePlan(plan);
                         }
                 );
+    }
+
+    private void notifyRejected(UUID patientId) {
+        try {
+            notifier.planGenerationRejected(patientId);
+        } catch (RuntimeException error) {
+            log.error("Failed to notify rejected plan generation. patientId={}", patientId, error);
+        }
     }
 
     private void notifyGenerated(GeneratedPlan generated, boolean automatic) {
