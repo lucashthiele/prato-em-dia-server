@@ -20,7 +20,8 @@ public interface WeeklyPlanningRepository {
 
     List<WeeklyPlan> findPlans(UUID patientId);
 
-    boolean existsForPeriod(UUID patientId, LocalDate start, LocalDate end);
+    /** Planos ativos do paciente com ao menos uma refeição ativa entre as duas datas (inclusive). */
+    List<WeeklyPlan> findPlansWithActiveMeals(UUID patientId, LocalDate from, LocalDate to);
 
     WeeklyPlan savePlan(WeeklyPlan plan);
 

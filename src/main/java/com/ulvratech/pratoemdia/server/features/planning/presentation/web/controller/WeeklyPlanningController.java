@@ -67,7 +67,7 @@ public class WeeklyPlanningController {
     }
 
     @PostMapping("/patients/me/weekly-plans")
-    @Operation(summary = "Gerar plano semanal", description = "Gera manualmente o plano para os sete dias seguintes.")
+    @Operation(summary = "Gerar ou regenerar plano semanal", description = "Regenera manualmente o plano de hoje até o próximo dia automático da preferência (segunda-feira se não houver preferência), ou só de hoje quando hoje é o dia automático. As refeições ativas desses dias, em qualquer plano, viram histórico e saem das leituras. Perde com 409 WEEKLY_PLAN_GENERATION_CONFLICT quando outra geração ocupa os mesmos dias primeiro.")
     ResponseEntity<WeeklyPlanOutput> generate(@AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.status(HttpStatus.CREATED).body(commands.generate(actor(jwt)));
     }

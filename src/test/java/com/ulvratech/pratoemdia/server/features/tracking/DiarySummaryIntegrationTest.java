@@ -146,8 +146,8 @@ class DiarySummaryIntegrationTest {
                 plan, patient, version
         );
         jdbc.update(
-                "insert into planned_meal(id,weekly_plan_id,meal_date,meal_type,name,meal_order) values (?,?,?,'LUNCH','Lunch',0)",
-                meal, plan, LocalDate.parse("2026-10-13")
+                "insert into planned_meal(id,weekly_plan_id,patient_id,meal_date,meal_type,name,meal_order) values (?,?,(select patient_id from weekly_plan where id = ?),?,'LUNCH','Lunch',0)",
+                meal, plan, plan, LocalDate.parse("2026-10-13")
         );
         jdbc.update(
                 "insert into planned_meal_item(id,planned_meal_id,food_id,food_portion_id,quantity,unit,item_order) values (?,?,?,?,250,'g',0)",

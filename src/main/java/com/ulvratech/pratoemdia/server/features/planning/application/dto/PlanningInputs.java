@@ -4,7 +4,6 @@ import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.MealT
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,7 +29,6 @@ public final class PlanningInputs {
     public record MealInput(
             UUID id,
             LocalDate date,
-            LocalTime time,
             MealType mealType,
             String name,
             int order,

@@ -50,11 +50,12 @@ class TrackingSeeder {
                 )
                 SELECT md5('execution:' || planned.id)::uuid, plan.patient_id, planned.meal_date, planned.id, plan.id,
                        plan.prescription_version_id, plan.planning_mode,
-                       (planned.meal_date + COALESCE(planned.meal_time, TIME '12:00')) AT TIME ZONE 'UTC',
-                       (planned.meal_date + COALESCE(planned.meal_time, TIME '12:00')) AT TIME ZONE 'UTC',
-                       COALESCE(planned.meal_time, TIME '12:00'), planned.meal_type
+                       (planned.meal_date + COALESCE(prescribed.suggested_time, TIME '12:00')) AT TIME ZONE 'UTC',
+                       (planned.meal_date + COALESCE(prescribed.suggested_time, TIME '12:00')) AT TIME ZONE 'UTC',
+                       COALESCE(prescribed.suggested_time, TIME '12:00'), planned.meal_type
                 FROM planned_meal planned
                 JOIN weekly_plan plan ON plan.id = planned.weekly_plan_id
+                LEFT JOIN prescribed_meal prescribed ON prescribed.id = planned.prescribed_meal_id
                 WHERE plan.id = ?
                   AND (planned.meal_date < CAST(? AS date)
                        OR (planned.meal_date = CAST(? AS date) AND planned.meal_order = 0))

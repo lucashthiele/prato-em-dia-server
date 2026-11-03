@@ -2,6 +2,7 @@ package com.ulvratech.pratoemdia.server.features.planning.presentation.exception
 
 import com.ulvratech.pratoemdia.server.features.identity.presentation.exception.dto.ApiErrorResponse;
 import com.ulvratech.pratoemdia.server.features.planning.application.exception.InvalidPlanningChangeException;
+import com.ulvratech.pratoemdia.server.features.planning.application.exception.PlanGenerationConflictException;
 import com.ulvratech.pratoemdia.server.features.planning.application.exception.PlanningAccessDeniedException;
 import com.ulvratech.pratoemdia.server.features.planning.application.exception.PlanningConflictException;
 import com.ulvratech.pratoemdia.server.features.planning.application.exception.WeeklyPlanNotFoundException;
@@ -35,6 +36,15 @@ public class PlanningExceptionHandler {
     @ExceptionHandler(PlanningConflictException.class)
     ResponseEntity<ApiErrorResponse> conflict(PlanningConflictException exception) {
         return response(HttpStatus.CONFLICT, "PLANNING_CONFLICT", exception.getMessage());
+    }
+
+    @ExceptionHandler(PlanGenerationConflictException.class)
+    ResponseEntity<ApiErrorResponse> generationConflict(PlanGenerationConflictException exception) {
+        return response(
+                HttpStatus.CONFLICT,
+                exception.getCode(),
+                "Outra geração do plano semanal ocupou estes dias primeiro. Tente novamente em instantes."
+        );
     }
 
     @ExceptionHandler({ InvalidPlanningChangeException.class, IllegalArgumentException.class })

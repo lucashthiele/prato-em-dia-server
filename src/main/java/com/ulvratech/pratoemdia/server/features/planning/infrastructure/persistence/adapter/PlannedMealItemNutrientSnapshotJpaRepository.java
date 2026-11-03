@@ -22,7 +22,7 @@ interface PlannedMealItemNutrientSnapshotJpaRepository
     @Query("""
             select s.nutrientCode as code, sum(s.amount) as amount, s.unit as unit
             from PlannedMealItemNutrientSnapshotModel s, PlannedMealItemModel i
-            where i.id = s.plannedItemId and i.meal.plan.id = :planId and i.meal.date = :date
+            where i.id = s.plannedItemId and i.meal.plan.id = :planId and i.meal.date = :date and i.meal.supersededAt is null
             group by s.nutrientCode, s.unit
             """)
     List<NutrientRow> sumByPlanAndDate(@Param("planId") UUID planId, @Param("date") LocalDate date);
