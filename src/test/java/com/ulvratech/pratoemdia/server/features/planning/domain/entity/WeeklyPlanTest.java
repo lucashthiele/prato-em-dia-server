@@ -10,7 +10,6 @@ import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.Plann
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
@@ -45,7 +44,6 @@ class WeeklyPlanTest {
                 changed.id(),
                 changed.prescribedMealId(),
                 changed.date(),
-                changed.time(),
                 changed.mealType(),
                 changed.name(),
                 changed.order(),
@@ -73,7 +71,6 @@ class WeeklyPlanTest {
                 original.id(),
                 original.prescribedMealId(),
                 original.date(),
-                original.time(),
                 original.mealType(),
                 original.name(),
                 original.order(),
@@ -101,7 +98,6 @@ class WeeklyPlanTest {
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 START,
-                LocalTime.NOON,
                 MealType.LUNCH,
                 "Lunch",
                 0,
@@ -134,7 +130,6 @@ class WeeklyPlanTest {
                 old.id(),
                 old.prescribedMealId(),
                 date,
-                old.time(),
                 old.mealType(),
                 old.name(),
                 old.order(),

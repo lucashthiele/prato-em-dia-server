@@ -12,7 +12,6 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,7 +29,6 @@ public final class WeeklyPlanningRequests {
     public record PlannedMealRequest(
             UUID id,
             @NotNull LocalDate date,
-            LocalTime time,
             @NotNull MealType mealType,
             @NotBlank @Size(max = 120) String name,
             @PositiveOrZero int order,
@@ -39,7 +37,6 @@ public final class WeeklyPlanningRequests {
             return new MealInput(
                     id,
                     date,
-                    time,
                     mealType,
                     name,
                     order,

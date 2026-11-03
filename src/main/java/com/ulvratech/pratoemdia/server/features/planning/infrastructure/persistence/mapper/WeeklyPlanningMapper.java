@@ -57,7 +57,6 @@ public class WeeklyPlanningMapper {
                 .plan(plan)
                 .prescribedMealId(value.prescribedMealId())
                 .date(value.date())
-                .time(value.time())
                 .mealType(value.mealType())
                 .name(value.name())
                 .order(value.order())
@@ -102,7 +101,6 @@ public class WeeklyPlanningMapper {
                                         m.getId(),
                                         m.getPrescribedMealId(),
                                         m.getDate(),
-                                        m.getTime(),
                                         m.getMealType(),
                                         m.getName(),
                                         m.getOrder(),

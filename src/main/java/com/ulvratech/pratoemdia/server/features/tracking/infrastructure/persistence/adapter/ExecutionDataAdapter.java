@@ -61,7 +61,7 @@ public class ExecutionDataAdapter implements ExecutionData {
     }
 
     private record Context(UUID planId, UUID versionId, PlanningMode mode, LocalDate mealDate,
-            LocalTime mealTime, MealType mealType) {
+            MealType mealType) {
     }
 
     private record Slot(LocalTime time, MealType type) {
@@ -267,14 +267,14 @@ public class ExecutionDataAdapter implements ExecutionData {
     private Context context(UUID patientId, LocalDate date, UUID plannedMealId) {
         if (plannedMealId == null) {
             return lookups.publishedFreeVersion(patientId)
-                    .map(version -> new Context(null, version, PlanningMode.FREE, null, null, null))
+                    .map(version -> new Context(null, version, PlanningMode.FREE, null, null))
                     .orElseThrow(() -> invalid("A current published FREE prescription is required"));
         }
         var found = lookups.planSlot(plannedMealId, patientId)
                 .map(
                         slot -> new Context(
                                 slot.planId(), slot.versionId(), slot.mode(), slot.mealDate(),
-                                slot.mealTime(), slot.mealType()
+                                slot.mealType()
                         )
                 )
                 .orElseThrow(() -> new TrackingException(Kind.NOT_FOUND, "Planned meal was not found"));
@@ -294,7 +294,7 @@ public class ExecutionDataAdapter implements ExecutionData {
         }
         var time = input.time();
         if (time == null)
-            time = context.mealTime() != null ? context.mealTime() : previousTime;
+            time = previousTime;
         if (type == null || time == null)
             throw invalid("Meal time and meal type are required");
         return new Slot(time, type);

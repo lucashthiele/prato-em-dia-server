@@ -4,7 +4,6 @@ import com.ulvratech.pratoemdia.server.features.planning.domain.enums.WeeklyPlan
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PlanningMode;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
@@ -104,7 +103,6 @@ public class WeeklyPlan {
                                 PlannedMeal::id,
                                 m -> List.of(
                                         m.date(),
-                                        m.time() == null ? LocalTime.MIDNIGHT : m.time(),
                                         m.mealType(),
                                         m.name(),
                                         m.order()
@@ -119,7 +117,6 @@ public class WeeklyPlan {
                                         .equals(
                                                 List.of(
                                                         m.date(),
-                                                        m.time() == null ? LocalTime.MIDNIGHT : m.time(),
                                                         m.mealType(),
                                                         m.name(),
                                                         m.order()

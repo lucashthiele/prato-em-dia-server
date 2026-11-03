@@ -7,7 +7,6 @@ import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.MealT
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PlanningMode;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,8 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @Transactional(readOnly = true)
 public class PlanningQueryAdapter {
-    public record PlanSlot(UUID planId, UUID versionId, PlanningMode mode, LocalDate mealDate,
-            LocalTime mealTime, MealType mealType) {
+    public record PlanSlot(UUID planId, UUID versionId, PlanningMode mode, LocalDate mealDate, MealType mealType) {
     }
 
     public record PlannedItemRef(UUID foodId, UUID prescribedItemId) {
@@ -62,7 +60,7 @@ public class PlanningQueryAdapter {
                 .map(
                         meal -> new PlanSlot(
                                 meal.getPlan().getId(), meal.getPlan().getPrescriptionVersionId(),
-                                meal.getPlan().getPlanningMode(), meal.getDate(), meal.getTime(),
+                                meal.getPlan().getPlanningMode(), meal.getDate(),
                                 meal.getMealType()
                         )
                 );

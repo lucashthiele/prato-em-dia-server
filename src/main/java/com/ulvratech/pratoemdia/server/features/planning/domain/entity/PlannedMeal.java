@@ -2,7 +2,6 @@ package com.ulvratech.pratoemdia.server.features.planning.domain.entity;
 
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.MealType;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -11,7 +10,6 @@ public record PlannedMeal(
         UUID id,
         UUID prescribedMealId,
         LocalDate date,
-        LocalTime time,
         MealType mealType,
         String name,
         int order,

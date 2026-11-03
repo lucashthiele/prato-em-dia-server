@@ -12,7 +12,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -45,9 +44,6 @@ public class PlannedMealModel {
 
     @Column(name = "meal_date", nullable = false)
     private LocalDate date;
-
-    @Column(name = "meal_time")
-    private LocalTime time;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)

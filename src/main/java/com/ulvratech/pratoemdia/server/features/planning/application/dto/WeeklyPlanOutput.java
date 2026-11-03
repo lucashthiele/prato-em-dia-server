@@ -9,7 +9,6 @@ import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.Plann
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -53,7 +52,6 @@ public record WeeklyPlanOutput(
             UUID id,
             UUID prescribedMealId,
             LocalDate date,
-            LocalTime time,
             MealType mealType,
             String name,
             int order,
@@ -63,7 +61,6 @@ public record WeeklyPlanOutput(
                     meal.id(),
                     meal.prescribedMealId(),
                     meal.date(),
-                    meal.time(),
                     meal.mealType(),
                     meal.name(),
                     meal.order(),

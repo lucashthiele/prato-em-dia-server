@@ -73,10 +73,10 @@ class PlanningSeeder {
         );
         jdbc.update("""
                 INSERT INTO planned_meal (
-                    id, weekly_plan_id, prescribed_meal_id, meal_date, meal_time, meal_type, name, meal_order
+                    id, weekly_plan_id, prescribed_meal_id, meal_date, meal_type, name, meal_order
                 )
                 SELECT md5(? || ':' || d || ':' || pm.id)::uuid, ?, pm.id, CAST(? AS date) + d,
-                       pm.suggested_time, pm.meal_type, pm.name, pm.meal_order
+                       pm.meal_type, pm.name, pm.meal_order
                 FROM prescribed_meal pm
                 CROSS JOIN generate_series(0, 6) AS d
                 WHERE pm.prescription_version_id = ?
