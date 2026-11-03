@@ -34,6 +34,7 @@
         <java.version>25</java.version>
         <spotless-maven-plugin.version>3.10.2</spotless-maven-plugin.version>
         <springdoc-openapi.version>3.1.1</springdoc-openapi.version>
+        <shedlock.version>7.10.1</shedlock.version>
     </properties>
     <dependencies>
         <dependency>
@@ -77,6 +78,16 @@
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>${springdoc-openapi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-spring</artifactId>
+            <version>${shedlock.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-provider-jdbc-template</artifactId>
+            <version>${shedlock.version}</version>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
