@@ -33,6 +33,13 @@ security:
     # Origins allowed to perform state-changing requests (CSRF check, ADR 0001).
     allowed-origins: ${ALLOWED_ORIGINS:http://localhost:8080,http://localhost:5173,http://localhost:3000}
 
+client:
+  # Minimum X-Client-Version per platform (header format "<platform>/<version>"); older clients get 426 CLIENT_OUTDATED.
+  min-versions:
+    web: ${CLIENT_MIN_VERSION_WEB:0.0.0}
+    android: ${CLIENT_MIN_VERSION_ANDROID:0.0.0}
+    ios: ${CLIENT_MIN_VERSION_IOS:0.0.0}
+
 relationships:
   mail:
     resend-api-key: ${RESEND_API_KEY}

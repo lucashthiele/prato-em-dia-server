@@ -30,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = {
         "security.jwt.secret=01234567890123456789012345678901",
         "security.session.allowed-origins=https://portal.example.com",
+        "client.min-versions.web=2.0.0",
         "spring.docker.compose.enabled=false",
         "spring.jpa.hibernate.ddl-auto=validate"
 })
@@ -132,5 +133,14 @@ class SessionCookieIntegrationTest {
                 post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(body)
                         .header("Origin", "https://portal.example.com")
         ).andExpect(status().isOk());
+    }
+
+    @Test
+    void outdatedClientsGet426BeforeAnyAuthentication() throws Exception {
+        mockMvc.perform(get("/api/v1/foods").header("X-Client-Version", "web/1.9.0"))
+                .andExpect(status().isUpgradeRequired())
+                .andExpect(jsonPath("$.code").value("CLIENT_OUTDATED"));
+        mockMvc.perform(get("/api/v1/foods").header("X-Client-Version", "web/2.0.0"))
+                .andExpect(status().isUnauthorized());
     }
 }

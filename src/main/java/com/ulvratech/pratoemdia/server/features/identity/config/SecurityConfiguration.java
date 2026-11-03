@@ -16,6 +16,8 @@ import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.SecureRefreshTokenGenerator;
 import com.ulvratech.pratoemdia.server.features.identity.infrastructure.security.Sha256RefreshTokenHasher;
 import com.ulvratech.pratoemdia.server.features.identity.presentation.exception.SecurityErrorResponseHandler;
+import com.ulvratech.pratoemdia.server.shared.clientversion.ClientVersionFilter;
+import com.ulvratech.pratoemdia.server.shared.clientversion.ClientVersionProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,7 +45,8 @@ import java.time.Clock;
 
 @Configuration
 @EnableWebSecurity
-@EnableConfigurationProperties({ JwtConfigurationProperties.class, SessionCookieProperties.class })
+@EnableConfigurationProperties({ JwtConfigurationProperties.class, SessionCookieProperties.class,
+        ClientVersionProperties.class })
 public class SecurityConfiguration {
 
     private static final int BCRYPT_STRENGTH = 8;
@@ -134,7 +137,8 @@ public class SecurityConfiguration {
             JwtAuthenticationConverter jwtAuthenticationConverter,
             SecurityErrorResponseHandler securityErrorResponseHandler,
             PasswordChangeRequiredFilter passwordChangeRequiredFilter,
-            OriginCheckFilter originCheckFilter
+            OriginCheckFilter originCheckFilter,
+            ClientVersionFilter clientVersionFilter
     )
             throws Exception {
         return http.csrf(AbstractHttpConfigurer::disable)
@@ -172,6 +176,7 @@ public class SecurityConfiguration {
                                         )
                                 )
                 )
+                .addFilterBefore(clientVersionFilter, BearerTokenAuthenticationFilter.class)
                 .addFilterBefore(originCheckFilter, BearerTokenAuthenticationFilter.class)
                 .addFilterAfter(passwordChangeRequiredFilter, BearerTokenAuthenticationFilter.class)
                 .build();
