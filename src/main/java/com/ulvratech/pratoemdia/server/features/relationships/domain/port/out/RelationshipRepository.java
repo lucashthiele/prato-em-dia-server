@@ -6,6 +6,7 @@ import com.ulvratech.pratoemdia.server.features.relationships.domain.entity.Rela
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageRequest;
 import com.ulvratech.pratoemdia.server.shared.pagination.domain.PageResult;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,6 +18,8 @@ public interface RelationshipRepository {
     Optional<ProfessionalPatientRelationship> findActiveByNutritionistAndPatient(
             UUID nutritionistId, UUID patientId
     );
+
+    List<ProfessionalPatientRelationship> findAllActiveByNutritionistAccount(UUID accountId);
 
     Optional<ProfessionalPatientRelationship> findActiveByPatient(UUID patientId);
 
