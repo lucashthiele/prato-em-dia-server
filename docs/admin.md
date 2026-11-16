@@ -6,7 +6,7 @@ Todas as rotas ficam em `/api/v1/admin/**` e exigem o papel `ADMIN` (`403 ACCESS
 
 | Rota | O que faz |
 |---|---|
-| `POST /admin/nutritionists` | Corpo `{ email, fullName, registrationNumber? }`. Cria a conta `NUTRITIONIST` ativa e o perfil, grava a referência do e-mail de acesso na outbox e o evento de auditoria, tudo na mesma transação. `201` com `{ id, email, fullName, registrationNumber, accessEmailStatus: "PENDING" }`. **A senha temporária nunca é devolvida.** E-mail repetido: `409 USER_ACCOUNT_ALREADY_EXISTS`. |
+| `POST /admin/nutritionists` | Corpo `{ email, fullName, registrationNumber? }`. Cria a conta `NUTRITIONIST` ativa e o perfil, grava a referência do e-mail de acesso na outbox e o evento de auditoria, tudo na mesma transação. `201` com `{ id, email, fullName, registrationNumber, accessEmailStatus: "PENDING" }`. **A senha temporária nunca é devolvida.** E-mail repetido: `409 IDENTITY_ACCOUNT_ALREADY_EXISTS`. |
 | `POST /admin/nutritionists/{id}/access-email` | `202`. Agenda novo e-mail de acesso (nova senha temporária, que substitui as anteriores). Só para nutricionista ativo que ainda não trocou a senha inicial; senão `409 ACCESS_EMAIL_NOT_AVAILABLE`. |
 | `GET /admin/users` | Página (`page`, `size` até 100) com filtros `role`, `status`, `q` (nome ou e-mail). Mais recentes primeiro. |
 | `GET /admin/users/{id}` | Detalhe; `404 USER_ACCOUNT_NOT_FOUND`. |
@@ -18,6 +18,10 @@ Todas as rotas ficam em `/api/v1/admin/**` e exigem o papel `ADMIN` (`403 ACCESS
 ## Auditoria
 
 Tabela `audit_event` (V052), gravada na mesma transação da ação: `NUTRITIONIST_CREATED`, `ACCESS_EMAIL_RESENT`, `USER_STATUS_CHANGED` (detalhe `ACTIVE -> INACTIVE`), `RELATIONSHIPS_ENDED` (detalhe `count=N`, vínculos encerrados pela desativação com `endRelationships`; a coluna `action` aceita o valor desde a V062). Não audita login, vínculo individual nem publicação (decisão do roadmap).
+
+## Conta do administrador no `GET /api/v1/me`
+
+O admin não tem perfil. `GET /api/v1/me` responde `{ userAccountId, role: "ADMIN", email }` com os demais campos nulos, para o portal saber o papel e mostrar o e-mail; `PUT /api/v1/me` continua `403 PROFILE_NOT_AVAILABLE`. Para os outros papéis, a resposta também traz `email` da conta.
 
 ## Primeiro administrador
 

@@ -29,7 +29,7 @@ class UpdateCurrentProfileUseCaseTest {
     @BeforeEach
     void setUp() {
         repository = mock(UserProfileRepository.class);
-        useCase = new UpdateCurrentProfileUseCase(repository);
+        useCase = new UpdateCurrentProfileUseCase(repository, id -> "conta@exemplo.com");
     }
 
     @Test

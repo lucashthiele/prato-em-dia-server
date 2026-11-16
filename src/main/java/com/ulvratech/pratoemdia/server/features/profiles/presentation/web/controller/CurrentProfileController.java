@@ -1,6 +1,7 @@
 package com.ulvratech.pratoemdia.server.features.profiles.presentation.web.controller;
 
 import com.ulvratech.pratoemdia.server.features.profiles.application.dto.GetProfileInput;
+import com.ulvratech.pratoemdia.server.features.profiles.application.dto.ProfileOutput;
 import com.ulvratech.pratoemdia.server.features.profiles.application.dto.UpdateProfileInput;
 import com.ulvratech.pratoemdia.server.features.profiles.application.exception.ProfileNotAvailableException;
 import com.ulvratech.pratoemdia.server.features.profiles.application.port.in.GetCurrentProfile;
@@ -40,12 +41,13 @@ public class CurrentProfileController {
     }
 
     @GetMapping
-    @Operation(summary = "Consultar perfil atual", description = "Retorna os dados do perfil associado ao usuário autenticado.")
+    @Operation(summary = "Consultar perfil atual", description = "Retorna os dados do perfil associado ao usuário autenticado, com o e-mail da conta. "
+            + "Conta ADMIN não tem perfil: responde só id da conta, role ADMIN e e-mail, com os demais campos nulos "
+            + "(o PUT continua respondendo 403 PROFILE_NOT_AVAILABLE para ADMIN).")
     CurrentProfileResponse get(@AuthenticationPrincipal Jwt jwt) {
+        var type = ProfileOutput.ADMIN_ROLE.equals(jwt.getClaimAsString("role")) ? null : profileType(jwt);
         var output = getCurrentProfile.execute(
-                new GetProfileInput(
-                        UUID.fromString(jwt.getSubject()), profileType(jwt)
-                )
+                new GetProfileInput(UUID.fromString(jwt.getSubject()), type)
         );
         return CurrentProfileResponse.from(output);
     }
