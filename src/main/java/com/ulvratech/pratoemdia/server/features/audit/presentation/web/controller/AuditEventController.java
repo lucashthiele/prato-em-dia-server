@@ -35,7 +35,7 @@ public class AuditEventController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar eventos de auditoria", description = "Página dos eventos administrativos (criação de nutricionista, reenvio de acesso e mudança de status), do mais recente para o mais antigo. Todos os filtros são opcionais e combinam entre si.")
+    @Operation(summary = "Listar eventos de auditoria", description = "Página dos eventos administrativos (criação de nutricionista, reenvio de acesso, mudança de status e encerramento de vínculos), do mais recente para o mais antigo. Cada evento traz, além dos ids, actorName, targetName e targetEmail (nulos quando não há conta ou perfil).  Todos os filtros são opcionais e combinam entre si.")
     PageResult<AuditEventResponse> list(
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,

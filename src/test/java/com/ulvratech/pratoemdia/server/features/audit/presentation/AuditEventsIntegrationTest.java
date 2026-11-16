@@ -47,6 +47,8 @@ class AuditEventsIntegrationTest {
     PasswordHasher hasher;
     @Autowired
     RecordAuditEvent record;
+    @Autowired
+    org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     private UserAccount create(UserAccountRole role) {
         return accounts.save(
@@ -83,6 +85,9 @@ class AuditEventsIntegrationTest {
                 .andExpect(jsonPath("$.content[0].details").value("second"))
                 .andExpect(jsonPath("$.content[0].action").value("USER_STATUS_CHANGED"))
                 .andExpect(jsonPath("$.content[0].actorAccountId").value(admin.getId().toString()))
+                .andExpect(jsonPath("$.content[0].actorName").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.content[0].targetAccountId").value(target.getId().toString()))
+                .andExpect(jsonPath("$.content[0].targetEmail").value(target.getEmail()))
                 .andExpect(jsonPath("$.content[1].details").value("first"));
         mockMvc.perform(
                 get("/api/v1/admin/audit-events").param("targetId", target.getId().toString())
@@ -90,6 +95,48 @@ class AuditEventsIntegrationTest {
         )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    void resolvesNamesAndLeavesNullsWithoutTarget() throws Exception {
+        var admin = create(UserAccountRole.ADMIN);
+        var target = create(UserAccountRole.NUTRITIONIST);
+        jdbc.update(
+                "INSERT INTO nutritionist_profile (id, user_account_id, full_name) VALUES (?, ?, ?)", UUID.randomUUID(),
+                target.getId(), "Nutri Bia"
+        );
+        record.execute(
+                new RecordAuditEventInput(admin.getId(), AuditAction.USER_STATUS_CHANGED, target.getId(), "changed")
+        );
+        record.execute(new RecordAuditEventInput(admin.getId(), AuditAction.ACCESS_EMAIL_RESENT, null, "no target"));
+
+        var access = login(admin);
+
+        mockMvc.perform(
+                get("/api/v1/admin/audit-events").param("action", "USER_STATUS_CHANGED")
+                        .param("actorId", admin.getId().toString())
+                        .cookie(access)
+        )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].targetName").value("Nutri Bia"))
+                .andExpect(jsonPath("$.content[0].targetEmail").value(target.getEmail()));
+        mockMvc.perform(
+                get("/api/v1/admin/audit-events").param("action", "ACCESS_EMAIL_RESENT").cookie(access)
+        )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].targetAccountId").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.content[0].targetName").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.content[0].targetEmail").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void actionFilterAcceptsRelationshipsEnded() throws Exception {
+        var access = login(create(UserAccountRole.ADMIN));
+
+        mockMvc.perform(get("/api/v1/admin/audit-events").param("action", "RELATIONSHIPS_ENDED").cookie(access))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(0));
     }
 
     @Test
