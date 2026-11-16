@@ -106,12 +106,17 @@ public class AdminController {
     }
 
     @PatchMapping("/users/{id}/status")
-    @Operation(summary = "Alterar status da conta", description = "Ativa ou desativa uma conta. Desativar revoga os refresh tokens (o access token em curso vale até expirar). O administrador não pode alterar a própria conta.")
+    @Operation(summary = "Alterar status da conta", description = "Ativa ou desativa uma conta. Desativar revoga os refresh tokens (o access token em curso vale até expirar). O administrador não pode alterar a própria conta. Com `endRelationships: true` (só para desativar uma conta NUTRITIONIST), encerra também todos os vínculos ativos dela, arquiva as prescrições desses vínculos e audita `RELATIONSHIPS_ENDED` (details `count=N`); para outro papel ou para ativação responde 400 `END_RELATIONSHIPS_NOT_APPLICABLE`.")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void changeStatus(
             @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id, @Valid @RequestBody ChangeUserStatusRequest request
     ) {
-        changeStatus.execute(new ChangeUserStatusInput(id(jwt), id, UserAccountStatus.valueOf(request.status())));
+        changeStatus.execute(
+                new ChangeUserStatusInput(
+                        id(jwt), id, UserAccountStatus.valueOf(request.status()),
+                        Boolean.TRUE.equals(request.endRelationships())
+                )
+        );
     }
 
     private static UUID id(Jwt jwt) {

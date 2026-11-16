@@ -1,6 +1,8 @@
 package com.ulvratech.pratoemdia.server.features.relationships.presentation.exception;
 
 import com.ulvratech.pratoemdia.server.features.identity.presentation.exception.dto.ApiErrorResponse;
+import com.ulvratech.pratoemdia.server.features.identity.presentation.exception.dto.ApiFieldError;
+import com.ulvratech.pratoemdia.server.features.relationships.application.exception.RelationshipAlreadyExistsException;
 import com.ulvratech.pratoemdia.server.features.relationships.application.exception.RelationshipConflictException;
 import com.ulvratech.pratoemdia.server.features.relationships.application.exception.RelationshipEmailException;
 import com.ulvratech.pratoemdia.server.features.relationships.application.exception.RelationshipNotFoundException;
@@ -30,6 +32,17 @@ public class RelationshipExceptionHandler {
                 HttpStatus.CONFLICT,
                 e.getCode(),
                 "O paciente já possui vínculo ativo ou o vínculo não pode ser alterado."
+        );
+    }
+
+    @ExceptionHandler(RelationshipAlreadyExistsException.class)
+    ResponseEntity<ApiErrorResponse> alreadyExists(RelationshipAlreadyExistsException e) {
+        var status = HttpStatus.CONFLICT;
+        return ResponseEntity.status(status).body(
+                new ApiErrorResponse(
+                        status.value(), e.getCode(), "O paciente já está vinculado a você.",
+                        List.of(new ApiFieldError("patientId", e.getCode(), e.getPatientId().toString()))
+                )
         );
     }
 

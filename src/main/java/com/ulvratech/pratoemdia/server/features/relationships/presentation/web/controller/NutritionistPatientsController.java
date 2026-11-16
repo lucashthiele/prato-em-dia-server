@@ -66,7 +66,7 @@ public class NutritionistPatientsController {
     }
 
     @PostMapping
-    @Operation(summary = "Adicionar paciente", description = "Cria um vínculo com um paciente e envia suas instruções de acesso.")
+    @Operation(summary = "Adicionar paciente", description = "Cria um vínculo com um paciente e envia suas instruções de acesso. Responde 409 `RELATIONSHIP_ALREADY_EXISTS` (nenhum e-mail é enviado) quando o paciente já é vinculado ao nutricionista autenticado: `errors[0]` traz `field=patientId` e o id do paciente em `message`. Responde 409 `RELATIONSHIP_CONFLICT` quando o paciente tem vínculo ativo com outro nutricionista.")
     ResponseEntity<RelationshipOutput> create(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CreatePatientRelationshipRequest request

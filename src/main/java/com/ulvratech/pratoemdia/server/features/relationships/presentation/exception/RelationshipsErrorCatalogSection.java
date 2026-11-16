@@ -17,8 +17,14 @@ public class RelationshipsErrorCatalogSection implements ErrorCatalogSection {
                         "/api/v1/patients/me/relationship", "/api/v1/nutritionists/me/patients/**"
                 ),
                 error(
-                        "RELATIONSHIP_CONFLICT", 409, "O vínculo está em um estado que não permite a operação.",
+                        "RELATIONSHIP_CONFLICT", 409,
+                        "O paciente tem vínculo ativo com outro nutricionista ou o vínculo está em um estado que não permite a operação.",
                         "/api/v1/patients/me/relationship", "/api/v1/nutritionists/me/patients/**"
+                ),
+                error(
+                        "RELATIONSHIP_ALREADY_EXISTS", 409,
+                        "O paciente já tem vínculo ativo com o nutricionista autenticado. O id do paciente vem em errors[0] (field=patientId, message=id).",
+                        "POST /api/v1/nutritionists/me/patients"
                 ),
                 error(
                         "RELATIONSHIP_EMAIL_FAILED", 503,

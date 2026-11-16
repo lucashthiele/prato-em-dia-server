@@ -137,6 +137,20 @@ public class PrescriptionUseCase implements PrescriptionCommands, PrescriptionQu
     }
 
     @Override
+    public void discardVersion(VersionQuery input) {
+        var prescription = requireByVersion(input.versionId());
+        requireAuthor(prescription, input.actor());
+        try {
+            if (prescription.discardDraft(input.versionId()))
+                repository.deleteById(prescription.getId());
+            else
+                repository.save(prescription);
+        } catch (IllegalStateException exception) {
+            throw conflict(exception);
+        }
+    }
+
+    @Override
     @Transactional(Transactional.TxType.SUPPORTS)
     public List<PrescriptionOutput> list(PatientQuery input) {
         UUID nutritionistId = requireNutritionist(input.actor());

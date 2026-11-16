@@ -27,12 +27,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -153,11 +155,18 @@ public class PrescriptionController {
     }
 
     @PostMapping("/prescription-versions/{versionId}/archive")
-    @Operation(summary = "Arquivar versão da prescrição", description = "Arquiva uma versão publicada da prescrição.")
+    @Operation(summary = "Arquivar versão da prescrição", description = "Arquiva uma versão publicada da prescrição (tira a versão vigente do paciente). Rascunho não pode ser arquivado: responde 409 PRESCRIPTION_CONFLICT; use o descarte.")
     PrescriptionOutput.VersionOutput archive(
             @AuthenticationPrincipal Jwt jwt, @PathVariable UUID versionId
     ) {
         return commands.archive(new VersionQuery(actor(jwt), versionId));
+    }
+
+    @DeleteMapping("/prescription-versions/{versionId}")
+    @Operation(summary = "Descartar rascunho da prescrição", description = "Remove de fato uma versão em rascunho, só pelo autor da prescrição; o número dela fica livre. Se for a única versão, a prescrição inteira é apagada e o paciente volta a aceitar uma nova prescrição. Responde 204; 409 PRESCRIPTION_CONFLICT quando a versão não é rascunho.")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void discard(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID versionId) {
+        commands.discardVersion(new VersionQuery(actor(jwt), versionId));
     }
 
     @GetMapping("/patients/me/prescriptions/current")

@@ -10,6 +10,7 @@ import com.ulvratech.pratoemdia.server.features.identity.presentation.web.reques
 import com.ulvratech.pratoemdia.server.features.identity.application.exception.InvalidRefreshTokenException;
 import com.ulvratech.pratoemdia.server.features.identity.presentation.web.session.SessionCookies;
 import com.ulvratech.pratoemdia.server.features.identity.presentation.web.response.AuthenticationResponse;
+import com.ulvratech.pratoemdia.server.shared.clientversion.ClientVersion;
 import com.ulvratech.pratoemdia.server.shared.openapi.OpenApiConfiguration;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -50,12 +51,19 @@ public class AuthenticationController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Autenticar usuário", description = "Valida e-mail e senha e inicia a sessão (após tentativas falhas demais por e-mail ou IP, responde 429 LOGIN_RATE_LIMITED com Retry-After): o access token e o refresh token são entregues em cookies HttpOnly, nunca no corpo.")
+    @Operation(summary = "Autenticar usuário", description = "Valida e-mail e senha e inicia a sessão (após tentativas falhas demais por e-mail ou IP, responde 429 LOGIN_RATE_LIMITED com Retry-After; com X-Client-Version web/* para conta PATIENT, ou android/* e ios/* para NUTRITIONIST e ADMIN, responde 401 AUTH_INVALID_CREDENTIALS depois de validar a senha, sem contar como falha no limitador; cabeçalho ausente, malformado ou de plataforma desconhecida não restringe): o access token e o refresh token são entregues em cookies HttpOnly, nunca no corpo.")
     public ResponseEntity<AuthenticationResponse> login(
             @Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest
     ) {
         var output = authenticateUser.execute(
-                new AuthenticateUserInput(request.email(), request.password(), httpRequest.getRemoteAddr())
+                new AuthenticateUserInput(
+                        request.email(),
+                        request.password(),
+                        httpRequest.getRemoteAddr(),
+                        ClientVersion.parse(httpRequest.getHeader(ClientVersion.HEADER))
+                                .map(ClientVersion::platform)
+                                .orElse(null)
+                )
         );
         return session(
                 output.accessToken(), output.refreshToken(), output.expiresIn(), output.passwordChangeRequired()

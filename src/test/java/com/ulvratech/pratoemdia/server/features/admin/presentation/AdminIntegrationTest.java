@@ -10,6 +10,11 @@ import com.ulvratech.pratoemdia.server.features.identity.domain.entity.UserAccou
 import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccountRole;
 import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccountStatus;
 import com.ulvratech.pratoemdia.server.features.identity.domain.port.out.UserAccountRepository;
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.PrescribedMeal;
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.PrescribedMealItem;
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.Prescription;
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.port.out.PrescriptionRepository;
+import com.ulvratech.pratoemdia.server.features.prescriptions.infrastructure.persistence.adapter.PrescriptionQueryAdapter;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -25,10 +30,14 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -61,6 +70,10 @@ class AdminIntegrationTest {
     JdbcTemplate jdbc;
     @Autowired
     ObjectMapper json;
+    @Autowired
+    PrescriptionRepository prescriptions;
+    @Autowired
+    PrescriptionQueryAdapter prescriptionQuery;
     @MockitoBean
     EmailSender sender;
 
@@ -131,6 +144,11 @@ class AdminIntegrationTest {
         mockMvc.perform(get("/api/v1/admin/users/" + id).cookie(adminAccess))
                 .andExpect(jsonPath("$.accessEmail.status").value("SENT"));
 
+        mockMvc.perform(
+                post("/api/v1/auth/login").header("X-Client-Version", "android/2.0.1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + email + "\",\"password\":\"" + temporary + "\"}")
+        ).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("AUTH_INVALID_CREDENTIALS"));
         var nutritionistAccess = login(email, temporary);
         mockMvc.perform(get("/api/v1/foods").cookie(nutritionistAccess))
                 .andExpect(status().isForbidden())
@@ -142,7 +160,7 @@ class AdminIntegrationTest {
 
         mockMvc.perform(
                 patch("/api/v1/me/password").cookie(nutritionistAccess).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"currentPassword\":\"" + temporary + "\",\"newPassword\":\"a-brand-new-password\"}")
+                        .content("{\"newPassword\":\"a-brand-new-password\"}")
         ).andExpect(status().isOk());
 
         dispatch.execute();
@@ -259,5 +277,145 @@ class AdminIntegrationTest {
                 post("/api/v1/identity/useraccounts").cookie(adminAccess).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"y@example.com\",\"password\":\"password-long\",\"role\":\"ADMIN\"}")
         ).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deactivatingANutritionistWithEndRelationshipsEndsThemArchivesPrescriptionsAndAudits() throws Exception {
+        var adminAccount = admin();
+        var adminAccess = login(adminAccount.getEmail(), "password-long");
+        var nutritionistAccount = UUID.fromString(
+                createNutritionist(adminAccess, "endrel" + UUID.randomUUID() + "@example.com").get("id").asText()
+        );
+        var nutritionistProfile = jdbc.queryForObject(
+                "select id from nutritionist_profile where user_account_id = ?", UUID.class, nutritionistAccount
+        );
+        var patients = List.of(
+                seedPatientWithPublishedPrescription(nutritionistAccount, nutritionistProfile),
+                seedPatientWithPublishedPrescription(nutritionistAccount, nutritionistProfile)
+        );
+        patients.forEach(p -> assertTrue(prescriptionQuery.currentPublishedVersion(p).isPresent()));
+
+        mockMvc.perform(
+                patch("/api/v1/admin/users/" + nutritionistAccount + "/status").cookie(adminAccess)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"INACTIVE\",\"endRelationships\":true}")
+        ).andExpect(status().isNoContent());
+
+        assertEquals(
+                0L, jdbc.queryForObject(
+                        "select count(*) from nutritionist_patient_relationship where nutritionist_id = ? and status = 'ACTIVE'",
+                        Long.class, nutritionistProfile
+                )
+        );
+        assertEquals(
+                2L, jdbc.queryForObject(
+                        "select count(*) from nutritionist_patient_relationship where nutritionist_id = ? and status = 'ENDED' and ended_by_user_account_id = ?",
+                        Long.class, nutritionistProfile, adminAccount.getId()
+                )
+        );
+        patients.forEach(p -> assertTrue(prescriptionQuery.currentPublishedVersion(p).isEmpty()));
+        assertEquals(
+                0L, jdbc.queryForObject(
+                        "select count(*) from prescription where nutritionist_id = ? and status <> 'ARCHIVED'",
+                        Long.class, nutritionistProfile
+                )
+        );
+        assertEquals(1, auditCount(nutritionistAccount, "USER_STATUS_CHANGED"));
+        assertEquals(1, auditCount(nutritionistAccount, "RELATIONSHIPS_ENDED"));
+        assertEquals(
+                "count=2", jdbc.queryForObject(
+                        "select details from audit_event where target_account_id = ? and action = 'RELATIONSHIPS_ENDED'",
+                        String.class, nutritionistAccount
+                )
+        );
+    }
+
+    @Test
+    void deactivatingWithoutEndRelationshipsKeepsTheRelationshipsAndPrescriptions() throws Exception {
+        var adminAccess = login(admin().getEmail(), "password-long");
+        var nutritionistAccount = UUID.fromString(
+                createNutritionist(adminAccess, "keeprel" + UUID.randomUUID() + "@example.com").get("id").asText()
+        );
+        var profile = jdbc.queryForObject(
+                "select id from nutritionist_profile where user_account_id = ?", UUID.class, nutritionistAccount
+        );
+        var patient = seedPatientWithPublishedPrescription(nutritionistAccount, profile);
+
+        mockMvc.perform(
+                patch("/api/v1/admin/users/" + nutritionistAccount + "/status").cookie(adminAccess)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"INACTIVE\"}")
+        ).andExpect(status().isNoContent());
+
+        assertTrue(prescriptionQuery.currentPublishedVersion(patient).isPresent());
+        assertEquals(0, auditCount(nutritionistAccount, "RELATIONSHIPS_ENDED"));
+        assertEquals(
+                1L, jdbc.queryForObject(
+                        "select count(*) from nutritionist_patient_relationship where nutritionist_id = ? and status = 'ACTIVE'",
+                        Long.class, profile
+                )
+        );
+    }
+
+    @Test
+    void endRelationshipsIsRejectedForOtherRolesAndForActivationWithoutSideEffects() throws Exception {
+        var adminAccess = login(admin().getEmail(), "password-long");
+        var patient = accounts.save(
+                new UserAccount(
+                        "pat" + UUID.randomUUID() + "@example.com", hasher.hash("password-long"),
+                        UserAccountRole.PATIENT, UserAccountStatus.ACTIVE
+                )
+        );
+        var nutritionistAccount = UUID.fromString(
+                createNutritionist(adminAccess, "rej" + UUID.randomUUID() + "@example.com").get("id").asText()
+        );
+
+        mockMvc.perform(
+                patch("/api/v1/admin/users/" + patient.getId() + "/status").cookie(adminAccess)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"INACTIVE\",\"endRelationships\":true}")
+        ).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("END_RELATIONSHIPS_NOT_APPLICABLE"));
+        mockMvc.perform(
+                patch("/api/v1/admin/users/" + nutritionistAccount + "/status").cookie(adminAccess)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"ACTIVE\",\"endRelationships\":true}")
+        ).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("END_RELATIONSHIPS_NOT_APPLICABLE"));
+
+        mockMvc.perform(get("/api/v1/admin/users/" + patient.getId()).cookie(adminAccess))
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+        assertEquals(0, auditCount(patient.getId(), "USER_STATUS_CHANGED"));
+    }
+
+    private UUID seedPatientWithPublishedPrescription(UUID nutritionistAccount, UUID nutritionistProfile) {
+        var suffix = UUID.randomUUID();
+        var patientAccount = UUID.randomUUID();
+        var patient = UUID.randomUUID();
+        var food = UUID.randomUUID();
+        jdbc.update(
+                "insert into user_account(id,email,password_hash,role) values (?,?,?,?::user_role)",
+                patientAccount, "seed-" + suffix + "@example.com", "hash", "PATIENT"
+        );
+        jdbc.update(
+                "insert into patient_profile(id,user_account_id,full_name) values (?,?,?)", patient, patientAccount,
+                "Paciente"
+        );
+        jdbc.update(
+                "insert into food(id,name,default_unit,created_by_user_id,origin) values (?,?,?,?,?::food_origin)",
+                food, "Arroz " + suffix, "g", nutritionistAccount, "NUTRITIONIST"
+        );
+        jdbc.update(
+                "insert into nutritionist_patient_relationship(id,nutritionist_id,patient_id) values (?,?,?)",
+                UUID.randomUUID(), nutritionistProfile, patient
+        );
+        var meal = PrescribedMeal.create(
+                "Lunch", 0, null, null, List.of(
+                        PrescribedMealItem.create(food, null, new BigDecimal("100"), "g", 0, null, List.of())
+                )
+        );
+        var saved = prescriptions.save(
+                Prescription.create(patient, nutritionistProfile, nutritionistAccount, "Plan", null, List.of(meal))
+        );
+        saved.publish(saved.getVersions().getFirst().getId(), Instant.parse("2026-11-01T12:00:00Z"));
+        prescriptions.save(saved);
+        return patient;
     }
 }

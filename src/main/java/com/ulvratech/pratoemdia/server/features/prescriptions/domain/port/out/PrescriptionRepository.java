@@ -8,6 +8,8 @@ import java.util.UUID;
 public interface PrescriptionRepository {
     Prescription save(Prescription prescription);
 
+    void deleteById(UUID id);
+
     Optional<Prescription> findById(UUID id);
 
     Optional<Prescription> findByVersionId(UUID versionId);

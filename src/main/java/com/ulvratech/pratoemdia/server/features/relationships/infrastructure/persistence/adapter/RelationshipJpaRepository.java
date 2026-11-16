@@ -37,6 +37,10 @@ public interface RelationshipJpaRepository extends JpaRepository<RelationshipMod
 
     Optional<RelationshipModel> findByPatientIdAndStatus(UUID patientId, RelationshipStatus status);
 
+    @Query("select r from RelationshipModel r, NutritionistProfileModel n where r.nutritionistId=n.id"
+            + " and n.userAccountId=:accountId and r.status='ACTIVE'")
+    List<RelationshipModel> findAllActiveByNutritionistAccount(@Param("accountId") UUID accountId);
+
     @Query(VIEW + "and n.userAccountId=:accountId and p.id=:patientId and r.status='ACTIVE'")
     Optional<RelationshipView> findActiveViewByNutritionist(
             @Param("accountId") UUID accountId, @Param("patientId") UUID patientId

@@ -5,6 +5,7 @@ import com.ulvratech.pratoemdia.server.features.identity.application.port.in.Pro
 import com.ulvratech.pratoemdia.server.features.relationships.application.dto.CreateRelationshipInput;
 import com.ulvratech.pratoemdia.server.features.relationships.application.dto.ProvisionedRelationship;
 import com.ulvratech.pratoemdia.server.features.relationships.application.dto.RelationshipOutput;
+import com.ulvratech.pratoemdia.server.features.relationships.application.exception.RelationshipAlreadyExistsException;
 import com.ulvratech.pratoemdia.server.features.relationships.application.exception.RelationshipConflictException;
 import com.ulvratech.pratoemdia.server.features.relationships.application.exception.RelationshipNotFoundException;
 import com.ulvratech.pratoemdia.server.features.relationships.application.port.in.CreateRelationship;
@@ -60,8 +61,12 @@ public class CreateRelationshipUseCase implements CreateRelationship {
                                         account.userAccountId()
                                 )
                                 .orElseThrow(RelationshipNotFoundException::new);
-                        if (relationships.findActiveByPatient(patientId).isPresent())
+                        var active = relationships.findActiveByPatient(patientId);
+                        if (active.isPresent()) {
+                            if (active.get().getNutritionistId().equals(nutritionistId))
+                                throw new RelationshipAlreadyExistsException(patientId);
                             throw new RelationshipConflictException();
+                        }
                         var saved = relationships.save(
                                 ProfessionalPatientRelationship.create(
                                         nutritionistId, patientId

@@ -157,6 +157,111 @@ class PrescriptionMigrationTest {
         );
     }
 
+    @Test
+    void discardingADraftRemovesItsContentAndFreesTheNumber() throws Exception {
+        UUID nutritionistAccount = UUID.randomUUID();
+        UUID patientAccount = UUID.randomUUID();
+        UUID nutritionist = UUID.randomUUID();
+        UUID patient = UUID.randomUUID();
+        UUID food = UUID.randomUUID();
+        UUID otherPatient = UUID.randomUUID();
+        UUID otherPatientAccount = UUID.randomUUID();
+        try (var connection = connection()) {
+            execute(
+                    connection, "insert into user_account(id,email,password_hash,role) values (?,?,?,?::user_role)",
+                    otherPatientAccount, "discard-patient2@example.com", "hash", "PATIENT"
+            );
+            execute(
+                    connection, "insert into patient_profile(id,user_account_id,full_name) values (?,?,?)",
+                    otherPatient, otherPatientAccount, "Patient 2"
+            );
+            execute(
+                    connection, "insert into user_account(id,email,password_hash,role) values (?,?,?,?::user_role)",
+                    nutritionistAccount, "discard-nutritionist@example.com", "hash", "NUTRITIONIST"
+            );
+            execute(
+                    connection, "insert into user_account(id,email,password_hash,role) values (?,?,?,?::user_role)",
+                    patientAccount, "discard-patient@example.com", "hash", "PATIENT"
+            );
+            execute(
+                    connection, "insert into nutritionist_profile(id,user_account_id,full_name) values (?,?,?)",
+                    nutritionist, nutritionistAccount, "Nutritionist"
+            );
+            execute(
+                    connection, "insert into patient_profile(id,user_account_id,full_name) values (?,?,?)",
+                    patient, patientAccount, "Patient"
+            );
+            execute(
+                    connection,
+                    "insert into food(id,name,default_unit,created_by_user_id,origin) values (?,?,?,?,?::food_origin)",
+                    food, "Discard test food", "g", nutritionistAccount, "NUTRITIONIST"
+            );
+        }
+        var substitution = com.ulvratech.pratoemdia.server.features.prescriptions.domain.entity.AllowedSubstitution
+                .create(food, null, new BigDecimal("50"), "g", null);
+        var meal = PrescribedMeal.create(
+                "Lunch", 0, null, null, List.of(
+                        PrescribedMealItem.create(
+                                food, null, new BigDecimal("100"), "g", 0, null, List.of(substitution)
+                        )
+                )
+        );
+        var prescription = Prescription.create(patient, nutritionist, nutritionistAccount, "Plan", null, List.of(meal));
+        var first = prescription.getVersions().getFirst();
+        first.replaceContent(
+                "Plan", null, List.of(meal), List.of(new NutritionTarget("protein", new BigDecimal("75"), "g"))
+        );
+        var saved = repository.save(prescription);
+        saved.publish(first.getId(), Instant.parse("2026-10-13T12:00:00Z"));
+        saved = repository.save(saved);
+        var draft = saved.addDraft(nutritionistAccount);
+        saved = repository.save(saved);
+
+        assertEquals(1, count("prescribed_meal", "prescription_version_id", draft.getId()));
+        assertEquals(1, count("prescription_nutrition_target", "prescription_version_id", draft.getId()));
+
+        saved.discardDraft(draft.getId());
+        repository.save(saved);
+
+        assertEquals(0, count("prescription_version", "id", draft.getId()));
+        assertEquals(0, count("prescribed_meal", "prescription_version_id", draft.getId()));
+        assertEquals(0, count("prescription_nutrition_target", "prescription_version_id", draft.getId()));
+        var reloaded = repository.findById(saved.getId()).orElseThrow();
+        assertEquals(1, reloaded.getVersions().size());
+        assertEquals(2, reloaded.addDraft(nutritionistAccount).getNumber());
+
+        var lonely = repository.save(
+                Prescription.create(
+                        otherPatient, nutritionist,
+                        nutritionistAccount, "Lonely", null, List.of(
+                                PrescribedMeal.create(
+                                        "Lunch", 0, null, null, List.of(
+                                                PrescribedMealItem.create(
+                                                        food, null, BigDecimal.ONE, "g", 0, null, List.of()
+                                                )
+                                        )
+                                )
+                        )
+                )
+        );
+        var lonelyVersion = lonely.getVersions().getFirst();
+        repository.deleteById(lonely.getId());
+        assertEquals(0, count("prescription", "id", lonely.getId()));
+        assertEquals(0, count("prescribed_meal", "prescription_version_id", lonelyVersion.getId()));
+    }
+
+    private int count(String table, String column, UUID id) throws SQLException {
+        try (var connection = connection();
+                var statement = connection
+                        .prepareStatement("select count(*) from " + table + " where " + column + " = ?")) {
+            statement.setObject(1, id);
+            try (var result = statement.executeQuery()) {
+                result.next();
+                return result.getInt(1);
+            }
+        }
+    }
+
     private Connection connection() throws SQLException {
         return DriverManager.getConnection(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
     }

@@ -92,6 +92,62 @@ class PrescriptionUseCaseTest {
     }
 
     @Test
+    void discardsDraftsOnlyForTheAuthorAndDeletesTheWholePrescriptionWhenNothingRemains() {
+        var repository = mock(PrescriptionRepository.class);
+        var references = mock(PrescriptionReferences.class);
+        var account = UUID.randomUUID();
+        var nutritionist = UUID.randomUUID();
+        var patient = UUID.randomUUID();
+        var food = UUID.randomUUID();
+        var stored = new java.util.concurrent.atomic.AtomicReference<Prescription>();
+        when(references.nutritionistProfileId(account)).thenReturn(Optional.of(nutritionist));
+        when(references.hasActiveRelationship(nutritionist, patient)).thenReturn(true);
+        when(references.isActiveFood(food)).thenReturn(true);
+        when(repository.findByNutritionistAndPatient(nutritionist, patient)).thenReturn(List.of());
+        when(repository.save(any())).thenAnswer(invocation -> {
+            stored.set(invocation.getArgument(0));
+            return stored.get();
+        });
+        when(repository.findByVersionId(any())).thenAnswer(invocation -> Optional.of(stored.get()));
+        when(repository.findById(any())).thenAnswer(invocation -> Optional.of(stored.get()));
+        var useCase = new PrescriptionUseCase(
+                repository, references, Clock.fixed(Instant.parse("2026-09-11T12:00:00Z"), ZoneOffset.UTC)
+        );
+        var actor = new Actor(account, "NUTRITIONIST");
+        var created = useCase.create(new Create(actor, patient, content(food)));
+        var onlyDraft = created.versions().getFirst().id();
+
+        assertThrows(
+                PrescriptionAccessDeniedException.class,
+                () -> useCase.discardVersion(new VersionQuery(new Actor(UUID.randomUUID(), "NUTRITIONIST"), onlyDraft))
+        );
+        verify(repository, never()).deleteById(any());
+
+        useCase.discardVersion(new VersionQuery(actor, onlyDraft));
+        verify(repository).deleteById(created.id());
+
+        // com versão publicada: só o rascunho some, a prescrição fica
+        var created2 = useCase.create(new Create(actor, patient, content(food)));
+        var published = useCase.publish(new VersionQuery(actor, created2.versions().getFirst().id()));
+        var draft = useCase.createVersion(new PrescriptionQuery(actor, created2.id()));
+        assertThrows(
+                PrescriptionConflictException.class,
+                () -> useCase.discardVersion(new VersionQuery(actor, published.id()))
+        );
+        useCase.discardVersion(new VersionQuery(actor, draft.id()));
+        verify(repository, never()).deleteById(created2.id());
+        assertEquals(1, stored.get().getVersions().size());
+        assertThrows(
+                PrescriptionConflictException.class,
+                () -> useCase.archive(new VersionQuery(actor, draftOf(useCase, actor, created2.id())))
+        );
+    }
+
+    private UUID draftOf(PrescriptionUseCase useCase, Actor actor, UUID prescriptionId) {
+        return useCase.createVersion(new PrescriptionQuery(actor, prescriptionId)).id();
+    }
+
+    @Test
     void deniesAnUnlinkedNutritionist() {
         var repository = mock(PrescriptionRepository.class);
         var references = mock(PrescriptionReferences.class);

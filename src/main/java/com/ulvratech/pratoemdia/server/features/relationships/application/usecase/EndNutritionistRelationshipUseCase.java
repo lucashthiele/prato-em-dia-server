@@ -1,6 +1,7 @@
 package com.ulvratech.pratoemdia.server.features.relationships.application.usecase;
 
 import com.ulvratech.pratoemdia.server.features.relationships.application.dto.RelationshipQueryInput;
+import com.ulvratech.pratoemdia.server.features.relationships.application.port.out.RelationshipEndedHandler;
 import com.ulvratech.pratoemdia.server.features.relationships.application.exception.RelationshipConflictException;
 import com.ulvratech.pratoemdia.server.features.relationships.application.exception.RelationshipNotFoundException;
 import com.ulvratech.pratoemdia.server.features.relationships.application.port.in.EndNutritionistRelationship;
@@ -17,10 +18,14 @@ import java.time.Clock;
 public class EndNutritionistRelationshipUseCase implements EndNutritionistRelationship {
     private final RelationshipRepository repository;
     private final Clock clock;
+    private final RelationshipEndedHandler archivePrescriptions;
 
-    public EndNutritionistRelationshipUseCase(RelationshipRepository r, Clock c) {
+    public EndNutritionistRelationshipUseCase(
+            RelationshipRepository r, Clock c, RelationshipEndedHandler a
+    ) {
         repository = r;
         clock = c;
+        archivePrescriptions = a;
     }
 
     public void execute(RelationshipQueryInput i) {
@@ -32,5 +37,6 @@ public class EndNutritionistRelationshipUseCase implements EndNutritionistRelati
                 .orElseThrow(RelationshipNotFoundException::new);
         relationship.end(i.accountId(), clock.instant());
         repository.save(relationship);
+        archivePrescriptions.onRelationshipEnded(relationship.getNutritionistId(), relationship.getPatientId());
     }
 }

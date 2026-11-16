@@ -1,6 +1,7 @@
 package com.ulvratech.pratoemdia.server.features.identity.application.usecase;
 
 import com.ulvratech.pratoemdia.server.features.identity.application.dto.AuthenticateUserInput;
+import com.ulvratech.pratoemdia.server.features.identity.application.dto.AuthenticateUserOutput;
 import com.ulvratech.pratoemdia.server.features.identity.application.dto.GeneratedAccessToken;
 import com.ulvratech.pratoemdia.server.features.identity.application.dto.GeneratedRefreshToken;
 import com.ulvratech.pratoemdia.server.features.identity.application.exception.InactiveUserAccountException;
@@ -202,5 +203,48 @@ class AuthenticateUserUseCaseTest {
 
         verify(limiter).recordSuccess("patient@example.com");
         verify(limiter, never()).recordFailure(any(), any());
+    }
+
+    private AuthenticateUserOutput loginAs(UserAccountRole role, String platform) {
+        var user = new UserAccount(UUID.randomUUID(), "u@example.com", "password-hash", role, UserAccountStatus.ACTIVE);
+        when(userAccounts.findByEmailIgnoreCase("u@example.com")).thenReturn(Optional.of(user));
+        when(passwordHasher.matches("right", "password-hash")).thenReturn(true);
+        when(accessTokenProvider.generate(user)).thenReturn(new GeneratedAccessToken("a", NOW.plusSeconds(900)));
+        when(refreshTokenGenerator.generate()).thenReturn(new GeneratedRefreshToken("r", NOW.plusSeconds(3600)));
+        when(refreshTokenHasher.hash("r")).thenReturn("h");
+        return useCase.execute(new AuthenticateUserInput("u@example.com", "right", "1.2.3.4", platform));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({ "PATIENT,web", "NUTRITIONIST,android", "NUTRITIONIST,ios",
+            "ADMIN,android", "ADMIN,ios" })
+    void rejectsTheRolePlatformMismatchWithoutTokensAndWithoutCountingAFailure(String role, String platform) {
+        assertThrows(InvalidCredentialsException.class, () -> loginAs(UserAccountRole.valueOf(role), platform));
+        verify(accessTokenProvider, never()).generate(any());
+        verify(refreshTokens, never()).save(any());
+        verify(limiter, never()).recordFailure(any(), any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+            "PATIENT,android", "PATIENT,ios", "PATIENT,", "PATIENT,desktop",
+            "NUTRITIONIST,web", "NUTRITIONIST,", "NUTRITIONIST,desktop", "ADMIN,web", "ADMIN,", "ADMIN,desktop" })
+    void allowsTheMatchingNullOrUnknownPlatforms(String role, String platform) {
+        assertEquals("a", loginAs(UserAccountRole.valueOf(role), platform).accessToken());
+    }
+
+    @Test
+    void aWrongPasswordOnTheWrongPlatformIsAnOrdinaryFailure() {
+        var user = new UserAccount(
+                UUID.randomUUID(), "u@example.com", "password-hash", UserAccountRole.PATIENT, UserAccountStatus.ACTIVE
+        );
+        when(userAccounts.findByEmailIgnoreCase("u@example.com")).thenReturn(Optional.of(user));
+        when(passwordHasher.matches("bad", "password-hash")).thenReturn(false);
+
+        assertThrows(
+                InvalidCredentialsException.class,
+                () -> useCase.execute(new AuthenticateUserInput("u@example.com", "bad", "1.2.3.4", "web"))
+        );
+        verify(limiter).recordFailure("u@example.com", "1.2.3.4");
     }
 }

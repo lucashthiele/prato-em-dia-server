@@ -23,7 +23,8 @@ public class PrescriptionsErrorCatalogSection implements ErrorCatalogSection {
                 error(
                         "PRESCRIPTION_CONFLICT", 409,
                         "A versão da prescrição mudou ou o estado atual não permite a operação.",
-                        "/api/v1/prescriptions/**"
+                        "/api/v1/prescriptions/**",
+                        "/api/v1/prescription-versions/**"
                 ),
                 error(
                         "INVALID_PRESCRIPTION_REFERENCE", 422,

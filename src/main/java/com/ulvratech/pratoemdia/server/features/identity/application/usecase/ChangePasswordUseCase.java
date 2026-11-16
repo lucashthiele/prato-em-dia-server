@@ -53,7 +53,10 @@ public class ChangePasswordUseCase implements ChangePassword {
     public AuthenticateUserOutput execute(ChangePasswordInput input) {
         var account = accounts.findById(input.userAccountId())
                 .orElseThrow(InvalidCredentialsException::new);
-        if (!passwordHasher.matches(input.currentPassword(), account.getPasswordHash())) {
+        // First access (temporary password): the restricted session already proves the password, so the
+        // current password is ignored. Otherwise it is required; absent, blank or wrong is the same error.
+        if (!account.isPasswordChangeRequired() && (input.currentPassword() == null
+                || !passwordHasher.matches(input.currentPassword(), account.getPasswordHash()))) {
             throw new InvalidCredentialsException();
         }
         account.replacePassword(passwordHasher.hash(input.newPassword()), false);

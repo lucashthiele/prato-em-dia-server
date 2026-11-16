@@ -76,4 +76,73 @@ class ChangePasswordUseCaseTest {
         verify(refreshTokens).revokeAllByUserAccountId(id, now);
         verify(refreshTokens).save(any(RefreshToken.class));
     }
+
+    private ChangePasswordUseCase useCaseFor(
+            UserAccount account, PasswordHasher hasher, RefreshTokenRepository refreshTokens
+    ) {
+        var accounts = mock(UserAccountRepository.class);
+        var accessTokens = mock(AccessTokenProvider.class);
+        var generator = mock(RefreshTokenGenerator.class);
+        var tokenHasher = mock(RefreshTokenHasher.class);
+        var now = Instant.parse("2026-09-01T12:00:00Z");
+        when(accounts.findById(account.getId())).thenReturn(Optional.of(account));
+        when(hasher.hash("PermanentPassword123")).thenReturn("new-hash");
+        when(generator.generate()).thenReturn(new GeneratedRefreshToken("refresh", now.plus(Duration.ofDays(30))));
+        when(tokenHasher.hash("refresh")).thenReturn("refresh-hash");
+        when(accessTokens.generate(any())).thenReturn(new GeneratedAccessToken("access", now.plusSeconds(900)));
+        return new ChangePasswordUseCase(
+                accounts, refreshTokens, hasher, accessTokens, generator, tokenHasher, Clock.fixed(now, ZoneOffset.UTC)
+        );
+    }
+
+    private UserAccount account(boolean passwordChangeRequired) {
+        return new UserAccount(
+                UUID.randomUUID(), "u@example.com", "old-hash", UserAccountRole.PATIENT,
+                UserAccountStatus.ACTIVE, passwordChangeRequired
+        );
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.NullAndEmptySource
+    @org.junit.jupiter.params.provider.ValueSource(strings = { "anything" })
+    void ignoresTheCurrentPasswordOnFirstAccess(String currentPassword) {
+        var hasher = mock(PasswordHasher.class);
+        var account = account(true);
+
+        var output = useCaseFor(account, hasher, mock(RefreshTokenRepository.class))
+                .execute(new ChangePasswordInput(account.getId(), currentPassword, "PermanentPassword123"));
+
+        assertFalse(output.passwordChangeRequired());
+        assertEquals("new-hash", account.getPasswordHash());
+        org.mockito.Mockito.verify(hasher, org.mockito.Mockito.never()).matches(any(), any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.NullAndEmptySource
+    @org.junit.jupiter.params.provider.ValueSource(strings = { "wrong" })
+    void requiresAMatchingCurrentPasswordAfterFirstAccess(String currentPassword) {
+        var hasher = mock(PasswordHasher.class);
+        var refreshTokens = mock(RefreshTokenRepository.class);
+        var account = account(false);
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                com.ulvratech.pratoemdia.server.features.identity.application.exception.InvalidCredentialsException.class,
+                () -> useCaseFor(account, hasher, refreshTokens)
+                        .execute(new ChangePasswordInput(account.getId(), currentPassword, "PermanentPassword123"))
+        );
+        assertEquals("old-hash", account.getPasswordHash());
+        org.mockito.Mockito.verifyNoInteractions(refreshTokens);
+    }
+
+    @Test
+    void acceptsTheRightCurrentPasswordAfterFirstAccess() {
+        var hasher = mock(PasswordHasher.class);
+        var account = account(false);
+        when(hasher.matches("right", "old-hash")).thenReturn(true);
+
+        useCaseFor(account, hasher, mock(RefreshTokenRepository.class))
+                .execute(new ChangePasswordInput(account.getId(), "right", "PermanentPassword123"));
+
+        assertEquals("new-hash", account.getPasswordHash());
+    }
 }

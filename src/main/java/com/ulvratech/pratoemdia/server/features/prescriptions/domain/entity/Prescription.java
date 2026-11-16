@@ -106,12 +106,43 @@ public class Prescription {
         if (versions.stream().anyMatch(v -> v.getStatus() == PrescriptionVersionStatus.DRAFT))
             throw new IllegalStateException("Prescription already has a draft");
         int next = versions.stream().mapToInt(PrescriptionVersion::getNumber).max().orElse(0) + 1;
-        var source = versions.stream()
-                .max(Comparator.comparingInt(PrescriptionVersion::getNumber))
-                .orElseThrow();
+        var source = copySource();
         var draft = source.copyAsDraft(next, actor);
         versions.add(draft);
         return draft;
+    }
+
+    /**
+     * Versão que serve de base para um novo rascunho: a PUBLISHED; se não houver (a vigente foi
+     * arquivada), a que chegou a ser publicada mais recentemente (maior publishedAt não nulo).
+     * Um rascunho nunca é copiado. Sem nenhuma versão já publicada não há o que copiar e a
+     * operação é recusada (a prescrição nasce com um rascunho e descartá-lo apaga a prescrição,
+     * então esse estado não é alcançável pela API).
+     */
+    private PrescriptionVersion copySource() {
+        return versions.stream()
+                .filter(v -> v.getStatus() == PrescriptionVersionStatus.PUBLISHED)
+                .findFirst()
+                .or(
+                        () -> versions.stream()
+                                .filter(v -> v.getPublishedAt() != null)
+                                .max(Comparator.comparing(PrescriptionVersion::getPublishedAt))
+                )
+                .orElseThrow(() -> new IllegalStateException("Prescription has no published version to copy"));
+    }
+
+    /**
+     * Descarta um rascunho: remove a versão de fato (o número dela fica livre para o próximo
+     * rascunho). Só versão DRAFT pode ser descartada.
+     *
+     * @return true quando não resta nenhuma versão e a prescrição inteira deve ser apagada
+     */
+    public boolean discardDraft(UUID versionId) {
+        var target = requireVersion(versionId);
+        if (target.getStatus() != PrescriptionVersionStatus.DRAFT)
+            throw new IllegalStateException("Only draft versions can be discarded");
+        versions.remove(target);
+        return versions.isEmpty();
     }
 
     public PrescriptionVersion requireVersion(UUID versionId) {
@@ -127,6 +158,17 @@ public class Prescription {
                 .filter(v -> v.getStatus() == PrescriptionVersionStatus.PUBLISHED)
                 .forEach(v -> v.archive(now));
         target.publish(now);
+    }
+
+    /**
+     * Archives the prescription and every version that is not archived yet: the PUBLISHED one (so the
+     * patient stops having a current version) and an open DRAFT (it would be orphaned, since nobody can
+     * publish it once the relationship is over). Already archived versions keep their archivedAt.
+     */
+    public void archive(Instant now) {
+        status = PrescriptionStatus.ARCHIVED;
+        versions.stream()
+                .forEach(v -> v.retire(now));
     }
 
     private void validateVersionNumbers() {

@@ -186,8 +186,19 @@ public class PrescriptionVersion {
     }
 
     public void archive(Instant now) {
+        if (status != PrescriptionVersionStatus.PUBLISHED)
+            throw new IllegalStateException("Only published versions can be archived");
+        status = PrescriptionVersionStatus.ARCHIVED;
+        archivedAt = now;
+    }
+
+    /**
+     * Archives a version of any status when the whole prescription is retired (end of relationship). Unlike
+     * {@link #archive(Instant)}, also accepts an open DRAFT, which can no longer be published.
+     */
+    void retire(Instant now) {
         if (status == PrescriptionVersionStatus.ARCHIVED)
-            throw new IllegalStateException("Version is already archived");
+            return;
         status = PrescriptionVersionStatus.ARCHIVED;
         archivedAt = now;
     }
