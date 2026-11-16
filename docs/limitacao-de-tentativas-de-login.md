@@ -4,7 +4,7 @@ Decisão de 2026-11-03, proposta e implementada sem desenho prévio (o roadmap d
 
 ## Regra
 
-- Conta **só tentativas falhas** (e-mail inexistente ou senha errada). Login bem-sucedido não consome limite, e uma conta inativa com senha correta não conta como falha.
+- Conta **só tentativas falhas** (e-mail inexistente ou senha errada). Login bem-sucedido não consome limite, e uma conta inativa com senha correta, ou recusada por papel × plataforma (`docs/contrato-versao-cliente.md`), não conta como falha.
 - Janela deslizante de 15 minutos, por duas chaves independentes:
   - **por e-mail** (minúsculas, sem espaços): 5 falhas. Vale para e-mails inexistentes também, para a resposta não revelar se a conta existe;
   - **por IP**: 30 falhas, para barrar quem varre muitos e-mails.

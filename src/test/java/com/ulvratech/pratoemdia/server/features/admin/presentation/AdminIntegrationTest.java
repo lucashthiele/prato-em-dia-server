@@ -131,6 +131,11 @@ class AdminIntegrationTest {
         mockMvc.perform(get("/api/v1/admin/users/" + id).cookie(adminAccess))
                 .andExpect(jsonPath("$.accessEmail.status").value("SENT"));
 
+        mockMvc.perform(
+                post("/api/v1/auth/login").header("X-Client-Version", "android/2.0.1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + email + "\",\"password\":\"" + temporary + "\"}")
+        ).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("AUTH_INVALID_CREDENTIALS"));
         var nutritionistAccess = login(email, temporary);
         mockMvc.perform(get("/api/v1/foods").cookie(nutritionistAccess))
                 .andExpect(status().isForbidden())
@@ -142,7 +147,7 @@ class AdminIntegrationTest {
 
         mockMvc.perform(
                 patch("/api/v1/me/password").cookie(nutritionistAccess).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"currentPassword\":\"" + temporary + "\",\"newPassword\":\"a-brand-new-password\"}")
+                        .content("{\"newPassword\":\"a-brand-new-password\"}")
         ).andExpect(status().isOk());
 
         dispatch.execute();

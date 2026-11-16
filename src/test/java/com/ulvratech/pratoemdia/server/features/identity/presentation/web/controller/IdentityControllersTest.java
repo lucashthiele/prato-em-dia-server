@@ -127,4 +127,35 @@ class IdentityControllersTest {
                 .claim("role", role).issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(60))
                 .build();
     }
+
+    @Test
+    void loginForwardsTheClientPlatformOnlyWhenTheHeaderIsWellFormed() {
+        var authenticate = mock(AuthenticateUser.class);
+        when(authenticate.execute(any())).thenReturn(new AuthenticateUserOutput("a", "r", "Bearer", 900, false));
+        var controller = new AuthenticationController(
+                authenticate, mock(RefreshAccessToken.class), mock(LogoutUser.class), cookies()
+        );
+
+        for (var header : new String[] { "web/1.4.2", "ANDROID/2.0.1+45", "garbage", null }) {
+            var request = new org.springframework.mock.web.MockHttpServletRequest();
+            if (header != null) {
+                request.addHeader("X-Client-Version", header);
+            }
+            controller.login(new LoginRequest("user@example.com", "password"), request);
+        }
+
+        verify(authenticate).execute(new AuthenticateUserInput("user@example.com", "password", "127.0.0.1", "web"));
+        verify(authenticate).execute(new AuthenticateUserInput("user@example.com", "password", "127.0.0.1", "android"));
+        verify(authenticate, org.mockito.Mockito.times(2))
+                .execute(new AuthenticateUserInput("user@example.com", "password", "127.0.0.1", null));
+    }
+
+    @Test
+    void changePasswordRequestAcceptsAMissingCurrentPassword() {
+        try (var factory = jakarta.validation.Validation.buildDefaultValidatorFactory()) {
+            var validator = factory.getValidator();
+            assertTrue(validator.validate(new ChangePasswordRequest(null, "new password long")).isEmpty());
+            assertFalse(validator.validate(new ChangePasswordRequest(null, "short")).isEmpty());
+        }
+    }
 }

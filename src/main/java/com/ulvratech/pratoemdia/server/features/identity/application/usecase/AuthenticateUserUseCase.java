@@ -11,6 +11,7 @@ import com.ulvratech.pratoemdia.server.features.identity.application.port.out.Pa
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.RefreshTokenGenerator;
 import com.ulvratech.pratoemdia.server.features.identity.application.port.out.RefreshTokenHasher;
 import com.ulvratech.pratoemdia.server.features.identity.domain.entity.RefreshToken;
+import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccountRole;
 import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccountStatus;
 import com.ulvratech.pratoemdia.server.features.identity.domain.port.out.RefreshTokenRepository;
 import com.ulvratech.pratoemdia.server.features.identity.domain.port.out.UserAccountRepository;
@@ -70,6 +71,11 @@ public class AuthenticateUserUseCase implements AuthenticateUser {
         if (userAccount.getStatus() != UserAccountStatus.ACTIVE) {
             throw new InactiveUserAccountException();
         }
+        // Product rule, checked after the password so the answer never reveals that the account exists.
+        // Deliberately not a limiter failure: the credentials were correct.
+        if (!isAllowedOnPlatform(userAccount.getRole(), input.clientPlatform())) {
+            throw new InvalidCredentialsException();
+        }
 
         var now = clock.instant();
         var accessToken = accessTokenProvider.generate(userAccount);
@@ -90,5 +96,15 @@ public class AuthenticateUserUseCase implements AuthenticateUser {
                 Duration.between(now, accessToken.expiresAt()).toSeconds(),
                 userAccount.isPasswordChangeRequired()
         );
+    }
+
+    private static boolean isAllowedOnPlatform(UserAccountRole role, String platform) {
+        if (platform == null) {
+            return true;
+        }
+        return switch (role) {
+            case PATIENT -> !platform.equals("web");
+            case NUTRITIONIST, ADMIN -> !platform.equals("android") && !platform.equals("ios");
+        };
     }
 }

@@ -35,7 +35,7 @@ public class PasswordController {
     }
 
     @PatchMapping
-    @Operation(summary = "Alterar senha", description = "Substitui a senha atual, revoga as sessões anteriores e renova os cookies de sessão.")
+    @Operation(summary = "Alterar senha", description = "Substitui a senha atual, revoga as sessões anteriores e renova os cookies de sessão. currentPassword é opcional e ignorado quando a conta ainda usa a senha temporária (passwordChangeRequired = true); caso contrário é obrigatório e, se ausente, vazio ou errado, responde 401 AUTH_INVALID_CREDENTIALS.")
     ResponseEntity<AuthenticationResponse> change(
             @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ChangePasswordRequest request
     ) {

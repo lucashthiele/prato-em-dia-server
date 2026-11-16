@@ -7,3 +7,12 @@ Parte da política de compatibilidade de `docs/infraestrutura.md`.
 - Abaixo do mínimo, a resposta é `426` com o envelope de erro padrão e `code = CLIENT_OUTDATED`. O cliente deve exibir a tela de "atualize o aplicativo" (web: recarregar a página).
 - Cabeçalho ausente, malformado ou de plataforma sem mínimo configurado **passa**: curl, Swagger e clientes antigos continuam funcionando. O filtro vale para as rotas protegidas pela cadeia da API (não para `/v3/api-docs` nem `/swagger-ui`).
 - Para forçar a atualização: subir o mínimo na `.env` da VPS e reiniciar a aplicação (ver `docs/trabalho-manual/w3-acesso-admin.md`).
+
+## Papel × plataforma no login (S-02)
+
+`POST /api/v1/auth/login` também usa o cabeçalho, mas como regra de produto, não de segurança (as rotas continuam protegidas por papel):
+
+- conta `PATIENT` com `web/*`, ou conta `NUTRITIONIST`/`ADMIN` com `android/*` ou `ios/*`: `401 AUTH_INVALID_CREDENTIALS`, a mesma resposta de credencial errada, sem cookies;
+- cabeçalho ausente, malformado ou de plataforma desconhecida: o login segue normal;
+- a checagem vem **depois** de validar a senha (como a conta inativa), então a resposta não revela que o e-mail existe;
+- **não conta como falha no limitador** (`docs/limitacao-de-tentativas-de-login.md`): as credenciais estavam certas, e contar puniria quem só abriu o cliente errado. Também zera as falhas do e-mail, como qualquer senha correta.
