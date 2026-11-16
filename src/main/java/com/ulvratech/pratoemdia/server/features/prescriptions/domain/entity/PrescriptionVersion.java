@@ -192,6 +192,17 @@ public class PrescriptionVersion {
         archivedAt = now;
     }
 
+    /**
+     * Archives a version of any status when the whole prescription is retired (end of relationship). Unlike
+     * {@link #archive(Instant)}, also accepts an open DRAFT, which can no longer be published.
+     */
+    void retire(Instant now) {
+        if (status == PrescriptionVersionStatus.ARCHIVED)
+            return;
+        status = PrescriptionVersionStatus.ARCHIVED;
+        archivedAt = now;
+    }
+
     private void ensureDraft() {
         if (status != PrescriptionVersionStatus.DRAFT)
             throw new IllegalStateException("Only draft versions can be changed");

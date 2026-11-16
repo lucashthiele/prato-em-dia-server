@@ -102,9 +102,11 @@ public class AuthenticateUserUseCase implements AuthenticateUser {
         if (platform == null) {
             return true;
         }
-        return switch (role) {
-            case PATIENT -> !platform.equals("web");
-            case NUTRITIONIST, ADMIN -> !platform.equals("android") && !platform.equals("ios");
-        };
+        // if em vez de switch sobre o enum: o switch gera a classe sintética AuthenticateUserUseCase$1,
+        // que o ArchitectureTest (use_cases_implement_inbound_ports) recusa.
+        if (role == UserAccountRole.PATIENT) {
+            return !platform.equals("web");
+        }
+        return !platform.equals("android") && !platform.equals("ios");
     }
 }

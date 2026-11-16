@@ -168,8 +168,7 @@ public class Prescription {
     public void archive(Instant now) {
         status = PrescriptionStatus.ARCHIVED;
         versions.stream()
-                .filter(v -> v.getStatus() != PrescriptionVersionStatus.ARCHIVED)
-                .forEach(v -> v.archive(now));
+                .forEach(v -> v.retire(now));
     }
 
     private void validateVersionNumbers() {
