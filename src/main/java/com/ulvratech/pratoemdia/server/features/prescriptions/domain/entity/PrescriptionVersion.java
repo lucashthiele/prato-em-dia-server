@@ -186,8 +186,8 @@ public class PrescriptionVersion {
     }
 
     public void archive(Instant now) {
-        if (status == PrescriptionVersionStatus.ARCHIVED)
-            throw new IllegalStateException("Version is already archived");
+        if (status != PrescriptionVersionStatus.PUBLISHED)
+            throw new IllegalStateException("Only published versions can be archived");
         status = PrescriptionVersionStatus.ARCHIVED;
         archivedAt = now;
     }
