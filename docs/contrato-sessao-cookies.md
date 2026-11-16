@@ -17,6 +17,8 @@ Contrato do servidor para o portal web e o app Flutter. O código do portal e do
 - `POST /api/v1/auth/refresh`: sem corpo. Lê o cookie `refresh_token`, rotaciona (uso único) e devolve novos cookies. Sem cookie ou com token já usado: `401` (`AUTH_INVALID_REFRESH_TOKEN`). Duas renovações simultâneas fazem a segunda falhar; os clientes renovam em single-flight e repetem uma vez.
 - `POST /api/v1/auth/logout`: sem corpo. Revoga o refresh token do cookie e responde `204` com os dois cookies expirados (`Max-Age=0`).
 - `PATCH /api/v1/me/password`: o corpo da resposta segue o formato do login e os cookies são renovados.
+  - `currentPassword` é opcional. Com `passwordChangeRequired = true` (primeiro acesso, sessão restrita emitida pelo login com a senha temporária) ele é **ignorado**; basta a sessão. Com `passwordChangeRequired = false` continua obrigatório e conferido: ausente, vazio ou errado responde `401 AUTH_INVALID_CREDENTIALS` (não há erro de validação no campo; a conferência é do caso de uso). `newPassword` segue com 12 a 72 caracteres.
+- Login recusado por papel × plataforma: `401 AUTH_INVALID_CREDENTIALS` quando `PATIENT` entra com `X-Client-Version: web/*` ou `NUTRITIONIST`/`ADMIN` com `android/*` ou `ios/*`; ver `docs/contrato-versao-cliente.md`.
 - O header `Authorization: Bearer` **não** é aceito em nenhuma rota.
 
 ## CSRF e CORS
