@@ -14,8 +14,9 @@ public class ProfilesErrorCatalogSection implements ErrorCatalogSection {
         return List.of(
                 error("PROFILE_NOT_FOUND", 404, "O perfil não existe.", "/api/v1/me", "/api/v1/patients/me"),
                 error(
-                        "PROFILE_NOT_AVAILABLE", 403, "O perfil não está disponível para esta conta.",
-                        "/api/v1/me", "/api/v1/patients/me"
+                        "PROFILE_NOT_AVAILABLE", 403,
+                        "O perfil não está disponível para esta conta (ADMIN não tem perfil editável; GET /api/v1/me responde só a conta).",
+                        "PUT /api/v1/me", "/api/v1/patients/me"
                 ),
                 error(
                         "PROFILE_FIELDS_NOT_ALLOWED", 400,

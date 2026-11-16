@@ -4,5 +4,6 @@ import com.ulvratech.pratoemdia.server.features.profiles.domain.enums.ProfileTyp
 
 import java.util.UUID;
 
+/** {@code type} nulo é uma conta sem perfil (ADMIN). */
 public record GetProfileInput(UUID userAccountId, ProfileType type) {
 }

@@ -86,6 +86,7 @@ class AuditEventsIntegrationTest {
                 .andExpect(jsonPath("$.content[0].action").value("USER_STATUS_CHANGED"))
                 .andExpect(jsonPath("$.content[0].actorAccountId").value(admin.getId().toString()))
                 .andExpect(jsonPath("$.content[0].actorName").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.content[0].actorEmail").value(admin.getEmail()))
                 .andExpect(jsonPath("$.content[0].targetAccountId").value(target.getId().toString()))
                 .andExpect(jsonPath("$.content[0].targetEmail").value(target.getEmail()))
                 .andExpect(jsonPath("$.content[1].details").value("first"));
