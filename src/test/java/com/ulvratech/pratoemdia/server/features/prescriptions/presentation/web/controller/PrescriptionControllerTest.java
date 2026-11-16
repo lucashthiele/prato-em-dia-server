@@ -60,6 +60,7 @@ class PrescriptionControllerTest {
         controller.update(jwt, version, request);
         controller.publish(jwt, version);
         controller.archive(jwt, version);
+        controller.discard(jwt, version);
         controller.current(jwt);
 
         verify(commands).create(any(Create.class));
@@ -67,6 +68,7 @@ class PrescriptionControllerTest {
         verify(commands).updateVersion(any(UpdateVersion.class));
         verify(commands).publish(any(VersionQuery.class));
         verify(commands).archive(any(VersionQuery.class));
+        verify(commands).discardVersion(any(VersionQuery.class));
         verify(queries).get(any(PrescriptionQuery.class));
         verify(queries).getVersion(any(VersionQuery.class));
         verify(queries).current(any(Actor.class));

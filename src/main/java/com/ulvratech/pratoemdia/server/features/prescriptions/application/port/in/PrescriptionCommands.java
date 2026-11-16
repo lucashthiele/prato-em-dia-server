@@ -18,5 +18,7 @@ public interface PrescriptionCommands {
 
     PrescriptionOutput.VersionOutput archive(VersionQuery input);
 
+    void discardVersion(VersionQuery input);
+
     PrescriptionOutput updatePlanningMode(UpdatePlanningMode input);
 }

@@ -29,6 +29,12 @@ public class PrescriptionRepositoryAdapter implements PrescriptionRepository {
     }
 
     @Override
+    public void deleteById(UUID id) {
+        repository.deleteById(id);
+        repository.flush();
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Optional<Prescription> findById(UUID id) {
         return repository.findById(id).map(mapper::toDomain);
