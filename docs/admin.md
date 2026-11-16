@@ -10,14 +10,14 @@ Todas as rotas ficam em `/api/v1/admin/**` e exigem o papel `ADMIN` (`403 ACCESS
 | `POST /admin/nutritionists/{id}/access-email` | `202`. Agenda novo e-mail de acesso (nova senha temporária, que substitui as anteriores). Só para nutricionista ativo que ainda não trocou a senha inicial; senão `409 ACCESS_EMAIL_NOT_AVAILABLE`. |
 | `GET /admin/users` | Página (`page`, `size` até 100) com filtros `role`, `status`, `q` (nome ou e-mail). Mais recentes primeiro. |
 | `GET /admin/users/{id}` | Detalhe; `404 USER_ACCOUNT_NOT_FOUND`. |
-| `PATCH /admin/users/{id}/status` | Corpo `{ "status": "ACTIVE" \| "INACTIVE" }`, `204`. Desativar revoga os refresh tokens (o access token em curso vale até expirar, no máximo 15 min). O admin não altera a própria conta: `409 ADMIN_CANNOT_CHANGE_OWN_STATUS`. |
+| `PATCH /admin/users/{id}/status` | Corpo `{ "status": "ACTIVE" \| "INACTIVE", "endRelationships"?: boolean }`, `204`. Desativar revoga os refresh tokens (o access token em curso vale até expirar, no máximo 15 min). O admin não altera a própria conta: `409 ADMIN_CANNOT_CHANGE_OWN_STATUS`. `endRelationships` (padrão `false`): com `true`, só ao **desativar** uma conta `NUTRITIONIST`, encerra na mesma transação todos os vínculos ativos dela (ator do encerramento = o admin), com o efeito do encerramento de vínculo (prescrição do par e a versão publicada passam a `ARCHIVED`; planos e registros ficam) e audita `RELATIONSHIPS_ENDED`. `true` para outro papel ou para ativação: `400 END_RELATIONSHIPS_NOT_APPLICABLE` (decisão: rejeitar, não ignorar). |
 | `GET /admin/audit-events` | Eventos do mais recente ao mais antigo. Filtros: `action`, `actorId`, `targetId`, `from`, `to` (ISO-8601). Período invertido: `400 AUDIT_INVALID_FILTER`. |
 
 `accessEmail` em `GET /admin/users`: `{ status, attempts, lastError }`. Para nutricionista vem da outbox (`PENDING`, `SENT`, `FAILED`, `DEAD`; `lastError = PASSWORD_ALREADY_CHANGED` quando o nutricionista trocou a senha antes do reenvio). Para paciente vem da coluna do vínculo (`PENDING`, `SENT`, `FAILED`). Vem `null` para `ADMIN`.
 
 ## Auditoria
 
-Tabela `audit_event` (V052), gravada na mesma transação da ação: `NUTRITIONIST_CREATED`, `ACCESS_EMAIL_RESENT`, `USER_STATUS_CHANGED` (detalhe `ACTIVE -> INACTIVE`). Não audita login, vínculo nem publicação (decisão do roadmap).
+Tabela `audit_event` (V052), gravada na mesma transação da ação: `NUTRITIONIST_CREATED`, `ACCESS_EMAIL_RESENT`, `USER_STATUS_CHANGED` (detalhe `ACTIVE -> INACTIVE`), `RELATIONSHIPS_ENDED` (detalhe `count=N`, vínculos encerrados pela desativação com `endRelationships`; a coluna `action` aceita o valor desde a V062). Não audita login, vínculo individual nem publicação (decisão do roadmap).
 
 ## Primeiro administrador
 

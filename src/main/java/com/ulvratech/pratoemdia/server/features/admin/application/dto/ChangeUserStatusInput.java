@@ -4,5 +4,9 @@ import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccoun
 
 import java.util.UUID;
 
-public record ChangeUserStatusInput(UUID actorAccountId, UUID targetAccountId, UserAccountStatus status) {
+public record ChangeUserStatusInput(
+        UUID actorAccountId, UUID targetAccountId, UserAccountStatus status, boolean endRelationships) {
+    public ChangeUserStatusInput(UUID actorAccountId, UUID targetAccountId, UserAccountStatus status) {
+        this(actorAccountId, targetAccountId, status, false);
+    }
 }

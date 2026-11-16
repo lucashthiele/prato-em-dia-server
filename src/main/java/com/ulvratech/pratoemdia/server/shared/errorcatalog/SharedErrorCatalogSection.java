@@ -71,6 +71,11 @@ public class SharedErrorCatalogSection implements ErrorCatalogSection {
                         "PATCH /api/v1/admin/users/{id}/status"
                 ),
                 error(
+                        "END_RELATIONSHIPS_NOT_APPLICABLE", 400,
+                        "endRelationships=true só vale ao desativar uma conta NUTRITIONIST (não para outro papel nem para ativação).",
+                        "PATCH /api/v1/admin/users/{id}/status"
+                ),
+                error(
                         "AUDIT_INVALID_FILTER", 400,
                         "O período do filtro de auditoria é inválido (início depois do fim).",
                         "GET /api/v1/admin/audit-events"

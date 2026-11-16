@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.JpaSort;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -50,6 +51,10 @@ public class RelationshipRepositoryAdapter implements RelationshipRepository {
         return repository
                 .findByPatientIdAndStatus(p, RelationshipStatus.ACTIVE)
                 .map(mapper::toDomain);
+    }
+
+    public List<ProfessionalPatientRelationship> findAllActiveByNutritionistAccount(UUID a) {
+        return repository.findAllActiveByNutritionistAccount(a).stream().map(mapper::toDomain).toList();
     }
 
     public Optional<RelationshipView> findActiveViewByNutritionistAccountAndPatient(

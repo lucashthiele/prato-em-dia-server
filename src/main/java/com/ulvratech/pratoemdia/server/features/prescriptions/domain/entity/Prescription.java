@@ -160,6 +160,18 @@ public class Prescription {
         target.publish(now);
     }
 
+    /**
+     * Archives the prescription and every version that is not archived yet: the PUBLISHED one (so the
+     * patient stops having a current version) and an open DRAFT (it would be orphaned, since nobody can
+     * publish it once the relationship is over). Already archived versions keep their archivedAt.
+     */
+    public void archive(Instant now) {
+        status = PrescriptionStatus.ARCHIVED;
+        versions.stream()
+                .filter(v -> v.getStatus() != PrescriptionVersionStatus.ARCHIVED)
+                .forEach(v -> v.archive(now));
+    }
+
     private void validateVersionNumbers() {
         if (versions.stream().map(PrescriptionVersion::getNumber).distinct().count() != versions.size())
             throw new IllegalArgumentException("Duplicate prescription version number");

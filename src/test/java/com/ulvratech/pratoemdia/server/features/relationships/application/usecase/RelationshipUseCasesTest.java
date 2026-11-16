@@ -1,6 +1,7 @@
 package com.ulvratech.pratoemdia.server.features.relationships.application.usecase;
 
 import com.ulvratech.pratoemdia.server.features.identity.application.port.in.RotateInitialPassword;
+import com.ulvratech.pratoemdia.server.features.relationships.application.port.out.RelationshipEndedHandler;
 import com.ulvratech.pratoemdia.server.features.relationships.application.dto.ListRelationshipsInput;
 import com.ulvratech.pratoemdia.server.features.relationships.application.dto.RelationshipQueryInput;
 import com.ulvratech.pratoemdia.server.features.relationships.application.exception.RelationshipConflictException;
@@ -30,11 +31,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class RelationshipUseCasesTest {
     private final Instant now = Instant.parse("2026-09-11T12:00:00Z");
     private final Clock clock = Clock.fixed(now, ZoneOffset.UTC);
+    private final RelationshipEndedHandler archive = mock(RelationshipEndedHandler.class);
 
     @Test
     void endsRelationshipAsNutritionistAndPatient() {
@@ -46,7 +50,7 @@ class RelationshipUseCasesTest {
         when(repository.findActiveViewByPatientAccount(any())).thenReturn(Optional.of(view));
         when(repository.findById(view.relationshipId())).thenReturn(Optional.of(relationship));
 
-        new EndNutritionistRelationshipUseCase(repository, clock).execute(
+        new EndNutritionistRelationshipUseCase(repository, clock, archive).execute(
                 new RelationshipQueryInput(UUID.randomUUID(), view.patientId())
         );
         assertEquals(RelationshipStatus.ENDED, relationship.getStatus());
@@ -54,7 +58,7 @@ class RelationshipUseCasesTest {
         var second = ProfessionalPatientRelationship.create(UUID.randomUUID(), UUID.randomUUID());
         when(repository.findActiveViewByPatientAccount(any())).thenReturn(Optional.of(view(second)));
         when(repository.findById(second.getId())).thenReturn(Optional.of(second));
-        new EndPatientRelationshipUseCase(repository, clock).execute(UUID.randomUUID());
+        new EndPatientRelationshipUseCase(repository, clock, archive).execute(UUID.randomUUID());
         assertEquals(RelationshipStatus.ENDED, second.getStatus());
     }
 
@@ -64,11 +68,11 @@ class RelationshipUseCasesTest {
         var input = new RelationshipQueryInput(UUID.randomUUID(), UUID.randomUUID());
         assertThrows(
                 RelationshipConflictException.class,
-                () -> new EndNutritionistRelationshipUseCase(repository, clock).execute(input)
+                () -> new EndNutritionistRelationshipUseCase(repository, clock, archive).execute(input)
         );
         assertThrows(
                 RelationshipConflictException.class,
-                () -> new EndPatientRelationshipUseCase(repository, clock).execute(UUID.randomUUID())
+                () -> new EndPatientRelationshipUseCase(repository, clock, archive).execute(UUID.randomUUID())
         );
         when(repository.findActiveViewByNutritionistAccountAndPatient(any(), any()))
                 .thenReturn(
@@ -77,7 +81,7 @@ class RelationshipUseCasesTest {
                 );
         assertThrows(
                 RelationshipNotFoundException.class,
-                () -> new EndNutritionistRelationshipUseCase(repository, clock).execute(input)
+                () -> new EndNutritionistRelationshipUseCase(repository, clock, archive).execute(input)
         );
     }
 
@@ -179,5 +183,80 @@ class RelationshipUseCasesTest {
                 "Patient", "patient@example.com", relationship.getNutritionistId(), UUID.randomUUID(),
                 "Nutritionist", relationship.getStatus(), relationship.getEmailDeliveryStatus(), now
         );
+    }
+
+    @Test
+    void endingAsNutritionistOrPatientArchivesThePairsPrescriptions() {
+        var repository = mock(RelationshipRepository.class);
+        var relationship = ProfessionalPatientRelationship.create(UUID.randomUUID(), UUID.randomUUID());
+        var view = view(relationship);
+        when(repository.findActiveViewByNutritionistAccountAndPatient(any(), any()))
+                .thenReturn(Optional.of(view));
+        when(repository.findActiveViewByPatientAccount(any())).thenReturn(Optional.of(view));
+        when(repository.findById(view.relationshipId())).thenReturn(Optional.of(relationship));
+
+        new EndNutritionistRelationshipUseCase(repository, clock, archive).execute(
+                new RelationshipQueryInput(UUID.randomUUID(), view.patientId())
+        );
+        verify(archive).onRelationshipEnded(relationship.getNutritionistId(), relationship.getPatientId());
+    }
+
+    @Test
+    void endingAsPatientArchivesThePairsPrescriptions() {
+        var repository = mock(RelationshipRepository.class);
+        var relationship = ProfessionalPatientRelationship.create(UUID.randomUUID(), UUID.randomUUID());
+        var view = view(relationship);
+        when(repository.findActiveViewByPatientAccount(any())).thenReturn(Optional.of(view));
+        when(repository.findById(view.relationshipId())).thenReturn(Optional.of(relationship));
+
+        new EndPatientRelationshipUseCase(repository, clock, archive).execute(UUID.randomUUID());
+
+        verify(archive).onRelationshipEnded(relationship.getNutritionistId(), relationship.getPatientId());
+    }
+
+    @Test
+    void doesNotArchiveWhenThereIsNoActiveRelationship() {
+        var repository = mock(RelationshipRepository.class);
+        when(repository.findActiveViewByPatientAccount(any())).thenReturn(Optional.empty());
+
+        assertThrows(
+                RelationshipConflictException.class,
+                () -> new EndPatientRelationshipUseCase(repository, clock, archive).execute(UUID.randomUUID())
+        );
+        verify(archive, never()).onRelationshipEnded(any(), any());
+    }
+
+    @Test
+    void endsEveryActiveRelationshipOfANutritionistAccountAndArchivesEachPair() {
+        var repository = mock(RelationshipRepository.class);
+        var nutritionist = UUID.randomUUID();
+        var first = ProfessionalPatientRelationship.create(nutritionist, UUID.randomUUID());
+        var second = ProfessionalPatientRelationship.create(nutritionist, UUID.randomUUID());
+        var account = UUID.randomUUID();
+        var admin = UUID.randomUUID();
+        when(repository.findAllActiveByNutritionistAccount(account)).thenReturn(List.of(first, second));
+
+        int ended = new EndAllNutritionistRelationshipsUseCase(repository, clock, archive).execute(admin, account);
+
+        assertEquals(2, ended);
+        assertEquals(RelationshipStatus.ENDED, first.getStatus());
+        assertEquals(admin, second.getEndedByUserAccountId());
+        assertEquals(now, first.getEndedAt());
+        verify(repository).save(first);
+        verify(repository).save(second);
+        verify(archive).onRelationshipEnded(nutritionist, first.getPatientId());
+        verify(archive).onRelationshipEnded(nutritionist, second.getPatientId());
+    }
+
+    @Test
+    void endingAllRelationshipsOfANutritionistWithNoneReturnsZero() {
+        var repository = mock(RelationshipRepository.class);
+        when(repository.findAllActiveByNutritionistAccount(any())).thenReturn(List.of());
+
+        assertEquals(
+                0, new EndAllNutritionistRelationshipsUseCase(repository, clock, archive)
+                        .execute(UUID.randomUUID(), UUID.randomUUID())
+        );
+        verify(archive, never()).onRelationshipEnded(any(), any());
     }
 }

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.MealType;
+import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PrescriptionStatus;
 import com.ulvratech.pratoemdia.server.features.prescriptions.domain.enums.PrescriptionVersionStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -157,6 +158,41 @@ class PrescriptionTest {
                         List.of(first, second)
                 )
         );
+    }
+
+    @Test
+    void archivingArchivesThePublishedVersionAndAnOpenDraft() {
+        var prescription = prescription();
+        var first = prescription.getVersions().getFirst();
+        prescription.publish(first.getId(), Instant.parse("2026-09-11T12:00:00Z"));
+        var draft = prescription.addDraft(UUID.randomUUID());
+        var now = Instant.parse("2026-09-12T12:00:00Z");
+
+        prescription.archive(now);
+
+        assertEquals(PrescriptionStatus.ARCHIVED, prescription.getStatus());
+        assertEquals(PrescriptionVersionStatus.ARCHIVED, first.getStatus());
+        assertEquals(now, first.getArchivedAt());
+        assertEquals(PrescriptionVersionStatus.ARCHIVED, draft.getStatus());
+        assertEquals(now, draft.getArchivedAt());
+        assertThrows(IllegalStateException.class, () -> prescription.addDraft(UUID.randomUUID()));
+    }
+
+    @Test
+    void archivingKeepsTheArchivedAtOfVersionsAlreadyArchivedAndIsIdempotent() {
+        var prescription = prescription();
+        var first = prescription.getVersions().getFirst();
+        var firstArchive = Instant.parse("2026-09-11T12:01:00Z");
+        prescription.publish(first.getId(), Instant.parse("2026-09-11T12:00:00Z"));
+        var second = prescription.addDraft(UUID.randomUUID());
+        prescription.publish(second.getId(), firstArchive);
+
+        prescription.archive(Instant.parse("2026-09-12T12:00:00Z"));
+        prescription.archive(Instant.parse("2026-09-13T12:00:00Z"));
+
+        assertEquals(firstArchive, first.getArchivedAt());
+        assertEquals(Instant.parse("2026-09-12T12:00:00Z"), second.getArchivedAt());
+        assertEquals(PrescriptionStatus.ARCHIVED, prescription.getStatus());
     }
 
     private Prescription prescription() {
