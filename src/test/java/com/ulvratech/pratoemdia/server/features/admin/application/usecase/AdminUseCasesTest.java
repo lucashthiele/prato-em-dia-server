@@ -19,6 +19,8 @@ import com.ulvratech.pratoemdia.server.features.identity.application.port.in.Cha
 import com.ulvratech.pratoemdia.server.features.identity.application.port.in.ProvisionNutritionistAccount;
 import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccountRole;
 import com.ulvratech.pratoemdia.server.features.identity.domain.enums.UserAccountStatus;
+import com.ulvratech.pratoemdia.server.features.admin.application.exception.EndRelationshipsNotApplicableException;
+import com.ulvratech.pratoemdia.server.features.relationships.application.port.in.EndAllNutritionistRelationships;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -40,6 +42,12 @@ class AdminUseCasesTest {
     private final RecordAuditEvent audit = mock(RecordAuditEvent.class);
     private final ChangeUserAccountStatus changeStatus = mock(ChangeUserAccountStatus.class);
     private final AdminUserQuery query = mock(AdminUserQuery.class);
+    private final EndAllNutritionistRelationships endRelationships = mock(EndAllNutritionistRelationships.class);
+
+    private ChangeUserStatusUseCase changeStatusUseCase() {
+        return new ChangeUserStatusUseCase(changeStatus, audit, query, endRelationships);
+    }
+
     private final UUID admin = UUID.randomUUID();
     private final UUID target = UUID.randomUUID();
 
@@ -111,7 +119,7 @@ class AdminUseCasesTest {
         when(changeStatus.execute(new ChangeUserAccountStatusInput(target, UserAccountStatus.INACTIVE)))
                 .thenReturn(UserAccountStatus.ACTIVE);
 
-        new ChangeUserStatusUseCase(changeStatus, audit)
+        changeStatusUseCase()
                 .execute(new ChangeUserStatusInput(admin, target, UserAccountStatus.INACTIVE));
 
         verify(audit).execute(
@@ -123,7 +131,7 @@ class AdminUseCasesTest {
     void anUnchangedStatusIsNotAudited() {
         when(changeStatus.execute(any())).thenReturn(UserAccountStatus.ACTIVE);
 
-        new ChangeUserStatusUseCase(changeStatus, audit)
+        changeStatusUseCase()
                 .execute(new ChangeUserStatusInput(admin, target, UserAccountStatus.ACTIVE));
 
         verify(audit, never()).execute(any());
@@ -133,9 +141,87 @@ class AdminUseCasesTest {
     void anAdminCannotChangeTheirOwnStatus() {
         assertThrows(
                 AdminCannotChangeOwnStatusException.class,
-                () -> new ChangeUserStatusUseCase(changeStatus, audit)
+                () -> changeStatusUseCase()
                         .execute(new ChangeUserStatusInput(admin, admin, UserAccountStatus.INACTIVE))
         );
         verify(changeStatus, never()).execute(any());
+    }
+
+    @Test
+    void deactivatingANutritionistWithEndRelationshipsEndsThemAndAuditsTheCount() {
+        when(query.findById(target)).thenReturn(Optional.of(account(UserAccountRole.NUTRITIONIST)));
+        when(changeStatus.execute(new ChangeUserAccountStatusInput(target, UserAccountStatus.INACTIVE)))
+                .thenReturn(UserAccountStatus.ACTIVE);
+        when(endRelationships.execute(admin, target)).thenReturn(3);
+
+        changeStatusUseCase().execute(new ChangeUserStatusInput(admin, target, UserAccountStatus.INACTIVE, true));
+
+        var order = inOrder(changeStatus, endRelationships, audit);
+        order.verify(changeStatus).execute(any());
+        order.verify(audit).execute(
+                new RecordAuditEventInput(admin, AuditAction.USER_STATUS_CHANGED, target, "ACTIVE -> INACTIVE")
+        );
+        order.verify(endRelationships).execute(admin, target);
+        order.verify(audit).execute(
+                new RecordAuditEventInput(admin, AuditAction.RELATIONSHIPS_ENDED, target, "count=3")
+        );
+    }
+
+    @Test
+    void withoutEndRelationshipsTheRelationshipsAreUntouched() {
+        when(changeStatus.execute(any())).thenReturn(UserAccountStatus.ACTIVE);
+
+        changeStatusUseCase().execute(new ChangeUserStatusInput(admin, target, UserAccountStatus.INACTIVE));
+
+        verify(endRelationships, never()).execute(any(), any());
+    }
+
+    @Test
+    void endRelationshipsOnAnAlreadyInactiveNutritionistStillEndsAndAudits() {
+        when(query.findById(target)).thenReturn(Optional.of(account(UserAccountRole.NUTRITIONIST)));
+        when(changeStatus.execute(any())).thenReturn(UserAccountStatus.INACTIVE);
+        when(endRelationships.execute(admin, target)).thenReturn(0);
+
+        changeStatusUseCase().execute(new ChangeUserStatusInput(admin, target, UserAccountStatus.INACTIVE, true));
+
+        verify(audit, never()).execute(
+                new RecordAuditEventInput(admin, AuditAction.USER_STATUS_CHANGED, target, "INACTIVE -> INACTIVE")
+        );
+        verify(audit).execute(new RecordAuditEventInput(admin, AuditAction.RELATIONSHIPS_ENDED, target, "count=0"));
+    }
+
+    @Test
+    void endRelationshipsIsRejectedForOtherRolesAndForActivation() {
+        when(query.findById(target)).thenReturn(Optional.of(account(UserAccountRole.PATIENT)));
+        assertThrows(
+                EndRelationshipsNotApplicableException.class,
+                () -> changeStatusUseCase()
+                        .execute(new ChangeUserStatusInput(admin, target, UserAccountStatus.INACTIVE, true))
+        );
+        when(query.findById(target)).thenReturn(Optional.of(account(UserAccountRole.NUTRITIONIST)));
+        assertThrows(
+                EndRelationshipsNotApplicableException.class,
+                () -> changeStatusUseCase()
+                        .execute(new ChangeUserStatusInput(admin, target, UserAccountStatus.ACTIVE, true))
+        );
+        verify(changeStatus, never()).execute(any());
+        verify(endRelationships, never()).execute(any(), any());
+    }
+
+    @Test
+    void endRelationshipsOnAnUnknownAccountIsNotFound() {
+        when(query.findById(target)).thenReturn(Optional.empty());
+
+        assertThrows(
+                UserAccountNotFoundException.class,
+                () -> changeStatusUseCase()
+                        .execute(new ChangeUserStatusInput(admin, target, UserAccountStatus.INACTIVE, true))
+        );
+    }
+
+    private AdminUserView account(UserAccountRole role) {
+        return new AdminUserView(
+                target, "x@example.com", role, UserAccountStatus.ACTIVE, false, "Nome", null, Instant.now(), null
+        );
     }
 }
