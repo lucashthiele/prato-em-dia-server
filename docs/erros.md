@@ -20,6 +20,12 @@ estes:
 - `message`: texto em português, sem detalhes internos.
 - `errors[]`: erros por campo (`field`, `code`, `message`), preenchido nas falhas de validação.
 
+Exceção ao "só nas falhas de validação": `409 RELATIONSHIP_ALREADY_EXISTS`
+(`POST /api/v1/nutritionists/me/patients`) devolve o id do paciente já vinculado em
+`errors[0]`, com `field = "patientId"`, `code = "RELATIONSHIP_ALREADY_EXISTS"` e `message`
+igual ao UUID do paciente. `RELATIONSHIP_CONFLICT` fica só para vínculo ativo com outro
+nutricionista.
+
 ## Catálogo de códigos
 
 O catálogo (código, status HTTP, significado e rotas) é publicado na especificação
