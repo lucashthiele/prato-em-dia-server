@@ -11,13 +11,13 @@ Todas as rotas ficam em `/api/v1/admin/**` e exigem o papel `ADMIN` (`403 ACCESS
 | `GET /admin/users` | Página (`page`, `size` até 100) com filtros `role`, `status`, `q` (nome ou e-mail). Mais recentes primeiro. |
 | `GET /admin/users/{id}` | Detalhe; `404 USER_ACCOUNT_NOT_FOUND`. |
 | `PATCH /admin/users/{id}/status` | Corpo `{ "status": "ACTIVE" \| "INACTIVE" }`, `204`. Desativar revoga os refresh tokens (o access token em curso vale até expirar, no máximo 15 min). O admin não altera a própria conta: `409 ADMIN_CANNOT_CHANGE_OWN_STATUS`. |
-| `GET /admin/audit-events` | Eventos do mais recente ao mais antigo. Filtros: `action`, `actorId`, `targetId`, `from`, `to` (ISO-8601). Período invertido: `400 AUDIT_INVALID_FILTER`. |
+| `GET /admin/audit-events` | Eventos do mais recente ao mais antigo. Filtros: `action` (`NUTRITIONIST_CREATED`, `ACCESS_EMAIL_RESENT`, `USER_STATUS_CHANGED`, `RELATIONSHIPS_ENDED`), `actorId`, `targetId`, `from`, `to` (ISO-8601). Período invertido: `400 AUDIT_INVALID_FILTER`. Cada evento: `{ id, occurredAt, actorAccountId, actorName, action, targetAccountId, targetName, targetEmail, details }`. Os nomes e o e-mail do alvo são resolvidos em lote para a página (uma consulta em `admin_user_view`); vêm `null` quando não há alvo ou conta, e `actorName`/`targetName` também quando a conta não tem perfil (ex.: `ADMIN`). |
 
 `accessEmail` em `GET /admin/users`: `{ status, attempts, lastError }`. Para nutricionista vem da outbox (`PENDING`, `SENT`, `FAILED`, `DEAD`; `lastError = PASSWORD_ALREADY_CHANGED` quando o nutricionista trocou a senha antes do reenvio). Para paciente vem da coluna do vínculo (`PENDING`, `SENT`, `FAILED`). Vem `null` para `ADMIN`.
 
 ## Auditoria
 
-Tabela `audit_event` (V052), gravada na mesma transação da ação: `NUTRITIONIST_CREATED`, `ACCESS_EMAIL_RESENT`, `USER_STATUS_CHANGED` (detalhe `ACTIVE -> INACTIVE`). Não audita login, vínculo nem publicação (decisão do roadmap).
+Tabela `audit_event` (V052), gravada na mesma transação da ação: `NUTRITIONIST_CREATED`, `ACCESS_EMAIL_RESENT`, `USER_STATUS_CHANGED` (detalhe `ACTIVE -> INACTIVE`) e `RELATIONSHIPS_ENDED`. Não audita login, criação de vínculo nem publicação (decisão do roadmap).
 
 ## Primeiro administrador
 
