@@ -3,6 +3,8 @@ package com.ulvratech.pratoemdia.server.features.catalog.infrastructure.persiste
 import com.ulvratech.pratoemdia.server.features.catalog.domain.entity.FoodPortion;
 import com.ulvratech.pratoemdia.server.features.catalog.domain.port.out.FoodPortionRepository;
 import com.ulvratech.pratoemdia.server.features.catalog.infrastructure.persistence.mapper.FoodPortionMapper;
+import com.ulvratech.pratoemdia.server.features.catalog.infrastructure.persistence.model.FoodPortionModel;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,8 +53,18 @@ public class FoodPortionRepositoryAdapter implements FoodPortionRepository {
     ) {
         if (foodIds.isEmpty())
             return List.of();
-        repository.deleteAllByFoodIdInAndSourceTypeIsNotNull(List.copyOf(foodIds));
-        repository.flush();
+        // Imported portion ids are deterministic, so a portion that still exists is updated in place: deleting and
+        // re-inserting it broke the prescriptions and plans that reference it (food_portion foreign keys). Only
+        // portions the source no longer publishes are removed.
+        var desired = portions.stream().map(FoodPortion::getId).collect(Collectors.toSet());
+        var stale = repository.findAllByFoodIdInAndSourceTypeIsNotNull(List.copyOf(foodIds)).stream()
+                .map(FoodPortionModel::getId)
+                .filter(id -> !desired.contains(id))
+                .toList();
+        if (!stale.isEmpty()) {
+            repository.deleteAllByIdInBatch(stale);
+            repository.flush();
+        }
         return repository.saveAll(portions.stream().map(mapper::toModel).toList()).stream()
                 .map(mapper::toDomain)
                 .toList();

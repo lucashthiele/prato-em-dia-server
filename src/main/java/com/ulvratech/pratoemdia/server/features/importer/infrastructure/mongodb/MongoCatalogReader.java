@@ -75,6 +75,9 @@ public class MongoCatalogReader {
         var portions = rawPortions.stream()
                 .map(value -> asDocument(value, externalId + ": invalid portion"))
                 .map(portion -> toPortion(externalId, portion))
+                // TBCA sometimes publishes the same household portion twice (same label, quantity and
+                // nutrients); an exact copy carries no information. Same identity with other content still fails.
+                .distinct()
                 .toList();
         long distinctPortions = portions.stream().map(
                 portion -> List.of(
@@ -133,7 +136,7 @@ public class MongoCatalogReader {
             String externalId, String label, String code, Document nutrient
     ) {
         try {
-            var status = NutrientValueStatus.valueOf(requiredString(nutrient, "status"));
+            var status = status(requiredString(nutrient, "status"));
             BigDecimal amount = decimal(nutrient.get("amount"));
             if (amount != null && amount.signum() < 0) {
                 throw new IllegalArgumentException("amount must not be negative");
@@ -149,6 +152,11 @@ public class MongoCatalogReader {
                     externalId + "/" + label + "/" + code + ": " + exception.getMessage(), exception
             );
         }
+    }
+
+    /** The scraper marks an empty TBCA cell as UNKNOWN; like an empty TACO cell, that is NOT_AVAILABLE. */
+    private static NutrientValueStatus status(String raw) {
+        return "UNKNOWN".equals(raw) ? NutrientValueStatus.NOT_AVAILABLE : NutrientValueStatus.valueOf(raw);
     }
 
     private Document asDocument(Object value, String message) {

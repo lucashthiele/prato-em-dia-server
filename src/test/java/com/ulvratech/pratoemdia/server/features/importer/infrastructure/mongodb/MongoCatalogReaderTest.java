@@ -124,10 +124,42 @@ class MongoCatalogReaderTest {
                         )
                 )
         );
-        var duplicate = portion("STANDARD", "100 g", 100, "g", nutrients(1));
+        // Same portion identity with different content is still ambiguous.
         assertThrows(
                 IllegalArgumentException.class,
-                () -> reader.toRecord(base(List.of(duplicate, duplicate)))
+                () -> reader.toRecord(
+                        base(
+                                List.of(
+                                        portion("STANDARD", "100 g", 100, "g", nutrients(1)),
+                                        portion("STANDARD", "100 g", 100, "g", nutrients(2))
+                                )
+                        )
+                )
+        );
+    }
+
+    @Test
+    void dropsAnExactCopyOfAPortion() {
+        var standard = portion("STANDARD", "100 g", 100, "g", nutrients(1));
+        var spoon = portion("HOUSEHOLD", "Colher sopa cheia", 12, "g", nutrients(1));
+
+        var result = reader.toRecord(base(List.of(standard, spoon, spoon)));
+
+        assertEquals(2, result.portions().size());
+    }
+
+    @Test
+    void readsAnEmptyTbcaCellMarkedUnknownAsNotAvailable() {
+        var unknown = new Document(
+                "added_fat", new Document("amount", null).append("unit", "g")
+                        .append("status", "UNKNOWN").append("rawValue", "")
+        );
+
+        var result = reader.toRecord(base(List.of(portion("STANDARD", "100 g", 100, "g", unknown))));
+
+        assertEquals(
+                NutrientValueStatus.NOT_AVAILABLE,
+                result.portions().getFirst().nutrients().get("added_fat").status()
         );
     }
 
