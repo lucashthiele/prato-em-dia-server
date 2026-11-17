@@ -29,7 +29,7 @@ class CurrentProfileControllerTest {
         var update = mock(UpdateCurrentProfile.class);
         var id = UUID.randomUUID();
         var output = new ProfileOutput(
-                UUID.randomUUID(), id, "PATIENT", "Name", "123",
+                UUID.randomUUID(), id, "PATIENT", "p@exemplo.com", "Name", "123",
                 null, null, LocalDate.of(2000, 1, 1), Instant.now(), Instant.now()
         );
         when(get.execute(any())).thenReturn(output);
@@ -47,6 +47,25 @@ class CurrentProfileControllerTest {
         );
         verify(get).execute(any(GetProfileInput.class));
         verify(update).execute(any(UpdateProfileInput.class));
+    }
+
+    @Test
+    void getsTheAdminAccountWithoutAProfileButRejectsUpdatingIt() {
+        var get = mock(GetCurrentProfile.class);
+        var id = UUID.randomUUID();
+        when(get.execute(new GetProfileInput(id, null)))
+                .thenReturn(ProfileOutput.admin(id, "admin@exemplo.com"));
+        var controller = new CurrentProfileController(get, mock(UpdateCurrentProfile.class));
+
+        var response = controller.get(jwt(id, "ADMIN"));
+
+        assertEquals("ADMIN", response.role());
+        assertEquals("admin@exemplo.com", response.email());
+        assertEquals(id, response.userAccountId());
+        assertThrows(
+                ProfileNotAvailableException.class,
+                () -> controller.update(jwt(id, "ADMIN"), new UpdateCurrentProfileRequest("A", null, null, null, null))
+        );
     }
 
     @Test

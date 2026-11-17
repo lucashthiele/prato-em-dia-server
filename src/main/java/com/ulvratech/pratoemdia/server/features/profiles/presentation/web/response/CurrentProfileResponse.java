@@ -10,6 +10,7 @@ public record CurrentProfileResponse(
         UUID id,
         UUID userAccountId,
         String role,
+        String email,
         String fullName,
         String phone,
         String registrationNumber,
@@ -19,7 +20,7 @@ public record CurrentProfileResponse(
         Instant updatedAt) {
     public static CurrentProfileResponse from(ProfileOutput output) {
         return new CurrentProfileResponse(
-                output.id(), output.userAccountId(), output.role(), output.fullName(),
+                output.id(), output.userAccountId(), output.role(), output.email(), output.fullName(),
                 output.phone(), output.registrationNumber(), output.bio(),
                 output.birthDate(), output.createdAt(), output.updatedAt()
         );

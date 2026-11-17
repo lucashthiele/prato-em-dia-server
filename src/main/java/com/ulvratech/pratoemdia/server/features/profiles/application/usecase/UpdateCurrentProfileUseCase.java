@@ -5,6 +5,7 @@ import com.ulvratech.pratoemdia.server.features.profiles.application.dto.UpdateP
 import com.ulvratech.pratoemdia.server.features.profiles.application.exception.InvalidProfileFieldsException;
 import com.ulvratech.pratoemdia.server.features.profiles.application.exception.ProfileNotFoundException;
 import com.ulvratech.pratoemdia.server.features.profiles.application.port.in.UpdateCurrentProfile;
+import com.ulvratech.pratoemdia.server.features.profiles.application.port.out.AccountEmailReader;
 import com.ulvratech.pratoemdia.server.features.profiles.domain.enums.ProfileType;
 import com.ulvratech.pratoemdia.server.features.profiles.domain.port.out.UserProfileRepository;
 import jakarta.transaction.Transactional;
@@ -14,9 +15,11 @@ import org.springframework.stereotype.Service;
 @Transactional
 public class UpdateCurrentProfileUseCase implements UpdateCurrentProfile {
     private final UserProfileRepository repository;
+    private final AccountEmailReader emails;
 
-    public UpdateCurrentProfileUseCase(UserProfileRepository repository) {
+    public UpdateCurrentProfileUseCase(UserProfileRepository repository, AccountEmailReader emails) {
         this.repository = repository;
+        this.emails = emails;
     }
 
     @Override
@@ -32,7 +35,7 @@ public class UpdateCurrentProfileUseCase implements UpdateCurrentProfile {
             profile.replacePatient(input.birthDate());
         }
 
-        return ProfileOutput.from(repository.save(profile));
+        return ProfileOutput.from(repository.save(profile), emails.email(input.userAccountId()));
     }
 
     private void validateFieldsForType(UpdateProfileInput input) {
