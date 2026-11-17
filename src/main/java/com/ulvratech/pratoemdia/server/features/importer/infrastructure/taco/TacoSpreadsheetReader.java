@@ -25,7 +25,9 @@ public class TacoSpreadsheetReader {
     private static final BigDecimal NEGATIVE_CARBOHYDRATE_ROUNDING_LIMIT = new BigDecimal("-0.1");
 
     private static final List<NutrientColumn> NUTRIENTS = List.of(
-            new NutrientColumn(2, "humidity", "%"),
+            // The TACO sheet labels humidity as %, but values are per 100 g, so 1 % == 1 g. The catalog keeps one
+            // unit per nutrient (V019) and the TBCA import already stores humidity in g.
+            new NutrientColumn(2, "humidity", "g"),
             new NutrientColumn(3, "energy_kcal", "kcal"),
             new NutrientColumn(4, "energy_kj", "kJ"),
             new NutrientColumn(5, "protein", "g"),
