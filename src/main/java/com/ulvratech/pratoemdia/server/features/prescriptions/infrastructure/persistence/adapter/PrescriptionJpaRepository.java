@@ -18,7 +18,9 @@ interface PrescriptionJpaRepository extends JpaRepository<PrescriptionModel, UUI
             UUID nutritionistId, UUID patientId, PrescriptionStatus status
     );
 
-    @Query("select distinct p from PrescriptionModel p join p.versions v "
+    // Sem "distinct": o PostgreSQL recusa SELECT DISTINCT com ORDER BY em coluna fora da seleção, e a
+    // prescrição tem no máximo uma versão publicada, então o join não duplica linhas.
+    @Query("select p from PrescriptionModel p join p.versions v "
             + "where p.patientId=:patientId and p.status=:rootStatus and v.status=:versionStatus "
             + "order by v.publishedAt desc")
     List<PrescriptionModel> findCurrentByPatient(

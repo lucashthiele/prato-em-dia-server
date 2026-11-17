@@ -32,7 +32,7 @@ public class FoodModel {
     @Id
     private UUID id;
 
-    @Column(nullable = false, length = 180)
+    @Column(nullable = false, length = 255)
     private String name;
 
     @Column(length = 180)
@@ -73,7 +73,7 @@ public class FoodModel {
     @Column(name = "source_version", length = 100)
     private String sourceVersion;
 
-    @Column(name = "normalized_name", length = 180)
+    @Column(name = "normalized_name", length = 255)
     private String normalizedName;
 
     @CreationTimestamp

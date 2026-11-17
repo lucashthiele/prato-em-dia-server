@@ -20,7 +20,8 @@ public class PlanningQueryAdapter {
     public record PlanSlot(UUID planId, UUID versionId, PlanningMode mode, LocalDate mealDate, MealType mealType) {
     }
 
-    public record PlannedItemRef(UUID foodId, UUID prescribedItemId) {
+    /** {@code allowedSubstitutionId} is set when the patient swapped this item in the plan (P-05). */
+    public record PlannedItemRef(UUID foodId, UUID prescribedItemId, UUID allowedSubstitutionId) {
     }
 
     public record PlannedMealOn(UUID id, MealType mealType, PlanningMode mode, List<UUID> itemIds) {
@@ -74,7 +75,11 @@ public class PlanningQueryAdapter {
 
     public Optional<PlannedItemRef> plannedItem(UUID plannedItemId, UUID plannedMealId) {
         return items.findByIdAndMealId(plannedItemId, plannedMealId)
-                .map(item -> new PlannedItemRef(item.getFoodId(), item.getPrescribedMealItemId()));
+                .map(
+                        item -> new PlannedItemRef(
+                                item.getFoodId(), item.getPrescribedMealItemId(), item.getAllowedSubstitutionId()
+                        )
+                );
     }
 
     public List<PlannedMealOn> plannedMealsOn(UUID patientId, LocalDate date) {
