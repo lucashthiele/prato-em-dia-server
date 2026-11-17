@@ -11,6 +11,7 @@ Prazo: entrega final do TCC em 17/11/2026.
 | P-02 | Q1 | Recusar execução sem itens | Recomendado |
 | P-03 | Q8 | Prescrição atual com modo, autor e nomes dos alimentos | Recomendado |
 | P-04 | Teste E2E | `GET /patients/me/prescriptions/current` responde 500 sempre | **Bloqueante**, aplicado em `fix/p04-prescricao-atual` |
+| P-05 | Teste E2E portal → app | "Com substituição" ignora a troca feita no plano | Recomendado, aplicado em `fix/p04-prescricao-atual` |
 
 ## P-01: Glossário com "Sem registro"
 
@@ -73,6 +74,26 @@ Prazo: entrega final do TCC em 17/11/2026.
   o estado sem prescrição (Q24, A-01), as opções de troca na Semana (Q19) nem o
   horário sugerido do registro (Q17). O app degrada e não quebra, mas a
   demonstração depende dela.
+
+## P-05: "Com substituição" ignora a troca feita no plano
+
+- **Sintoma:** no teste E2E (portal → app → portal), o paciente trocou um item
+  na Semana por uma substituição autorizada (`PATCH /weekly-plans/{planId}`) e
+  registrou esse item. O portal mostrou o almoço como Parcial, mas
+  "Com substituição" ficou em 0, e o detalhe do dia não marca a troca.
+- **Causa:** depois da troca, o item planejado já é o alimento substituto, com
+  `allowedSubstitutionId` guardado no item do plano (`WeeklyPlanOutput`). Ao
+  registrar, o alimento é igual ao planejado, e o servidor recusa
+  `allowedSubstitutionId` nesse caso ("Substitution reference is not
+  applicable", `ExecutionDataAdapter.java:339`). A marca do portal só olha o
+  `allowedSubstitutionId` da execução, então a troca feita no plano nunca
+  aparece.
+- **Pedido:** a marca "Com substituição" da categoria (resumo da semana e
+  detalhe do dia) também deve valer quando o item planejado coberto tem
+  `allowedSubstitutionId`. A alternativa é a execução herdar o
+  `allowedSubstitutionId` do item planejado quando o alimento for o mesmo.
+- **Impacto:** a demonstração mostra a troca no app, mas o nutricionista não a
+  vê destacada no portal (A-05).
 
 ## Considerado e descartado
 

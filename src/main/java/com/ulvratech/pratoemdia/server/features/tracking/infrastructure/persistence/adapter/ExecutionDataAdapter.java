@@ -77,7 +77,8 @@ public class ExecutionDataAdapter implements ExecutionData {
         if (repeated != null)
             return repeatedExecution(patientId, key, repeated);
         var context = context(patientId, input.date(), input.plannedMealId());
-        validateItems(context, input.plannedMealId(), input.items());
+        var items = withPlannedSubstitutions(input.plannedMealId(), input.items());
+        validateItems(context, input.plannedMealId(), items);
         var slot = slot(context, input, null, null);
         var now = now();
         var model = MealExecutionModel.builder()
@@ -85,7 +86,7 @@ public class ExecutionDataAdapter implements ExecutionData {
                 .time(slot.time()).mealType(slot.type()).plannedMealId(input.plannedMealId())
                 .weeklyPlanId(context.planId()).prescriptionVersionId(context.versionId())
                 .mode(context.mode()).version(1).createdAt(now).updatedAt(now).build();
-        saveItems(model, input.items());
+        saveItems(model, items);
         try {
             model = executions.saveAndFlush(model);
         } catch (DataIntegrityViolationException exception) {
@@ -134,12 +135,13 @@ public class ExecutionDataAdapter implements ExecutionData {
                 || !Objects.equals(model.getPlannedMealId(), input.plannedMealId()))
             throw conflict("Use move to change the execution destination");
         var context = context(patientId, input.date(), input.plannedMealId());
-        validateItems(context, input.plannedMealId(), input.items());
+        var items = withPlannedSubstitutions(input.plannedMealId(), input.items());
+        validateItems(context, input.plannedMealId(), items);
         var slot = slot(context, input, model.getTime(), model.getMealType());
         model.setTime(slot.time());
         model.setMealType(slot.type());
         touch(model);
-        replaceItems(model, input.items());
+        replaceItems(model, items);
         executions.saveAndFlush(model);
         var result = mapper.toExecution(model);
         saveCommand(patientId, key, hash, id, model.getVersion(), result);
@@ -308,6 +310,33 @@ public class ExecutionDataAdapter implements ExecutionData {
         return new Slot(time, type);
     }
 
+    /**
+     * A planned item the patient swapped in the plan (PATCH) already is the substitute food. Logging that same food
+     * inherits the plan's {@code allowedSubstitutionId}, so the execution keeps the "Com substituição" mark (P-05).
+     */
+    private List<ItemInput> withPlannedSubstitutions(UUID mealId, List<ItemInput> items) {
+        if (mealId == null || items == null)
+            return items;
+        return items.stream()
+                .map(item -> {
+                    if (item == null || item.plannedItemId() == null || item.allowedSubstitutionId() != null)
+                        return item;
+                    return lookups.plannedItem(item.plannedItemId(), mealId)
+                            .filter(
+                                    planned -> planned.allowedSubstitutionId() != null
+                                            && planned.foodId().equals(item.foodId())
+                            )
+                            .map(
+                                    planned -> new ItemInput(
+                                            item.foodId(), item.portionId(), item.unit(), item.quantity(),
+                                            item.multiplier(), item.plannedItemId(), planned.allowedSubstitutionId()
+                                    )
+                            )
+                            .orElse(item);
+                })
+                .toList();
+    }
+
     private void validateItems(Context context, UUID mealId, List<ItemInput> items) {
         Set<UUID> seen = new HashSet<>();
         boolean free = context.mode() == PlanningMode.FREE;
@@ -334,7 +363,9 @@ public class ExecutionDataAdapter implements ExecutionData {
                                     item.foodId(), item.portionId()
                             ))
                         throw invalid("Substitution is not authorized");
-                } else if (item.allowedSubstitutionId() != null)
+                } else if (item.allowedSubstitutionId() != null
+                        && !item.allowedSubstitutionId().equals(planned.allowedSubstitutionId()))
+                    // The same food may carry only the swap the plan already holds (P-05).
                     throw invalid("Substitution reference is not applicable");
             } else if (item.allowedSubstitutionId() != null)
                 throw invalid("Substitution requires a planned item");
